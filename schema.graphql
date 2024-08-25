@@ -1,0 +1,55 @@
+type Query{
+    shop(id: ID!):Shop
+    shops(): [Shop!]!
+}
+
+type Mutation{
+    createShop(shop: ShopInput!)
+    updateShop(id:ID!)
+    deleteShop(id:ID!)
+}
+
+enum ShopStatus{
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+}
+
+type Shop
+	# "id": 1
+    id: ID!
+	# "owner_id": TODO: should come from header
+	# "title": "shop title",
+    title: String!
+	# "domain": "shoptitle123@hellocart.com",
+    domain: String!
+	# "contact_phone": "(234) 90 345 234",
+    contactPhone: String
+	# "contact_email": "hello@example.com",
+    contactEmail: String
+	# "whatsapp": "https://wa.me/text=I'm%20inquiring",
+    whatsAppUrl: String
+	# "logo_url": "https://url_image_link",
+    siteLogoUrl: String
+	# "favicon_url": "https://url_image_link",
+    faviconUrl: String
+	# "currency": "NGN | USD",
+    currency: String
+	# "status": "DRAFT | PUBLISHED | ARCHIVED",
+    status: ShopStatus=DRAFT
+	# "about": "Very long richtext description of your store",
+    about: String
+	# "template_id": "WyJQcm9kdWN0IiwxXQ==",
+    template: StoreFrontTemplate!
+	# "seo_Description": "This is the seo description of the image",
+    seoDescription: String
+	# "seo_keywords": "These are the seo keywords",
+    seoKeywords: [String!]!
+	# "seo_title": "This is the seo title",
+    seoTitle: String
+	# "updated_at": "2024-08-23T14:05:45.549357",
+    updatedAt: DateTime
+	# "created_at": "2024-08-23T14:05:45.549357",
+    createdAt: DateTime
+
+scalar DateTime
