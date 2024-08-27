@@ -1,95 +1,153 @@
 scalar DateTime
 
+
+type Query{
+    shop(id: ID!):Shop
+    myShops(): [Shop!]!
+}
+type Mutation{
+    # createShop(shop: ShopCreateInput!): Shop! @requireAuthorization
+    # updateShop(id:ID!)Shop! @requireAuthorization
+    # deleteShop(id:ID!) @requireAuthorization
+    # createCategory(input: CategoryInput!): Category!
+    # updateCategory(id: ID!, input: CategoryInput!): Category!
+    # addAttributeToCategory(categoryId: ID!, input: AttributeInput!): Category!
+    # updateAttribute(attributeId: ID!, input: AttributeInput!): Attribute!
+}
+
+# ======== SHOP ========
 enum ShopStatus{
     DRAFT
     PUBLISHED
     ARCHIVED
 }
-
-type Query{
-    shop(id: ID!):Shop
-    shops(): [Shop!]!
+type Location {
+    address: String!
+    state: String!
+    country: String!
 }
-
-type Mutation{
-    shopCreate(shop: ShopInput!): Shop! @requireAuthorization
-    shopUpdate(id:ID!)Shop! @requireAuthorization
-    shopDelete(id:ID!) @requireAuthorization
+type PhoneNumber {
+    number: String!
+    countryCode: String!
 }
-
-type Shop
-	# "id": 1
+interface SocialMediaContact{
+    url: String
+}
+type WhatsApp implements SocialMediaContact{
+    url: String!
+    number: PhoneNumber!
+}
+type Facebook implements SocialMediaContact{
+    url: String!
+    handle: String!
+}
+type Instagram implements SocialMediaContact{
+    url: String!
+    handle: String!
+}
+# input ShopCreateInput{
+#     title: String!
+#     domain: String!
+# }
+type Shop{
     id: ID!
-	# "owner_id": TODO: should come from header
-	# "title": "shop title",
     title: String!
-	# "domain": "shoptitle123@hellocart.com",
     domain: String!
-	# "contact_phone": "(234) 90 345 234",
-    contactPhone: String
-	# "contact_email": "hello@example.com",
+    contactPhone: PhoneNumber
     contactEmail: String
     location: Location
-    products: [Product!]!
+    products: ProductConnection
     whatsApp: WhatsApp
     facebook: Facebook
-	# "logo_url": "https://url_image_link",
     siteLogoUrl: String
-	# "favicon_url": "https://url_image_link",
     faviconUrl: String
-	# "currency": "NGN | USD",
     currency: String
-	# "status": "DRAFT | PUBLISHED | ARCHIVED",
     status: ShopStatus=DRAFT
-	# "about": "Very long richtext description of your store",
-    about: RichText
-	# "template_id": "WyJQcm9kdWN0IiwxXQ==",
-    template: StoreFrontTemplate!
-	# "seo_Description": "This is the seo description of the image",
-    seoDescription: String
-	# "seo_keywords": "These are the seo keywords",
-    seoKeywords: [String!]!
-	# "seo_title": "This is the seo title",
-    seoTitle: String
-	# "updated_at": "2024-08-23T14:05:45.549357",
+    about: String
+    # template: StoreFrontTemplate!
+    # seoDescription: String
+    # seoKeywords: [String!]!
+    # seoTitle: String
     updatedAt: DateTime
-	# "created_at": "2024-08-23T14:05:45.549357",
     createdAt: DateTime
+}
 
-
+# ======== PRODUCT ========
+enum ProductAttributeDataType{
+    STRING
+    INTEGER
+}
+enum ProductStatus{
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+}
+union ProductAttributeValue = String | Integer
+type ProductConnection {
+    edges: [ProductEdge]
+    pageInfo: PageInfo!
+}
+type ProductEdge {
+    cursor: String!
+    node: Product!
+}
+type PageInfo {
+    endCursor: String
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+}
 type Product {
     id: ID!
+    slug: String!
     title: String!
     price: Price!
     description: String!
 	category: ProductCategory!
     defaultVariant: DefaultProductVariant!
-	"attributes_options": {model:["Infinix", "Tecno"], Os: ["Android","Linux"]}
-    allowedAttributes: AllowedProductAttributes
+    variants: [ProductVariant!]!
+    allowedAttributes: [AllowedProductAttributes!]!
     images: [ProductImage!]!
     status: ProductStatus=DRAFT
 	updatedAt: DateTime
     createdAt: DateTime
 }
-
-type Location {
-    address: String
-    state: String
-    country: String
-}
-interface SocialContact{
-    url: String
-}
-type WhatsApp implements SocialContact{
-    number: String
-    url: String
-}
-type Facebook implements SocialContact{
-    url: String
+type AllowedProductAttributes{
+    key: String!
+    dataType: ProductAttributeDataType
+    options: [ProductAttributeValue!]!
 }
 
-input ShopInput{
+# ======== ProductVariant ========
+enum ProductStockStatus{
+    IN_STOCK
+    OUT_OF_STOCK
+    PREORDER
+}
+type ProductVariant{
+    id: ID!
+    slug: String!
+    title: String
+    price: Price
+    quantity: Int
+    description: String
+    attributes: [ProductAttribute!]!
+    stockStatus: ProductStockStatus=IN_STOCK
+    updatedAt: DateTime
+    createdAt: DateTime
+}
+
+# ========= CATEGORY ========
+type Category{
+    id: ID!
+    slug: String!
     title: String!
-    domain: String!
+    description: String
+    parent: Category
+    children: [Category]!
+    products: ProductConnection
+    allowedAttributes: [AllowedProductAttributes!]!
+    image: CategoryImage
+    updatedAt: DateTime
+    createdAt: DateTime
 }
-
