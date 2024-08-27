@@ -1,0 +1,166 @@
+scalar DateTime
+
+type Query {
+  shop(id: ID!): Shop!
+  myShops: [Shop!]!
+}
+type Mutation {
+  createShop(shop: CreateShopInput!): Shop!
+  # updateShop(id:ID!):Shop! @requireAuthorization
+  # deleteShop(id:ID!): @requireAuthorization
+  # createCategory(input: CategoryInput!): Category!
+  # updateCategory(id: ID!, input: CategoryInput!): Category!
+  # addAttributeToCategory(categoryId: ID!, input: AttributeInput!): Category!
+  # updateAttribute(attributeId: ID!, input: AttributeInput!): Attribute!
+}
+
+# ======== SHOP ========
+enum ShopStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+type Location {
+  address: String!
+  state: String!
+  country: String!
+}
+type PhoneNumber {
+  number: String!
+  countryCode: String!
+}
+interface SocialMediaContact {
+  url: String
+}
+type WhatsApp implements SocialMediaContact {
+  url: String!
+  number: PhoneNumber!
+}
+type Facebook implements SocialMediaContact {
+  url: String!
+  handle: String!
+}
+type Instagram implements SocialMediaContact {
+  url: String!
+  handle: String!
+}
+input CreateShopInput {
+  title: String!
+  domain: String!
+}
+type Shop {
+  id: ID!
+  title: String!
+  domain: String!
+  contactPhone: PhoneNumber
+  contactEmail: String
+  location: Location
+  products: ProductConnection
+  whatsApp: WhatsApp
+  facebook: Facebook
+  siteLogoUrl: String
+  faviconUrl: String
+  currency: String
+  status: ShopStatus
+  about: String
+  # template: StoreFrontTemplate!
+  # seoDescription: String
+  # seoKeywords: [String!]!
+  # seoTitle: String
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+# ======== PRODUCT ========
+enum ProductAttributeDataType {
+  STRING
+  INTEGER
+}
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
+}
+type ProductConnection {
+  edges: [ProductEdge]
+  pageInfo: PageInfo!
+}
+type ProductEdge {
+  cursor: String!
+  node: Product!
+}
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+type Product {
+  id: ID!
+  slug: String!
+  title: String!
+  price: Float!
+  description: String!
+  category: Category!
+  defaultVariant: ProductVariant!
+  variants: [ProductVariant!]!
+  allowedAttributes: [AllowedProductAttributes!]!
+  images: [ProductImage!]!
+  status: ProductStatus
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+type AllowedProductAttributes {
+  key: String!
+  dataType: ProductAttributeDataType
+  options: [ProductAttributeValue!]!
+}
+type ProductImage {
+  url: String!
+}
+
+# ======== ProductVariant ========
+enum ProductStockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+}
+type ProductVariant {
+  id: ID!
+  slug: String!
+  title: String
+  price: Float
+  quantity: Int
+  description: String
+  attributes: [ProductAttribute!]!
+  stockStatus: ProductStockStatus
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+type ProductAttribute {
+  key: String!
+  value: String
+}
+
+# ========= CATEGORY ========
+type Category {
+  id: ID!
+  slug: String!
+  title: String!
+  description: String
+  parent: Category
+  children: [Category]!
+  products: ProductConnection
+  allowedAttributes: [AllowedProductAttributes!]!
+  image: CategoryImage
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+type CategoryImage {
+  url: String!
+}
