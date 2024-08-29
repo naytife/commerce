@@ -106,7 +106,7 @@ type ProductAttributeValue struct {
 }
 
 type ProductConnection struct {
-	Edges    []*ProductEdge `json:"edges,omitempty"`
+	Edges    []*ProductEdge `json:"edges"`
 	PageInfo *PageInfo      `json:"pageInfo"`
 }
 

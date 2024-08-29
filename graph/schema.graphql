@@ -55,7 +55,7 @@ type Shop {
   contactPhone: PhoneNumber
   contactEmail: String
   location: Location
-  products: ProductConnection
+  products(first: Int = 20, after: ID): ProductConnection
   whatsApp: WhatsApp
   facebook: Facebook
   siteLogoUrl: String
@@ -86,7 +86,7 @@ type ProductAttributeValue {
   stringValue: String
 }
 type ProductConnection {
-  edges: [ProductEdge]
+  edges: [ProductEdge!]!
   pageInfo: PageInfo!
 }
 type ProductEdge {

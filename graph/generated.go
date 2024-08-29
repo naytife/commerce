@@ -172,7 +172,7 @@ type ComplexityRoot struct {
 		FaviconURL   func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Location     func(childComplexity int) int
-		Products     func(childComplexity int) int
+		Products     func(childComplexity int, first *int, after *string) int
 		SiteLogoURL  func(childComplexity int) int
 		Status       func(childComplexity int) int
 		Title        func(childComplexity int) int
@@ -739,7 +739,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Shop.Products(childComplexity), true
+		args, err := ec.field_Shop_products_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Shop.Products(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Shop.siteLogoUrl":
 		if e.complexity.Shop.SiteLogoURL == nil {
@@ -895,7 +900,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "schema.graphqls"
+//go:embed "schema.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -907,7 +912,7 @@ func sourceData(filename string) string {
 }
 
 var sources = []*ast.Source{
-	{Name: "schema.graphqls", Input: sourceData("schema.graphqls"), BuiltIn: false},
+	{Name: "schema.graphql", Input: sourceData("schema.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -957,6 +962,30 @@ func (ec *executionContext) field_Query_shop_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Shop_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
 	return args, nil
 }
 
@@ -3195,11 +3224,14 @@ func (ec *executionContext) _ProductConnection_edges(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.ProductEdge)
 	fc.Result = res
-	return ec.marshalOProductEdge2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx, field.Selections, res)
+	return ec.marshalNProductEdge2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4453,7 +4485,7 @@ func (ec *executionContext) _Shop_products(ctx context.Context, field graphql.Co
 	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Shop_products(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Shop_products(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Shop",
 		Field:      field,
@@ -4468,6 +4500,17 @@ func (ec *executionContext) fieldContext_Shop_products(_ context.Context, field 
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProductConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Shop_products_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7408,6 +7451,9 @@ func (ec *executionContext) _ProductConnection(ctx context.Context, sel ast.Sele
 			out.Values[i] = graphql.MarshalString("ProductConnection")
 		case "edges":
 			out.Values[i] = ec._ProductConnection_edges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "pageInfo":
 			out.Values[i] = ec._ProductConnection_pageInfo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8411,6 +8457,60 @@ func (ec *executionContext) marshalNProductAttributeValue2ᚖgithubᚗcomᚋpetr
 	return ec._ProductAttributeValue(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNProductEdge2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProductEdge) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProductEdge2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNProductEdge2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx context.Context, sel ast.SelectionSet, v *model.ProductEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ProductEdge(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNProductImage2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductImageᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProductImage) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -8924,6 +9024,22 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -8975,54 +9091,6 @@ func (ec *executionContext) marshalOProductConnection2ᚖgithubᚗcomᚋpetrejon
 		return graphql.Null
 	}
 	return ec._ProductConnection(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOProductEdge2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx context.Context, sel ast.SelectionSet, v []*model.ProductEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOProductEdge2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
-func (ec *executionContext) marshalOProductEdge2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx context.Context, sel ast.SelectionSet, v *model.ProductEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ProductEdge(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStatus(ctx context.Context, v interface{}) (*model.ProductStatus, error) {

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-faker/faker/v4"
 	"github.com/petrejonn/ashia/graph/model"
 )
 
@@ -18,7 +19,12 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 
 // Shop is the resolver for the shop field.
 func (r *queryResolver) Shop(ctx context.Context, id string) (*model.Shop, error) {
-	panic(fmt.Errorf("not implemented: Shop - shop"))
+	shop := &model.Shop{
+		ID:     id,
+		Title:  faker.Word(),
+		Domain: faker.DomainName(),
+	}
+	return shop, nil
 }
 
 // MyShops is the resolver for the myShops field.
