@@ -5,13 +5,19 @@ type Query {
   myShops: [Shop!]!
 }
 type Mutation {
-  createShop(shop: CreateShopInput!): Shop!
+  createShop(shop: CreateShopInput!): CreateShopPayload
+  # checkDomainAvailability(domain: String)
   # updateShop(id:ID!):Shop! @requireAuthorization
   # deleteShop(id:ID!): @requireAuthorization
   # createCategory(input: CategoryInput!): Category!
   # updateCategory(id: ID!, input: CategoryInput!): Category!
   # addAttributeToCategory(categoryId: ID!, input: AttributeInput!): Category!
   # updateAttribute(attributeId: ID!, input: AttributeInput!): Attribute!
+}
+
+# ======== GENERIC ========
+interface Node {
+  id: ID!
 }
 
 # ======== SHOP ========
@@ -48,7 +54,11 @@ input CreateShopInput {
   title: String!
   domain: String!
 }
-type Shop {
+type CreateShopPayload {
+  shop: Shop
+  successful: Boolean!
+}
+type Shop implements Node {
   id: ID!
   title: String!
   domain: String!
@@ -60,7 +70,7 @@ type Shop {
   facebook: Facebook
   siteLogoUrl: String
   faviconUrl: String
-  currency: String
+  currencyCode: String
   status: ShopStatus
   about: String
   # template: StoreFrontTemplate!
@@ -99,7 +109,7 @@ type PageInfo {
   hasPreviousPage: Boolean!
   startCursor: String
 }
-type Product {
+type Product implements Node {
   id: ID!
   slug: String!
   title: String!
@@ -129,7 +139,7 @@ enum ProductStockStatus {
   OUT_OF_STOCK
   PREORDER
 }
-type ProductVariant {
+type ProductVariant implements Node {
   id: ID!
   slug: String!
   title: String
@@ -147,7 +157,7 @@ type ProductAttribute {
 }
 
 # ========= CATEGORY ========
-type Category {
+type Category implements Node {
   id: ID!
   slug: String!
   title: String!
