@@ -8,6 +8,11 @@ import (
 	"strconv"
 )
 
+type Node interface {
+	IsNode()
+	GetID() string
+}
+
 type SocialMediaContact interface {
 	IsSocialMediaContact()
 	GetURL() *string
@@ -16,22 +21,25 @@ type SocialMediaContact interface {
 type AllowedProductAttributes struct {
 	Key      string                    `json:"key"`
 	DataType *ProductAttributeDataType `json:"dataType,omitempty"`
-	Options  []*ProductAttributeValue  `json:"options"`
+	Options  []ProductAttributeValue   `json:"options"`
 }
 
 type Category struct {
-	ID                string                      `json:"id"`
-	Slug              string                      `json:"slug"`
-	Title             string                      `json:"title"`
-	Description       *string                     `json:"description,omitempty"`
-	Parent            *Category                   `json:"parent,omitempty"`
-	Children          []*Category                 `json:"children"`
-	Products          *ProductConnection          `json:"products,omitempty"`
-	AllowedAttributes []*AllowedProductAttributes `json:"allowedAttributes"`
-	Image             *CategoryImage              `json:"image,omitempty"`
-	UpdatedAt         *string                     `json:"updatedAt,omitempty"`
-	CreatedAt         *string                     `json:"createdAt,omitempty"`
+	ID                string                     `json:"id"`
+	Slug              string                     `json:"slug"`
+	Title             string                     `json:"title"`
+	Description       *string                    `json:"description,omitempty"`
+	Parent            *Category                  `json:"parent,omitempty"`
+	Children          []*Category                `json:"children"`
+	Products          *ProductConnection         `json:"products,omitempty"`
+	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
+	Image             *CategoryImage             `json:"image,omitempty"`
+	UpdatedAt         *string                    `json:"updatedAt,omitempty"`
+	CreatedAt         *string                    `json:"createdAt,omitempty"`
 }
+
+func (Category) IsNode()            {}
+func (this Category) GetID() string { return this.ID }
 
 type CategoryImage struct {
 	URL string `json:"url"`
@@ -40,6 +48,11 @@ type CategoryImage struct {
 type CreateShopInput struct {
 	Title  string `json:"title"`
 	Domain string `json:"domain"`
+}
+
+type CreateShopPayload struct {
+	Shop       *Shop `json:"shop,omitempty"`
+	Successful bool  `json:"successful"`
 }
 
 type Facebook struct {
@@ -80,20 +93,23 @@ type PhoneNumber struct {
 }
 
 type Product struct {
-	ID                string                      `json:"id"`
-	Slug              string                      `json:"slug"`
-	Title             string                      `json:"title"`
-	Price             float64                     `json:"price"`
-	Description       string                      `json:"description"`
-	Category          *Category                   `json:"category"`
-	DefaultVariant    *ProductVariant             `json:"defaultVariant"`
-	Variants          []*ProductVariant           `json:"variants"`
-	AllowedAttributes []*AllowedProductAttributes `json:"allowedAttributes"`
-	Images            []*ProductImage             `json:"images"`
-	Status            *ProductStatus              `json:"status,omitempty"`
-	UpdatedAt         *string                     `json:"updatedAt,omitempty"`
-	CreatedAt         *string                     `json:"createdAt,omitempty"`
+	ID                string                     `json:"id"`
+	Slug              string                     `json:"slug"`
+	Title             string                     `json:"title"`
+	Price             float64                    `json:"price"`
+	Description       string                     `json:"description"`
+	Category          *Category                  `json:"category"`
+	DefaultVariant    *ProductVariant            `json:"defaultVariant"`
+	Variants          []ProductVariant           `json:"variants"`
+	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
+	Images            []ProductImage             `json:"images"`
+	Status            *ProductStatus             `json:"status,omitempty"`
+	UpdatedAt         *string                    `json:"updatedAt,omitempty"`
+	CreatedAt         *string                    `json:"createdAt,omitempty"`
 }
+
+func (Product) IsNode()            {}
+func (this Product) GetID() string { return this.ID }
 
 type ProductAttribute struct {
 	Key   string  `json:"key"`
@@ -106,8 +122,8 @@ type ProductAttributeValue struct {
 }
 
 type ProductConnection struct {
-	Edges    []*ProductEdge `json:"edges"`
-	PageInfo *PageInfo      `json:"pageInfo"`
+	Edges    []ProductEdge `json:"edges"`
+	PageInfo *PageInfo     `json:"pageInfo"`
 }
 
 type ProductEdge struct {
@@ -126,33 +142,42 @@ type ProductVariant struct {
 	Price       *float64            `json:"price,omitempty"`
 	Quantity    *int                `json:"quantity,omitempty"`
 	Description *string             `json:"description,omitempty"`
-	Attributes  []*ProductAttribute `json:"attributes"`
+	Attributes  []ProductAttribute  `json:"attributes"`
 	StockStatus *ProductStockStatus `json:"stockStatus,omitempty"`
 	UpdatedAt   *string             `json:"updatedAt,omitempty"`
 	CreatedAt   *string             `json:"createdAt,omitempty"`
 }
 
+func (ProductVariant) IsNode()            {}
+func (this ProductVariant) GetID() string { return this.ID }
+
 type Query struct {
 }
 
 type Shop struct {
-	ID           string             `json:"id"`
-	Title        string             `json:"title"`
-	Domain       string             `json:"domain"`
-	ContactPhone *PhoneNumber       `json:"contactPhone,omitempty"`
-	ContactEmail *string            `json:"contactEmail,omitempty"`
-	Location     *Location          `json:"location,omitempty"`
-	Products     *ProductConnection `json:"products,omitempty"`
-	WhatsApp     *WhatsApp          `json:"whatsApp,omitempty"`
-	Facebook     *Facebook          `json:"facebook,omitempty"`
-	SiteLogoURL  *string            `json:"siteLogoUrl,omitempty"`
-	FaviconURL   *string            `json:"faviconUrl,omitempty"`
-	Currency     *string            `json:"currency,omitempty"`
-	Status       *ShopStatus        `json:"status,omitempty"`
-	About        *string            `json:"about,omitempty"`
-	UpdatedAt    *string            `json:"updatedAt,omitempty"`
-	CreatedAt    *string            `json:"createdAt,omitempty"`
+	ID             string             `json:"id"`
+	Title          string             `json:"title"`
+	DefaultDomain  string             `json:"defaultDomain"`
+	ContactPhone   *PhoneNumber       `json:"contactPhone,omitempty"`
+	ContactEmail   *string            `json:"contactEmail,omitempty"`
+	Location       *Location          `json:"location,omitempty"`
+	Products       *ProductConnection `json:"products,omitempty"`
+	WhatsApp       *WhatsApp          `json:"whatsApp,omitempty"`
+	Facebook       *Facebook          `json:"facebook,omitempty"`
+	SiteLogoURL    *string            `json:"siteLogoUrl,omitempty"`
+	FaviconURL     *string            `json:"faviconUrl,omitempty"`
+	CurrencyCode   *string            `json:"currencyCode,omitempty"`
+	Status         *ShopStatus        `json:"status,omitempty"`
+	About          *string            `json:"about,omitempty"`
+	SeoDescription *string            `json:"seoDescription,omitempty"`
+	SeoKeywords    []string           `json:"seoKeywords"`
+	SeoTitle       *string            `json:"seoTitle,omitempty"`
+	UpdatedAt      *string            `json:"updatedAt,omitempty"`
+	CreatedAt      *string            `json:"createdAt,omitempty"`
 }
+
+func (Shop) IsNode()            {}
+func (this Shop) GetID() string { return this.ID }
 
 type WhatsApp struct {
 	URL    string       `json:"url"`

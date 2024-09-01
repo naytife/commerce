@@ -61,7 +61,7 @@ type CreateShopPayload {
 type Shop implements Node {
   id: ID!
   title: String!
-  domain: String!
+  defaultDomain: String!
   contactPhone: PhoneNumber
   contactEmail: String
   location: Location
@@ -74,9 +74,9 @@ type Shop implements Node {
   status: ShopStatus
   about: String
   # template: StoreFrontTemplate!
-  # seoDescription: String
-  # seoKeywords: [String!]!
-  # seoTitle: String
+  seoDescription: String
+  seoKeywords: [String!]!
+  seoTitle: String
   updatedAt: DateTime
   createdAt: DateTime
 }

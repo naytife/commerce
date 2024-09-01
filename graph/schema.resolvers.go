@@ -12,18 +12,18 @@ import (
 )
 
 // CreateShop is the resolver for the createShop field.
-func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (*model.Shop, error) {
+func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (*model.CreateShopPayload, error) {
 	panic(fmt.Errorf("not implemented: CreateShop - createShop"))
 }
 
 // Shop is the resolver for the shop field.
 func (r *queryResolver) Shop(ctx context.Context, id string) (*model.Shop, error) {
-	panic(fmt.Errorf("not implemented: CreateShop - createShop"))
+	panic(fmt.Errorf("not implemented: Shop - shop"))
 }
 
 // MyShops is the resolver for the myShops field.
-func (r *queryResolver) MyShops(ctx context.Context) ([]*model.Shop, error) {
-	panic(fmt.Errorf("not implemented: CreateShop - createShop"))
+func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
+	panic(fmt.Errorf("not implemented: MyShops - myShops"))
 }
 
 // Mutation returns MutationResolver implementation.

@@ -1,2 +1,4 @@
-h1:fAI29QXRX1V69IdWPcGXdEzBnAl2dBy3NNHgsJ1flcg=
-20240831154709_initial_schema.sql h1:Kpds/HiqKm8udpsZglc4LpUcp9ZbLjDpUH3friCbpQQ=
+h1:moZGpeQymoatcASpnWC1qRiC+0VCSaeO8WbiFMKEGno=
+20240901142357_initial_schema.sql h1:PNa6MJ4tvvOxHHvxqoBnQ7dBa2hJb2FUgiS4i9E1/Y4=
+20240901145816_remove_seo_title.sql h1:3JXC6SEvKiLIX/o+PCkG619OzQZP0bE0AUfTWKP2vpA=
+20240901150319_remove_related_fields.sql h1:qWgbwcQXHaldW/iugf+CwR3JGk5oOOJc5s4sZVQwskM=
