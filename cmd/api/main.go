@@ -7,7 +7,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/petrejonn/ashia/graph"
+	"github.com/petrejonn/naytife/internal/graph"
 )
 
 const defaultPort = "8080"

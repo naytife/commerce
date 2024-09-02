@@ -1,10 +1,11 @@
-module github.com/petrejonn/ashia
+module github.com/petrejonn/naytife
 
 go 1.22.6
 
 require (
 	github.com/99designs/gqlgen v0.17.49
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/petrejonn/ashia v0.0.0-20240901200042-fd8bcdd88d6c
 	github.com/vektah/gqlparser/v2 v2.5.16
 )
 

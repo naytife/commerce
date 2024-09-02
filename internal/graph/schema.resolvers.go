@@ -8,21 +8,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/petrejonn/ashia/graph/model"
+	model1 "github.com/petrejonn/naytife/internal/graph/model"
 )
 
 // CreateShop is the resolver for the createShop field.
-func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (*model.CreateShopPayload, error) {
+func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateShopInput) (*model1.CreateShopPayload, error) {
 	panic(fmt.Errorf("not implemented: CreateShop - createShop"))
 }
 
 // Shop is the resolver for the shop field.
-func (r *queryResolver) Shop(ctx context.Context, id string) (*model.Shop, error) {
+func (r *queryResolver) Shop(ctx context.Context, id string) (*model1.Shop, error) {
 	panic(fmt.Errorf("not implemented: Shop - shop"))
 }
 
 // MyShops is the resolver for the myShops field.
-func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
+func (r *queryResolver) MyShops(ctx context.Context) ([]model1.Shop, error) {
 	panic(fmt.Errorf("not implemented: MyShops - myShops"))
 }
 

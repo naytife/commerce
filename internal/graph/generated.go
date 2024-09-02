@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/petrejonn/ashia/graph/model"
+	"github.com/petrejonn/naytife/internal/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -969,7 +969,7 @@ func (ec *executionContext) field_Mutation_createShop_args(ctx context.Context, 
 	var arg0 model.CreateShopInput
 	if tmp, ok := rawArgs["shop"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shop"))
-		arg0, err = ec.unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCreateShopInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1139,7 +1139,7 @@ func (ec *executionContext) _AllowedProductAttributes_dataType(ctx context.Conte
 	}
 	res := resTmp.(*model.ProductAttributeDataType)
 	fc.Result = res
-	return ec.marshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeDataType(ctx, field.Selections, res)
+	return ec.marshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeDataType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AllowedProductAttributes_dataType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1183,7 +1183,7 @@ func (ec *executionContext) _AllowedProductAttributes_options(ctx context.Contex
 	}
 	res := resTmp.([]model.ProductAttributeValue)
 	fc.Result = res
-	return ec.marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeValueᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AllowedProductAttributes_options(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1403,7 +1403,7 @@ func (ec *executionContext) _Category_parent(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Category)
 	fc.Result = res
-	return ec.marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
+	return ec.marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Category_parent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1471,7 +1471,7 @@ func (ec *executionContext) _Category_children(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Category)
 	fc.Result = res
-	return ec.marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
+	return ec.marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Category_children(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1536,7 +1536,7 @@ func (ec *executionContext) _Category_products(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.ProductConnection)
 	fc.Result = res
-	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
+	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Category_products(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1586,7 +1586,7 @@ func (ec *executionContext) _Category_allowedAttributes(ctx context.Context, fie
 	}
 	res := resTmp.([]model.AllowedProductAttributes)
 	fc.Result = res
-	return ec.marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx, field.Selections, res)
+	return ec.marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Category_allowedAttributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1635,7 +1635,7 @@ func (ec *executionContext) _Category_image(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.CategoryImage)
 	fc.Result = res
-	return ec.marshalOCategoryImage2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategoryImage(ctx, field.Selections, res)
+	return ec.marshalOCategoryImage2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryImage(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Category_image(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1806,7 +1806,7 @@ func (ec *executionContext) _CreateShopPayload_shop(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Shop)
 	fc.Result = res
-	return ec.marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
+	return ec.marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CreateShopPayload_shop(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2239,7 +2239,7 @@ func (ec *executionContext) _Mutation_createShop(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.CreateShopPayload)
 	fc.Result = res
-	return ec.marshalOCreateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCreateShopPayload(ctx, field.Selections, res)
+	return ec.marshalOCreateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createShop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2778,7 +2778,7 @@ func (ec *executionContext) _Product_category(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Category)
 	fc.Result = res
-	return ec.marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
+	return ec.marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2846,7 +2846,7 @@ func (ec *executionContext) _Product_defaultVariant(ctx context.Context, field g
 	}
 	res := resTmp.(*model.ProductVariant)
 	fc.Result = res
-	return ec.marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariant(ctx, field.Selections, res)
+	return ec.marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariant(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_defaultVariant(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2912,7 +2912,7 @@ func (ec *executionContext) _Product_variants(ctx context.Context, field graphql
 	}
 	res := resTmp.([]model.ProductVariant)
 	fc.Result = res
-	return ec.marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariantᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariantᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_variants(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2978,7 +2978,7 @@ func (ec *executionContext) _Product_allowedAttributes(ctx context.Context, fiel
 	}
 	res := resTmp.([]model.AllowedProductAttributes)
 	fc.Result = res
-	return ec.marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx, field.Selections, res)
+	return ec.marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_allowedAttributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3030,7 +3030,7 @@ func (ec *executionContext) _Product_images(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]model.ProductImage)
 	fc.Result = res
-	return ec.marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductImageᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductImageᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_images(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3075,7 +3075,7 @@ func (ec *executionContext) _Product_status(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.ProductStatus)
 	fc.Result = res
-	return ec.marshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStatus(ctx, field.Selections, res)
+	return ec.marshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Product_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3368,7 +3368,7 @@ func (ec *executionContext) _ProductConnection_edges(ctx context.Context, field 
 	}
 	res := resTmp.([]model.ProductEdge)
 	fc.Result = res
-	return ec.marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3418,7 +3418,7 @@ func (ec *executionContext) _ProductConnection_pageInfo(ctx context.Context, fie
 	}
 	res := resTmp.(*model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3516,7 +3516,7 @@ func (ec *executionContext) _ProductEdge_node(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Product)
 	fc.Result = res
-	return ec.marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProduct(ctx, field.Selections, res)
+	return ec.marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProduct(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3884,7 +3884,7 @@ func (ec *executionContext) _ProductVariant_attributes(ctx context.Context, fiel
 	}
 	res := resTmp.([]model.ProductAttribute)
 	fc.Result = res
-	return ec.marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeᚄ(ctx, field.Selections, res)
+	return ec.marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductVariant_attributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3931,7 +3931,7 @@ func (ec *executionContext) _ProductVariant_stockStatus(ctx context.Context, fie
 	}
 	res := resTmp.(*model.ProductStockStatus)
 	fc.Result = res
-	return ec.marshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStockStatus(ctx, field.Selections, res)
+	return ec.marshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStockStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductVariant_stockStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4057,7 +4057,7 @@ func (ec *executionContext) _Query_shop(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Shop)
 	fc.Result = res
-	return ec.marshalNShop2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
+	return ec.marshalNShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_shop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4152,7 +4152,7 @@ func (ec *executionContext) _Query_myShops(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.([]model.Shop)
 	fc.Result = res
-	return ec.marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShopᚄ(ctx, field.Selections, res)
+	return ec.marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_myShops(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4494,7 +4494,7 @@ func (ec *executionContext) _Shop_contactPhone(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.PhoneNumber)
 	fc.Result = res
-	return ec.marshalOPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPhoneNumber(ctx, field.Selections, res)
+	return ec.marshalOPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumber(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_contactPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4582,7 +4582,7 @@ func (ec *executionContext) _Shop_location(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Location)
 	fc.Result = res
-	return ec.marshalOLocation2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐLocation(ctx, field.Selections, res)
+	return ec.marshalOLocation2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐLocation(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_location(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4631,7 +4631,7 @@ func (ec *executionContext) _Shop_products(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.ProductConnection)
 	fc.Result = res
-	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
+	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_products(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4689,7 +4689,7 @@ func (ec *executionContext) _Shop_whatsApp(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.WhatsApp)
 	fc.Result = res
-	return ec.marshalOWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐWhatsApp(ctx, field.Selections, res)
+	return ec.marshalOWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐWhatsApp(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_whatsApp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4736,7 +4736,7 @@ func (ec *executionContext) _Shop_facebook(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Facebook)
 	fc.Result = res
-	return ec.marshalOFacebook2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐFacebook(ctx, field.Selections, res)
+	return ec.marshalOFacebook2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐFacebook(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_facebook(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4906,7 +4906,7 @@ func (ec *executionContext) _Shop_status(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.ShopStatus)
 	fc.Result = res
-	return ec.marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShopStatus(ctx, field.Selections, res)
+	return ec.marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Shop_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5243,7 +5243,7 @@ func (ec *executionContext) _WhatsApp_number(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.PhoneNumber)
 	fc.Result = res
-	return ec.marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPhoneNumber(ctx, field.Selections, res)
+	return ec.marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumber(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_WhatsApp_number(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -8526,11 +8526,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAllowedProductAttributes2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐAllowedProductAttributes(ctx context.Context, sel ast.SelectionSet, v model.AllowedProductAttributes) graphql.Marshaler {
+func (ec *executionContext) marshalNAllowedProductAttributes2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedProductAttributes(ctx context.Context, sel ast.SelectionSet, v model.AllowedProductAttributes) graphql.Marshaler {
 	return ec._AllowedProductAttributes(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx context.Context, sel ast.SelectionSet, v []model.AllowedProductAttributes) graphql.Marshaler {
+func (ec *executionContext) marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedProductAttributesᚄ(ctx context.Context, sel ast.SelectionSet, v []model.AllowedProductAttributes) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8554,7 +8554,7 @@ func (ec *executionContext) marshalNAllowedProductAttributes2ᚕgithubᚗcomᚋp
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNAllowedProductAttributes2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐAllowedProductAttributes(ctx, sel, v[i])
+			ret[i] = ec.marshalNAllowedProductAttributes2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedProductAttributes(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8589,7 +8589,7 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v []*model.Category) graphql.Marshaler {
+func (ec *executionContext) marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v []*model.Category) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8613,7 +8613,7 @@ func (ec *executionContext) marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋas
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx, sel, v[i])
+			ret[i] = ec.marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8627,7 +8627,7 @@ func (ec *executionContext) marshalNCategory2ᚕᚖgithubᚗcomᚋpetrejonnᚋas
 	return ret
 }
 
-func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
+func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8637,7 +8637,7 @@ func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋashia
 	return ec._Category(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCreateShopInput(ctx context.Context, v interface{}) (model.CreateShopInput, error) {
+func (ec *executionContext) unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopInput(ctx context.Context, v interface{}) (model.CreateShopInput, error) {
 	res, err := ec.unmarshalInputCreateShopInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -8672,7 +8672,7 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8682,7 +8682,7 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋashia
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPhoneNumber(ctx context.Context, sel ast.SelectionSet, v *model.PhoneNumber) graphql.Marshaler {
+func (ec *executionContext) marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumber(ctx context.Context, sel ast.SelectionSet, v *model.PhoneNumber) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8692,7 +8692,7 @@ func (ec *executionContext) marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋas
 	return ec._PhoneNumber(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v *model.Product) graphql.Marshaler {
+func (ec *executionContext) marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v *model.Product) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8702,11 +8702,11 @@ func (ec *executionContext) marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋashia�
 	return ec._Product(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProductAttribute2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttribute(ctx context.Context, sel ast.SelectionSet, v model.ProductAttribute) graphql.Marshaler {
+func (ec *executionContext) marshalNProductAttribute2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttribute(ctx context.Context, sel ast.SelectionSet, v model.ProductAttribute) graphql.Marshaler {
 	return ec._ProductAttribute(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductAttribute) graphql.Marshaler {
+func (ec *executionContext) marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductAttribute) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8730,7 +8730,7 @@ func (ec *executionContext) marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonn
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductAttribute2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttribute(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductAttribute2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttribute(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8750,11 +8750,11 @@ func (ec *executionContext) marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonn
 	return ret
 }
 
-func (ec *executionContext) marshalNProductAttributeValue2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeValue(ctx context.Context, sel ast.SelectionSet, v model.ProductAttributeValue) graphql.Marshaler {
+func (ec *executionContext) marshalNProductAttributeValue2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValue(ctx context.Context, sel ast.SelectionSet, v model.ProductAttributeValue) graphql.Marshaler {
 	return ec._ProductAttributeValue(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeValueᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductAttributeValue) graphql.Marshaler {
+func (ec *executionContext) marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductAttributeValue) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8778,7 +8778,7 @@ func (ec *executionContext) marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetr
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductAttributeValue2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeValue(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductAttributeValue2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValue(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8798,11 +8798,11 @@ func (ec *executionContext) marshalNProductAttributeValue2ᚕgithubᚗcomᚋpetr
 	return ret
 }
 
-func (ec *executionContext) marshalNProductEdge2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx context.Context, sel ast.SelectionSet, v model.ProductEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNProductEdge2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductEdge(ctx context.Context, sel ast.SelectionSet, v model.ProductEdge) graphql.Marshaler {
 	return ec._ProductEdge(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8826,7 +8826,7 @@ func (ec *executionContext) marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋas
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductEdge2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductEdge2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8846,11 +8846,11 @@ func (ec *executionContext) marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋas
 	return ret
 }
 
-func (ec *executionContext) marshalNProductImage2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductImage(ctx context.Context, sel ast.SelectionSet, v model.ProductImage) graphql.Marshaler {
+func (ec *executionContext) marshalNProductImage2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductImage(ctx context.Context, sel ast.SelectionSet, v model.ProductImage) graphql.Marshaler {
 	return ec._ProductImage(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductImageᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductImage) graphql.Marshaler {
+func (ec *executionContext) marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductImageᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductImage) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8874,7 +8874,7 @@ func (ec *executionContext) marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋa
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductImage2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductImage(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductImage2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductImage(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8894,11 +8894,11 @@ func (ec *executionContext) marshalNProductImage2ᚕgithubᚗcomᚋpetrejonnᚋa
 	return ret
 }
 
-func (ec *executionContext) marshalNProductVariant2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariant(ctx context.Context, sel ast.SelectionSet, v model.ProductVariant) graphql.Marshaler {
+func (ec *executionContext) marshalNProductVariant2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariant(ctx context.Context, sel ast.SelectionSet, v model.ProductVariant) graphql.Marshaler {
 	return ec._ProductVariant(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariantᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductVariant) graphql.Marshaler {
+func (ec *executionContext) marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariantᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProductVariant) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8922,7 +8922,7 @@ func (ec *executionContext) marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProductVariant2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariant(ctx, sel, v[i])
+			ret[i] = ec.marshalNProductVariant2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariant(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8942,7 +8942,7 @@ func (ec *executionContext) marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonn�
 	return ret
 }
 
-func (ec *executionContext) marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductVariant(ctx context.Context, sel ast.SelectionSet, v *model.ProductVariant) graphql.Marshaler {
+func (ec *executionContext) marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariant(ctx context.Context, sel ast.SelectionSet, v *model.ProductVariant) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -8952,11 +8952,11 @@ func (ec *executionContext) marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonn�
 	return ec._ProductVariant(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNShop2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v model.Shop) graphql.Marshaler {
+func (ec *executionContext) marshalNShop2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v model.Shop) graphql.Marshaler {
 	return ec._Shop(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShopᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Shop) graphql.Marshaler {
+func (ec *executionContext) marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Shop) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8980,7 +8980,7 @@ func (ec *executionContext) marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋg
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNShop2githubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx, sel, v[i])
+			ret[i] = ec.marshalNShop2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9000,7 +9000,7 @@ func (ec *executionContext) marshalNShop2ᚕgithubᚗcomᚋpetrejonnᚋashiaᚋg
 	return ret
 }
 
-func (ec *executionContext) marshalNShop2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v *model.Shop) graphql.Marshaler {
+func (ec *executionContext) marshalNShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v *model.Shop) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9336,21 +9336,21 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
+func (ec *executionContext) marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Category(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCategoryImage2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCategoryImage(ctx context.Context, sel ast.SelectionSet, v *model.CategoryImage) graphql.Marshaler {
+func (ec *executionContext) marshalOCategoryImage2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryImage(ctx context.Context, sel ast.SelectionSet, v *model.CategoryImage) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._CategoryImage(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCreateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐCreateShopPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateShopPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOCreateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateShopPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9373,7 +9373,7 @@ func (ec *executionContext) marshalODateTime2ᚖstring(ctx context.Context, sel 
 	return res
 }
 
-func (ec *executionContext) marshalOFacebook2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐFacebook(ctx context.Context, sel ast.SelectionSet, v *model.Facebook) graphql.Marshaler {
+func (ec *executionContext) marshalOFacebook2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐFacebook(ctx context.Context, sel ast.SelectionSet, v *model.Facebook) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9428,21 +9428,21 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOLocation2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
+func (ec *executionContext) marshalOLocation2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐLocation(ctx context.Context, sel ast.SelectionSet, v *model.Location) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Location(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐPhoneNumber(ctx context.Context, sel ast.SelectionSet, v *model.PhoneNumber) graphql.Marshaler {
+func (ec *executionContext) marshalOPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumber(ctx context.Context, sel ast.SelectionSet, v *model.PhoneNumber) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._PhoneNumber(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, v interface{}) (*model.ProductAttributeDataType, error) {
+func (ec *executionContext) unmarshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, v interface{}) (*model.ProductAttributeDataType, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9451,21 +9451,21 @@ func (ec *executionContext) unmarshalOProductAttributeDataType2ᚖgithubᚗcom�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, sel ast.SelectionSet, v *model.ProductAttributeDataType) graphql.Marshaler {
+func (ec *executionContext) marshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, sel ast.SelectionSet, v *model.ProductAttributeDataType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductConnection(ctx context.Context, sel ast.SelectionSet, v *model.ProductConnection) graphql.Marshaler {
+func (ec *executionContext) marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx context.Context, sel ast.SelectionSet, v *model.ProductConnection) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._ProductConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStatus(ctx context.Context, v interface{}) (*model.ProductStatus, error) {
+func (ec *executionContext) unmarshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStatus(ctx context.Context, v interface{}) (*model.ProductStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9474,14 +9474,14 @@ func (ec *executionContext) unmarshalOProductStatus2ᚖgithubᚗcomᚋpetrejonn�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStatus(ctx context.Context, sel ast.SelectionSet, v *model.ProductStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOProductStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStatus(ctx context.Context, sel ast.SelectionSet, v *model.ProductStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) unmarshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStockStatus(ctx context.Context, v interface{}) (*model.ProductStockStatus, error) {
+func (ec *executionContext) unmarshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStockStatus(ctx context.Context, v interface{}) (*model.ProductStockStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9490,21 +9490,21 @@ func (ec *executionContext) unmarshalOProductStockStatus2ᚖgithubᚗcomᚋpetre
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐProductStockStatus(ctx context.Context, sel ast.SelectionSet, v *model.ProductStockStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOProductStockStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStockStatus(ctx context.Context, sel ast.SelectionSet, v *model.ProductStockStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v *model.Shop) graphql.Marshaler {
+func (ec *executionContext) marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx context.Context, sel ast.SelectionSet, v *model.Shop) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Shop(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShopStatus(ctx context.Context, v interface{}) (*model.ShopStatus, error) {
+func (ec *executionContext) unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, v interface{}) (*model.ShopStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9513,7 +9513,7 @@ func (ec *executionContext) unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋa
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐShopStatus(ctx context.Context, sel ast.SelectionSet, v *model.ShopStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, sel ast.SelectionSet, v *model.ShopStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -9536,7 +9536,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋashiaᚋgraphᚋmodelᚐWhatsApp(ctx context.Context, sel ast.SelectionSet, v *model.WhatsApp) graphql.Marshaler {
+func (ec *executionContext) marshalOWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐWhatsApp(ctx context.Context, sel ast.SelectionSet, v *model.WhatsApp) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
