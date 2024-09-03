@@ -2,7 +2,9 @@
 PROJECT_NAME := naytife
 SQLC_DIR := internal/db
 GQLGEN_CONFIG := gqlgen.yml
-MIGRATIONS_DIR := internal/db/migrations
+ATLAS_MIGRATIONS_DIR := internal/db/migrations
+ATLAS_SCHEMA_DIR := internal/db/schema.sql
+ATLAS_DEV_URL := docker://postgres?search_path=public
 
 # Define Go-related variables
 GO := go
@@ -34,15 +36,15 @@ generate-gqlgen: ## Generate GraphQL code from schema
 # Migration targets
 .PHONY: migrate-up
 migrate-up: ## Apply all up migrations
-	atlas migrate apply --dir file://$(MIGRATIONS_DIR) --url "postgres://user:password@localhost:5432/dbname?sslmode=disable"
+	atlas migrate apply --env local
 
 .PHONY: migrate-down
 migrate-down: ## Rollback the last migration
-	atlas migrate apply --dir file://$(MIGRATIONS_DIR) --url "postgres://user:password@localhost:5432/dbname?sslmode=disable" --revert 1
+	atlas migrate apply --env local --revert 1
 
 .PHONY: migrate-new
 migrate-new: ## Create a new migration file
-	atlas migrate new --dir file://$(MIGRATIONS_DIR) --url "postgres://user:password@localhost:5432/dbname?sslmode=disable" $(name)
+	atlas migrate diff --dir file://$(ATLAS_MIGRATIONS_DIR) --to file://$(ATLAS_SCHEMA_DIR) --dev-url $(ATLAS_DEV_URL) $(name)
 
 # Formatting and linting targets
 .PHONY: fmt

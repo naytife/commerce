@@ -6,24 +6,53 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/petrejonn/naytife/internal/db"
 	model1 "github.com/petrejonn/naytife/internal/graph/model"
 )
 
 // CreateShop is the resolver for the createShop field.
-func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateShopInput) (*model1.CreateShopPayload, error) {
-	panic(fmt.Errorf("not implemented: CreateShop - createShop"))
+func (r *mutationResolver) CreateShop(ctx context.Context, data model1.CreateShopInput) (*model1.CreateShopPayload, error) {
+	shop, err := r.Repository.CreateShop(ctx, db.CreateShopParams{
+		Title:         data.Title,
+		DefaultDomain: data.Domain,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model1.CreateShopPayload{Successful: true, Shop: &model1.Shop{Title: shop.Title}}, nil
 }
 
 // Shop is the resolver for the shop field.
 func (r *queryResolver) Shop(ctx context.Context, id string) (*model1.Shop, error) {
-	panic(fmt.Errorf("not implemented: Shop - shop"))
+	shopId, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
+	}
+	shop, err := r.Repository.GetShop(ctx, pgtype.UUID{Bytes: shopId})
+	if err != nil {
+		return nil, err
+	}
+	return &model1.Shop{Title: shop.Title}, nil
 }
 
 // MyShops is the resolver for the myShops field.
 func (r *queryResolver) MyShops(ctx context.Context) ([]model1.Shop, error) {
-	panic(fmt.Errorf("not implemented: MyShops - myShops"))
+	owner_id, err := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	if err != nil {
+		return nil, err
+	}
+	shops, err := r.Repository.GetShopsByOwner(ctx, pgtype.UUID{Bytes: owner_id})
+	if err != nil {
+		return nil, err
+	}
+	shopList := make([]model1.Shop, len(shops))
+	for i, shop := range shops {
+		shopList[i] = model1.Shop{Title: shop.Title}
+	}
+	return shopList, nil
 }
 
 // Mutation returns MutationResolver implementation.

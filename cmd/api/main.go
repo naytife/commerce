@@ -1,28 +1,31 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph"
 )
 
-const defaultPort = "8080"
-
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	dbase, err := db.Open("postgres://naytife:naytifekey@:5432/naytifedb?search_path=public&sslmode=disable")
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
+	defer dbase.Close()
+	// initialize the repository
+	repo := db.NewRepository(dbase)
+	// configure the server
+	mux := http.NewServeMux()
+	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
+	mux.Handle("/query", graph.NewHandler(repo))
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	// run the server
+	port := ":8080"
+	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://localhost%s\n", port)
+	fmt.Fprintln(os.Stderr, http.ListenAndServe(port, mux))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

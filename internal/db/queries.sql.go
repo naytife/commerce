@@ -14,7 +14,7 @@ import (
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (title, default_domain, favicon_url, currency_code, about)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at
+RETURNING id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title
 `
 
 type CreateShopParams struct {
@@ -43,12 +43,17 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.About,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.OwnerID,
+		&i.Status,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
 	)
 	return i, err
 }
 
 const getShop = `-- name: GetShop :one
-SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at FROM shops
+SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title FROM shops
 WHERE id = $1
 `
 
@@ -64,17 +69,22 @@ func (q *Queries) GetShop(ctx context.Context, id pgtype.UUID) (Shop, error) {
 		&i.About,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.OwnerID,
+		&i.Status,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
 	)
 	return i, err
 }
 
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at FROM shops
-WHERE id = $1
+SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title FROM shops
+WHERE owner_id = $1
 `
 
-func (q *Queries) GetShopsByOwner(ctx context.Context, id pgtype.UUID) ([]Shop, error) {
-	rows, err := q.db.Query(ctx, getShopsByOwner, id)
+func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID pgtype.UUID) ([]Shop, error) {
+	rows, err := q.db.Query(ctx, getShopsByOwner, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +101,11 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, id pgtype.UUID) ([]Shop, 
 			&i.About,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.OwnerID,
+			&i.Status,
+			&i.SeoDescription,
+			&i.SeoKeywords,
+			&i.SeoTitle,
 		); err != nil {
 			return nil, err
 		}

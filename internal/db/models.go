@@ -9,12 +9,17 @@ import (
 )
 
 type Shop struct {
-	ID            pgtype.UUID
-	Title         string
-	DefaultDomain string
-	FaviconUrl    pgtype.Text
-	CurrencyCode  string
-	About         pgtype.Text
-	UpdatedAt     pgtype.Timestamptz
-	CreatedAt     pgtype.Timestamptz
+	ID             pgtype.UUID
+	Title          string
+	DefaultDomain  string
+	FaviconUrl     pgtype.Text
+	CurrencyCode   string
+	About          pgtype.Text
+	UpdatedAt      pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
+	OwnerID        pgtype.UUID
+	Status         string
+	SeoDescription pgtype.Text
+	SeoKeywords    pgtype.Text
+	SeoTitle       pgtype.Text
 }

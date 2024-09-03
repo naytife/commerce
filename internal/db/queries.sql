@@ -9,4 +9,4 @@ WHERE id = $1;
 
 -- name: GetShopsByOwner :many
 SELECT * FROM shops
-WHERE id = $1;
+WHERE owner_id = $1;
