@@ -5,11 +5,12 @@
 package db
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Shop struct {
-	ID             pgtype.UUID
+	ID             uuid.UUID
 	Title          string
 	DefaultDomain  string
 	FaviconUrl     pgtype.Text
@@ -17,7 +18,7 @@ type Shop struct {
 	About          pgtype.Text
 	UpdatedAt      pgtype.Timestamptz
 	CreatedAt      pgtype.Timestamptz
-	OwnerID        pgtype.UUID
+	OwnerID        uuid.UUID
 	Status         string
 	SeoDescription pgtype.Text
 	SeoKeywords    pgtype.Text

@@ -3,9 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,8 +34,8 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 
 type Repository interface {
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
-	GetShop(ctx context.Context, id pgtype.UUID) (Shop, error)
-	GetShopsByOwner(ctx context.Context, ownerID pgtype.UUID) ([]Shop, error)
+	GetShop(ctx context.Context, id uuid.UUID) (Shop, error)
+	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -61,6 +62,10 @@ func (r *repoSvc) CreateShop(ctx context.Context, shopArg CreateShopParams) (Sho
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.CreateShop(ctx, shopArg)
+		if err != nil {
+			log.Println(shopArg)
+			log.Println(err)
+		}
 		return err
 	})
 	return shop, err

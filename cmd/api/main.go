@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	dbase, err := db.Open("postgres://naytife:naytifekey@:5432/naytifedb?search_path=public&sslmode=disable")
+	dbase, err := db.Open("postgres://naytife:naytifekey@localhost:5432/naytifedb?search_path=public&sslmode=disable")
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}

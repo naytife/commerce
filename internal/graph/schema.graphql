@@ -1,4 +1,5 @@
 scalar DateTime
+scalar UUID
 
 type Query {
   shop(id: ID!): Shop!

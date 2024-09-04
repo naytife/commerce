@@ -8,30 +8,35 @@ package db
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createShop = `-- name: CreateShop :one
-INSERT INTO shops (title, default_domain, favicon_url, currency_code, about)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO shops (owner_id, title, default_domain, favicon_url, currency_code, about, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title
 `
 
 type CreateShopParams struct {
+	OwnerID       uuid.UUID
 	Title         string
 	DefaultDomain string
 	FaviconUrl    pgtype.Text
 	CurrencyCode  string
 	About         pgtype.Text
+	Status        string
 }
 
 func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error) {
 	row := q.db.QueryRow(ctx, createShop,
+		arg.OwnerID,
 		arg.Title,
 		arg.DefaultDomain,
 		arg.FaviconUrl,
 		arg.CurrencyCode,
 		arg.About,
+		arg.Status,
 	)
 	var i Shop
 	err := row.Scan(
@@ -57,7 +62,7 @@ SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at,
 WHERE id = $1
 `
 
-func (q *Queries) GetShop(ctx context.Context, id pgtype.UUID) (Shop, error) {
+func (q *Queries) GetShop(ctx context.Context, id uuid.UUID) (Shop, error) {
 	row := q.db.QueryRow(ctx, getShop, id)
 	var i Shop
 	err := row.Scan(
@@ -83,7 +88,7 @@ SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at,
 WHERE owner_id = $1
 `
 
-func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID pgtype.UUID) ([]Shop, error) {
+func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error) {
 	rows, err := q.db.Query(ctx, getShopsByOwner, ownerID)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,6 @@
 -- name: CreateShop :one
-INSERT INTO shops (title, default_domain, favicon_url, currency_code, about)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO shops (owner_id, title, default_domain, favicon_url, currency_code, about, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetShop :one

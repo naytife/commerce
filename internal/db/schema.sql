@@ -1,5 +1,5 @@
 CREATE TABLE shops (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
     default_domain VARCHAR(50) UNIQUE NOT NULL,
