@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/petrejonn/naytife/config"
+	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph"
 )
@@ -27,7 +28,7 @@ func main() {
 	// configure the server
 	mux := http.NewServeMux()
 	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
-	mux.Handle("/query", graph.NewHandler(repo))
+	mux.Handle("/query", auth.JWTMiddleware(env.AUTH0_DOMAIN, env.AUTH0_AUDIENCE)(graph.NewHandler(repo)))
 
 	// run the server
 	port := ":" + env.PORT
