@@ -40,7 +40,11 @@ migrate-up: ## Apply all up migrations
 
 .PHONY: migrate-down
 migrate-down: ## Rollback the last migration
-	atlas migrate apply --env local --revert 1
+	atlas migrate down --env local --dev-url $(ATLAS_DEV_URL)
+
+.PHONY: migrate-clean
+migrate-clean: ## Clean the database
+	atlas schema clean --env local
 
 .PHONY: migrate-new
 migrate-new: ## Create a new migration file

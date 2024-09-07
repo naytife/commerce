@@ -174,10 +174,32 @@ type Shop struct {
 	SeoTitle       *string            `json:"seoTitle,omitempty"`
 	UpdatedAt      *string            `json:"updatedAt,omitempty"`
 	CreatedAt      *string            `json:"createdAt,omitempty"`
+	Owner          *User              `json:"owner,omitempty"`
 }
 
 func (Shop) IsNode()            {}
 func (this Shop) GetID() string { return this.ID }
+
+type SignInInput struct {
+	Username *string `json:"username,omitempty"`
+}
+
+type SignInUserPayload struct {
+	Successful bool  `json:"successful"`
+	User       *User `json:"user,omitempty"`
+}
+
+type User struct {
+	ID                string  `json:"id"`
+	Email             string  `json:"email"`
+	Name              *string `json:"name,omitempty"`
+	ProfilePictureURL *string `json:"profilePictureUrl,omitempty"`
+	CreatedAt         *string `json:"createdAt,omitempty"`
+	LastLogin         *string `json:"lastLogin,omitempty"`
+}
+
+func (User) IsNode()            {}
+func (this User) GetID() string { return this.ID }
 
 type WhatsApp struct {
 	URL    string       `json:"url"`

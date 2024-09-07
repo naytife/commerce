@@ -6,6 +6,7 @@ type Query {
   myShops: [Shop!]!
 }
 type Mutation {
+  signInUser(input: SignInInput!): SignInUserPayload!
   createShop(shop: CreateShopInput!): CreateShopPayload
   # checkDomainAvailability(domain: String)
   # updateShop(id:ID!):Shop! @requireAuthorization
@@ -19,6 +20,25 @@ type Mutation {
 # ======== GENERIC ========
 interface Node {
   id: ID!
+}
+
+# ======== USER ========
+type User implements Node {
+  id: ID!
+  email: String!
+  name: String
+  profilePictureUrl: String
+  createdAt: String
+  lastLogin: String
+}
+
+input SignInInput {
+  username: String
+}
+
+type SignInUserPayload {
+  successful: Boolean!
+  user: User
 }
 
 # ======== SHOP ========
@@ -80,6 +100,7 @@ type Shop implements Node {
   seoTitle: String
   updatedAt: DateTime
   createdAt: DateTime
+  owner: User
 }
 
 # ======== PRODUCT ========

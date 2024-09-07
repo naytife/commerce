@@ -15,7 +15,7 @@ import (
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (owner_id, title, default_domain, favicon_url, currency_code, about, status)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title
+RETURNING shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type CreateShopParams struct {
@@ -40,51 +40,51 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	)
 	var i Shop
 	err := row.Scan(
-		&i.ID,
+		&i.ShopID,
+		&i.OwnerID,
 		&i.Title,
 		&i.DefaultDomain,
 		&i.FaviconUrl,
 		&i.CurrencyCode,
-		&i.About,
-		&i.UpdatedAt,
-		&i.CreatedAt,
-		&i.OwnerID,
 		&i.Status,
+		&i.About,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
+		&i.UpdatedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getShop = `-- name: GetShop :one
-SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title FROM shops
-WHERE id = $1
+SELECT shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+WHERE shop_id = $1
 `
 
-func (q *Queries) GetShop(ctx context.Context, id uuid.UUID) (Shop, error) {
-	row := q.db.QueryRow(ctx, getShop, id)
+func (q *Queries) GetShop(ctx context.Context, shopID uuid.UUID) (Shop, error) {
+	row := q.db.QueryRow(ctx, getShop, shopID)
 	var i Shop
 	err := row.Scan(
-		&i.ID,
+		&i.ShopID,
+		&i.OwnerID,
 		&i.Title,
 		&i.DefaultDomain,
 		&i.FaviconUrl,
 		&i.CurrencyCode,
-		&i.About,
-		&i.UpdatedAt,
-		&i.CreatedAt,
-		&i.OwnerID,
 		&i.Status,
+		&i.About,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
+		&i.UpdatedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT id, title, default_domain, favicon_url, currency_code, about, updated_at, created_at, owner_id, status, seo_description, seo_keywords, seo_title FROM shops
+SELECT shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE owner_id = $1
 `
 
@@ -98,19 +98,19 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 	for rows.Next() {
 		var i Shop
 		if err := rows.Scan(
-			&i.ID,
+			&i.ShopID,
+			&i.OwnerID,
 			&i.Title,
 			&i.DefaultDomain,
 			&i.FaviconUrl,
 			&i.CurrencyCode,
-			&i.About,
-			&i.UpdatedAt,
-			&i.CreatedAt,
-			&i.OwnerID,
 			&i.Status,
+			&i.About,
 			&i.SeoDescription,
 			&i.SeoKeywords,
 			&i.SeoTitle,
+			&i.UpdatedAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -120,4 +120,65 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+SELECT user_id, auth0_sub, email, name, profile_picture_url, created_at, last_login FROM users
+WHERE auth0_sub = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, auth0Sub)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Auth0Sub,
+		&i.Email,
+		&i.Name,
+		&i.ProfilePictureUrl,
+		&i.CreatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const upsertUser = `-- name: UpsertUser :one
+INSERT INTO users (auth0_sub, email, name, profile_picture_url)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (auth0_sub)
+DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, profile_picture_url = EXCLUDED.profile_picture_url
+RETURNING user_id, auth0_sub, email, name, profile_picture_url
+`
+
+type UpsertUserParams struct {
+	Auth0Sub          pgtype.Text
+	Email             string
+	Name              pgtype.Text
+	ProfilePictureUrl pgtype.Text
+}
+
+type UpsertUserRow struct {
+	UserID            uuid.UUID
+	Auth0Sub          pgtype.Text
+	Email             string
+	Name              pgtype.Text
+	ProfilePictureUrl pgtype.Text
+}
+
+func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error) {
+	row := q.db.QueryRow(ctx, upsertUser,
+		arg.Auth0Sub,
+		arg.Email,
+		arg.Name,
+		arg.ProfilePictureUrl,
+	)
+	var i UpsertUserRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Auth0Sub,
+		&i.Email,
+		&i.Name,
+		&i.ProfilePictureUrl,
+	)
+	return i, err
 }

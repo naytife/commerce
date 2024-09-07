@@ -6,11 +6,49 @@ package graph
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
 	model1 "github.com/petrejonn/naytife/internal/graph/model"
 )
+
+// SignInUser handles user sign-in and returns user data along with JWT token.
+func (r *mutationResolver) SignInUser(ctx context.Context, input model1.SignInInput) (*model1.SignInUserPayload, error) {
+	// Retrieve the user claims from the context
+	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
+	if !ok {
+		return nil, errors.New("Unauthorized")
+	}
+	// Log the extracted claims for debugging
+	log.Printf("User claims: %+v", claims)
+
+	// Check if the user exists in the database
+	user, err := r.Repository.UpsertUser(ctx, db.UpsertUserParams{
+		Auth0Sub: pgtype.Text{String: claims.Sub, Valid: true},
+		Email:    claims.Email,
+		Name: pgtype.Text{
+			String: claims.Name,
+			Valid:  true},
+		ProfilePictureUrl: pgtype.Text{String: claims.ProfilePictureURL, Valid: true},
+	})
+	if err != nil {
+		return nil, errors.New("User not found")
+	}
+	// Return the user data and a JWT token
+	return &model1.SignInUserPayload{
+		Successful: true,
+		User: &model1.User{
+			ID:                user.UserID.String(),
+			Email:             user.Email,
+			Name:              &user.Name.String,
+			ProfilePictureURL: &user.ProfilePictureUrl.String,
+		},
+	}, nil
+}
 
 // CreateShop is the resolver for the createShop field.
 func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateShopInput) (*model1.CreateShopPayload, error) {
@@ -57,7 +95,7 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model1.Shop, error) {
 	}
 	shopList := make([]model1.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model1.Shop{ID: shop.ID.String(), Title: shop.Title, DefaultDomain: shop.DefaultDomain}
+		shopList[i] = model1.Shop{ID: shop.ShopID.String(), Title: shop.Title, DefaultDomain: shop.DefaultDomain}
 	}
 	return shopList, nil
 }

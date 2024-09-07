@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,6 +34,8 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 }
 
 type Repository interface {
+	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
+	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)

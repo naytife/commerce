@@ -10,17 +10,27 @@ import (
 )
 
 type Shop struct {
-	ID             uuid.UUID
+	ShopID         uuid.UUID
+	OwnerID        uuid.UUID
 	Title          string
 	DefaultDomain  string
 	FaviconUrl     pgtype.Text
 	CurrencyCode   string
-	About          pgtype.Text
-	UpdatedAt      pgtype.Timestamptz
-	CreatedAt      pgtype.Timestamptz
-	OwnerID        uuid.UUID
 	Status         string
+	About          pgtype.Text
 	SeoDescription pgtype.Text
 	SeoKeywords    pgtype.Text
 	SeoTitle       pgtype.Text
+	UpdatedAt      pgtype.Timestamptz
+	CreatedAt      pgtype.Timestamptz
+}
+
+type User struct {
+	UserID            uuid.UUID
+	Auth0Sub          pgtype.Text
+	Email             string
+	Name              pgtype.Text
+	ProfilePictureUrl pgtype.Text
+	CreatedAt         pgtype.Timestamp
+	LastLogin         pgtype.Timestamp
 }
