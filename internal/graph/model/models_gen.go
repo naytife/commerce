@@ -166,15 +166,15 @@ type Shop struct {
 	Facebook       *Facebook          `json:"facebook,omitempty"`
 	SiteLogoURL    *string            `json:"siteLogoUrl,omitempty"`
 	FaviconURL     *string            `json:"faviconUrl,omitempty"`
-	CurrencyCode   *string            `json:"currencyCode,omitempty"`
-	Status         *ShopStatus        `json:"status,omitempty"`
+	CurrencyCode   string             `json:"currencyCode"`
+	Status         ShopStatus         `json:"status"`
 	About          *string            `json:"about,omitempty"`
 	SeoDescription *string            `json:"seoDescription,omitempty"`
 	SeoKeywords    []string           `json:"seoKeywords"`
 	SeoTitle       *string            `json:"seoTitle,omitempty"`
-	UpdatedAt      *string            `json:"updatedAt,omitempty"`
-	CreatedAt      *string            `json:"createdAt,omitempty"`
-	Owner          *User              `json:"owner,omitempty"`
+	UpdatedAt      string             `json:"updatedAt"`
+	CreatedAt      string             `json:"createdAt"`
+	Owner          *User              `json:"owner"`
 }
 
 func (Shop) IsNode()            {}

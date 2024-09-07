@@ -36,7 +36,7 @@ func (r *mutationResolver) SignInUser(ctx context.Context, input model1.SignInIn
 		ProfilePictureUrl: pgtype.Text{String: claims.ProfilePictureURL, Valid: true},
 	})
 	if err != nil {
-		return nil, errors.New("User not found")
+		return nil, errors.New("user not found")
 	}
 	// Return the user data and a JWT token
 	return &model1.SignInUserPayload{
@@ -52,14 +52,18 @@ func (r *mutationResolver) SignInUser(ctx context.Context, input model1.SignInIn
 
 // CreateShop is the resolver for the createShop field.
 func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateShopInput) (*model1.CreateShopPayload, error) {
-	ownerId, err := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
+	if !ok {
+		return nil, errors.New("Unauthorized")
+	}
+	owner, err := r.Repository.GetUser(ctx, pgtype.Text{String: claims.Sub, Valid: true})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("user not found")
 	}
 	param := db.CreateShopParams{
 		Title:         shop.Title,
 		DefaultDomain: shop.Domain,
-		OwnerID:       ownerId,
+		OwnerID:       owner.UserID,
 		Status:        model1.ShopStatusPublished.String(),
 		CurrencyCode:  "NGN",
 	}
@@ -67,7 +71,7 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateSho
 	if err != nil {
 		return nil, err
 	}
-	return &model1.CreateShopPayload{Successful: true, Shop: &model1.Shop{Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
+	return &model1.CreateShopPayload{Successful: true, Shop: &model1.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model1.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
 }
 
 // Shop is the resolver for the shop field.
@@ -85,17 +89,21 @@ func (r *queryResolver) Shop(ctx context.Context, id string) (*model1.Shop, erro
 
 // MyShops is the resolver for the myShops field.
 func (r *queryResolver) MyShops(ctx context.Context) ([]model1.Shop, error) {
-	owner_id, err := uuid.Parse("00000000-0000-0000-0000-000000000000")
+	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
+	if !ok {
+		return nil, errors.New("Unauthorized")
+	}
+	owner, err := r.Repository.GetUser(ctx, pgtype.Text{String: claims.Sub, Valid: true})
 	if err != nil {
 		return nil, err
 	}
-	shops, err := r.Repository.GetShopsByOwner(ctx, owner_id)
+	shops, err := r.Repository.GetShopsByOwner(ctx, owner.UserID)
 	if err != nil {
 		return nil, err
 	}
 	shopList := make([]model1.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model1.Shop{ID: shop.ShopID.String(), Title: shop.Title, DefaultDomain: shop.DefaultDomain}
+		shopList[i] = model1.Shop{ID: shop.ShopID.String(), Title: shop.Title, Status: model1.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode}
 	}
 	return shopList, nil
 }

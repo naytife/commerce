@@ -91,16 +91,16 @@ type Shop implements Node {
   facebook: Facebook
   siteLogoUrl: String
   faviconUrl: String
-  currencyCode: String
-  status: ShopStatus
+  currencyCode: String!
+  status: ShopStatus!
   about: String
   # template: StoreFrontTemplate!
   seoDescription: String
   seoKeywords: [String!]!
   seoTitle: String
-  updatedAt: DateTime
-  createdAt: DateTime
-  owner: User
+  updatedAt: DateTime!
+  createdAt: DateTime!
+  owner: User!
 }
 
 # ======== PRODUCT ========
