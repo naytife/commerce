@@ -1,0 +1,74 @@
+# ======== PRODUCT ========
+enum ProductAttributeDataType {
+  STRING
+  INTEGER
+}
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
+}
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+type ProductEdge {
+  cursor: String!
+  node: Product!
+}
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+type Product implements Node {
+  id: ID!
+  slug: String!
+  title: String!
+  price: Float!
+  description: String!
+  category: Category!
+  defaultVariant: ProductVariant!
+  variants: [ProductVariant!]!
+  allowedAttributes: [AllowedProductAttributes!]!
+  images: [ProductImage!]!
+  status: ProductStatus
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type AllowedProductAttributes {
+  key: String!
+  dataType: ProductAttributeDataType
+  options: [ProductAttributeValue!]!
+}
+type ProductImage {
+  imageUrl: String!
+}
+
+# ======== ProductVariant ========
+enum ProductStockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+}
+type ProductVariant implements Node {
+  id: ID!
+  slug: String!
+  title: String
+  price: Float
+  quantity: Int
+  description: String
+  attributes: [ProductAttribute!]!
+  stockStatus: ProductStockStatus
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type ProductAttribute {
+  key: String!
+  value: String
+}

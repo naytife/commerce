@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type Node interface {
@@ -34,8 +35,8 @@ type Category struct {
 	Products          *ProductConnection         `json:"products,omitempty"`
 	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
 	Image             *CategoryImage             `json:"image,omitempty"`
-	UpdatedAt         *string                    `json:"updatedAt,omitempty"`
-	CreatedAt         *string                    `json:"createdAt,omitempty"`
+	UpdatedAt         time.Time                  `json:"updatedAt"`
+	CreatedAt         time.Time                  `json:"createdAt"`
 }
 
 func (Category) IsNode()            {}
@@ -78,6 +79,11 @@ type Facebook struct {
 func (Facebook) IsSocialMediaContact() {}
 func (this Facebook) GetURL() *string  { return &this.URL }
 
+type Image struct {
+	URL     string  `json:"url"`
+	AltText *string `json:"altText,omitempty"`
+}
+
 type Instagram struct {
 	URL    string `json:"url"`
 	Handle string `json:"handle"`
@@ -85,12 +91,6 @@ type Instagram struct {
 
 func (Instagram) IsSocialMediaContact() {}
 func (this Instagram) GetURL() *string  { return &this.URL }
-
-type Location struct {
-	Address string `json:"address"`
-	State   string `json:"state"`
-	Country string `json:"country"`
-}
 
 type Mutation struct {
 }
@@ -103,8 +103,7 @@ type PageInfo struct {
 }
 
 type PhoneNumber struct {
-	Number      string `json:"number"`
-	CountryCode string `json:"countryCode"`
+	E164 string `json:"e164"`
 }
 
 type Product struct {
@@ -119,8 +118,8 @@ type Product struct {
 	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
 	Images            []ProductImage             `json:"images"`
 	Status            *ProductStatus             `json:"status,omitempty"`
-	UpdatedAt         *string                    `json:"updatedAt,omitempty"`
-	CreatedAt         *string                    `json:"createdAt,omitempty"`
+	UpdatedAt         time.Time                  `json:"updatedAt"`
+	CreatedAt         time.Time                  `json:"createdAt"`
 }
 
 func (Product) IsNode()            {}
@@ -147,7 +146,7 @@ type ProductEdge struct {
 }
 
 type ProductImage struct {
-	URL string `json:"url"`
+	ImageURL string `json:"imageUrl"`
 }
 
 type ProductVariant struct {
@@ -159,8 +158,8 @@ type ProductVariant struct {
 	Description *string             `json:"description,omitempty"`
 	Attributes  []ProductAttribute  `json:"attributes"`
 	StockStatus *ProductStockStatus `json:"stockStatus,omitempty"`
-	UpdatedAt   *string             `json:"updatedAt,omitempty"`
-	CreatedAt   *string             `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time           `json:"updatedAt"`
+	CreatedAt   time.Time           `json:"createdAt"`
 }
 
 func (ProductVariant) IsNode()            {}
@@ -175,25 +174,37 @@ type Shop struct {
 	DefaultDomain  string             `json:"defaultDomain"`
 	ContactPhone   *PhoneNumber       `json:"contactPhone,omitempty"`
 	ContactEmail   *string            `json:"contactEmail,omitempty"`
-	Location       *Location          `json:"location,omitempty"`
+	Location       *ShopLocation      `json:"location,omitempty"`
 	Products       *ProductConnection `json:"products,omitempty"`
 	WhatsApp       *WhatsApp          `json:"whatsApp,omitempty"`
 	Facebook       *Facebook          `json:"facebook,omitempty"`
-	SiteLogoURL    *string            `json:"siteLogoUrl,omitempty"`
-	FaviconURL     *string            `json:"faviconUrl,omitempty"`
+	Images         *ShopImages        `json:"images,omitempty"`
 	CurrencyCode   string             `json:"currencyCode"`
 	Status         ShopStatus         `json:"status"`
 	About          *string            `json:"about,omitempty"`
 	SeoDescription *string            `json:"seoDescription,omitempty"`
 	SeoKeywords    []string           `json:"seoKeywords"`
 	SeoTitle       *string            `json:"seoTitle,omitempty"`
-	UpdatedAt      string             `json:"updatedAt"`
-	CreatedAt      string             `json:"createdAt"`
+	UpdatedAt      time.Time          `json:"updatedAt"`
+	CreatedAt      time.Time          `json:"createdAt"`
 	Owner          *User              `json:"owner"`
 }
 
 func (Shop) IsNode()            {}
 func (this Shop) GetID() string { return this.ID }
+
+type ShopImages struct {
+	SiteLogo   *Image `json:"siteLogo,omitempty"`
+	Favicon    *Image `json:"favicon,omitempty"`
+	Banner     *Image `json:"banner,omitempty"`
+	CoverImage *Image `json:"coverImage,omitempty"`
+}
+
+type ShopLocation struct {
+	Address string `json:"address"`
+	State   string `json:"state"`
+	Country string `json:"country"`
+}
 
 type SignInInput struct {
 	Username *string `json:"username,omitempty"`
@@ -242,8 +253,8 @@ type User struct {
 	Email             string  `json:"email"`
 	Name              *string `json:"name,omitempty"`
 	ProfilePictureURL *string `json:"profilePictureUrl,omitempty"`
-	CreatedAt         *string `json:"createdAt,omitempty"`
-	LastLogin         *string `json:"lastLogin,omitempty"`
+	CreatedAt         string  `json:"createdAt"`
+	LastLogin         string  `json:"lastLogin"`
 }
 
 func (User) IsNode()            {}
@@ -390,17 +401,19 @@ const (
 	ShopStatusDraft     ShopStatus = "DRAFT"
 	ShopStatusPublished ShopStatus = "PUBLISHED"
 	ShopStatusArchived  ShopStatus = "ARCHIVED"
+	ShopStatusSuspended ShopStatus = "SUSPENDED"
 )
 
 var AllShopStatus = []ShopStatus{
 	ShopStatusDraft,
 	ShopStatusPublished,
 	ShopStatusArchived,
+	ShopStatusSuspended,
 }
 
 func (e ShopStatus) IsValid() bool {
 	switch e {
-	case ShopStatusDraft, ShopStatusPublished, ShopStatusArchived:
+	case ShopStatusDraft, ShopStatusPublished, ShopStatusArchived, ShopStatusSuspended:
 		return true
 	}
 	return false

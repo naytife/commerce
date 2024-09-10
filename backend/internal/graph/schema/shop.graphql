@@ -1,0 +1,119 @@
+# ======== SHOP ========
+extend type Query {
+  shop(id: ID!): Shop!
+  myShops: [Shop!]!
+}
+
+extend type Mutation {
+  createShop(shop: CreateShopInput!): CreateShopPayload
+  updateShop(shop: UpdateShopInput!): UpdateShopPayload
+  createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
+  updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
+}
+
+enum ShopStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SUSPENDED
+}
+type ShopLocation {
+  address: String!
+  state: String!
+  country: String!
+}
+type PhoneNumber {
+  e164: String! # Standard format for phone numbers internationally
+}
+interface SocialMediaContact {
+  url: String
+}
+type WhatsApp implements SocialMediaContact {
+  url: String!
+  phoneNumber: PhoneNumber!
+}
+type Facebook implements SocialMediaContact {
+  url: String!
+  handle: String!
+}
+type Instagram implements SocialMediaContact {
+  url: String!
+  handle: String!
+}
+input CreateShopInput {
+  title: String!
+  domain: String!
+}
+type CreateShopPayload {
+  shop: Shop
+  successful: Boolean!
+}
+input UpdateShopInput {
+  title: String
+  contactEmail: String
+  siteLogoUrl: String
+  faviconUrl: String
+  currencyCode: String
+  status: ShopStatus
+  about: String
+  seoDescription: String
+  seoKeywords: [String!]
+  seoTitle: String
+}
+type UpdateShopPayload {
+  shop: Shop
+  successful: Boolean!
+}
+type CreateWhatsAppPayload {
+  whatsApp: WhatsApp
+  successful: Boolean!
+}
+input CreateWhatsAppInput {
+  url: String!
+  phoneNumber: CreatePhoneNumberInput!
+}
+type UpdateWhatsAppPayload {
+  whatsApp: WhatsApp!
+  successful: Boolean!
+}
+input UpdateWhatsAppInput {
+  url: String
+  phoneNumber: UpdatePhoneNumberInput
+}
+input UpdatePhoneNumberInput {
+  number: String!
+  countryCode: String!
+}
+input CreatePhoneNumberInput {
+  number: String!
+  countryCode: String!
+}
+type Shop implements Node {
+  id: ID!
+  title: String!
+  defaultDomain: String!
+  contactPhone: PhoneNumber
+  contactEmail: String
+  location: ShopLocation
+  products(first: Int = 20, after: ID): ProductConnection
+  whatsApp: WhatsApp
+  facebook: Facebook
+  images: ShopImages
+  currencyCode: String!
+  status: ShopStatus!
+  about: String
+  # template: StoreFrontTemplate!
+  seoDescription: String
+  seoKeywords: [String!]!
+  seoTitle: String
+  updatedAt: DateTime!
+  createdAt: DateTime!
+  owner: User!
+}
+
+type ShopImages {
+  siteLogo: Image
+  favicon: Image
+  banner: Image
+  coverImage: Image
+}

@@ -5,12 +5,14 @@ import (
 
 	"github.com/99designs/gqlgen/handler"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/graph/generated"
+	"github.com/petrejonn/naytife/internal/graph/resolver"
 )
 
 // NewHandler returns a new graphql endpoint handler.
 func NewHandler(repo db.Repository) http.Handler {
-	return handler.GraphQL(NewExecutableSchema(Config{
-		Resolvers: &Resolver{
+	return handler.GraphQL(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &resolver.Resolver{
 			Repository: repo,
 		},
 	}))

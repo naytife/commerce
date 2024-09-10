@@ -1,4 +1,4 @@
-package graph
+package resolver
 
 import "github.com/petrejonn/naytife/internal/db"
 

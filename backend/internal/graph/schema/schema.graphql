@@ -1,0 +1,16 @@
+scalar DateTime
+
+interface Node {
+  id: ID!
+}
+type Image {
+  url: String!
+  altText: String
+}
+
+type Query {
+  node(id: ID!): Node
+}
+type Mutation {
+  signInUser(input: SignInInput!): SignInUserPayload!
+}

@@ -1,0 +1,18 @@
+# ======== USER ========
+type User implements Node {
+  id: ID!
+  email: String!
+  name: String
+  profilePictureUrl: String
+  createdAt: String!
+  lastLogin: String!
+}
+
+input SignInInput {
+  username: String
+}
+
+type SignInUserPayload {
+  successful: Boolean!
+  user: User
+}
