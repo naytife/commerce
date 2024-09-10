@@ -76,6 +76,11 @@ type ComplexityRoot struct {
 		Successful func(childComplexity int) int
 	}
 
+	CreateWhatsAppPayload struct {
+		Successful func(childComplexity int) int
+		WhatsApp   func(childComplexity int) int
+	}
+
 	Facebook struct {
 		Handle func(childComplexity int) int
 		URL    func(childComplexity int) int
@@ -93,8 +98,11 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateShop func(childComplexity int, shop model.CreateShopInput) int
-		SignInUser func(childComplexity int, input model.SignInInput) int
+		CreateShop     func(childComplexity int, shop model.CreateShopInput) int
+		CreateWhatsApp func(childComplexity int, input model.CreateWhatsAppInput) int
+		SignInUser     func(childComplexity int, input model.SignInInput) int
+		UpdateShop     func(childComplexity int, shop model.UpdateShopInput) int
+		UpdateWhatsApp func(childComplexity int, input model.UpdateWhatsAppInput) int
 	}
 
 	PageInfo struct {
@@ -195,6 +203,16 @@ type ComplexityRoot struct {
 		User       func(childComplexity int) int
 	}
 
+	UpdateShopPayload struct {
+		Shop       func(childComplexity int) int
+		Successful func(childComplexity int) int
+	}
+
+	UpdateWhatsAppPayload struct {
+		Successful func(childComplexity int) int
+		WhatsApp   func(childComplexity int) int
+	}
+
 	User struct {
 		CreatedAt         func(childComplexity int) int
 		Email             func(childComplexity int) int
@@ -205,14 +223,17 @@ type ComplexityRoot struct {
 	}
 
 	WhatsApp struct {
-		Number func(childComplexity int) int
-		URL    func(childComplexity int) int
+		PhoneNumber func(childComplexity int) int
+		URL         func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
 	SignInUser(ctx context.Context, input model.SignInInput) (*model.SignInUserPayload, error)
 	CreateShop(ctx context.Context, shop model.CreateShopInput) (*model.CreateShopPayload, error)
+	UpdateShop(ctx context.Context, shop model.UpdateShopInput) (*model.UpdateShopPayload, error)
+	CreateWhatsApp(ctx context.Context, input model.CreateWhatsAppInput) (*model.CreateWhatsAppPayload, error)
+	UpdateWhatsApp(ctx context.Context, input model.UpdateWhatsAppInput) (*model.UpdateWhatsAppPayload, error)
 }
 type QueryResolver interface {
 	Shop(ctx context.Context, id string) (*model.Shop, error)
@@ -357,6 +378,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CreateShopPayload.Successful(childComplexity), true
 
+	case "CreateWhatsAppPayload.successful":
+		if e.complexity.CreateWhatsAppPayload.Successful == nil {
+			break
+		}
+
+		return e.complexity.CreateWhatsAppPayload.Successful(childComplexity), true
+
+	case "CreateWhatsAppPayload.whatsApp":
+		if e.complexity.CreateWhatsAppPayload.WhatsApp == nil {
+			break
+		}
+
+		return e.complexity.CreateWhatsAppPayload.WhatsApp(childComplexity), true
+
 	case "Facebook.handle":
 		if e.complexity.Facebook.Handle == nil {
 			break
@@ -418,6 +453,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateShop(childComplexity, args["shop"].(model.CreateShopInput)), true
 
+	case "Mutation.createWhatsApp":
+		if e.complexity.Mutation.CreateWhatsApp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createWhatsApp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateWhatsApp(childComplexity, args["input"].(model.CreateWhatsAppInput)), true
+
 	case "Mutation.signInUser":
 		if e.complexity.Mutation.SignInUser == nil {
 			break
@@ -429,6 +476,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SignInUser(childComplexity, args["input"].(model.SignInInput)), true
+
+	case "Mutation.updateShop":
+		if e.complexity.Mutation.UpdateShop == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateShop_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateShop(childComplexity, args["shop"].(model.UpdateShopInput)), true
+
+	case "Mutation.updateWhatsApp":
+		if e.complexity.Mutation.UpdateWhatsApp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateWhatsApp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateWhatsApp(childComplexity, args["input"].(model.UpdateWhatsAppInput)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -874,6 +945,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SignInUserPayload.User(childComplexity), true
 
+	case "UpdateShopPayload.shop":
+		if e.complexity.UpdateShopPayload.Shop == nil {
+			break
+		}
+
+		return e.complexity.UpdateShopPayload.Shop(childComplexity), true
+
+	case "UpdateShopPayload.successful":
+		if e.complexity.UpdateShopPayload.Successful == nil {
+			break
+		}
+
+		return e.complexity.UpdateShopPayload.Successful(childComplexity), true
+
+	case "UpdateWhatsAppPayload.successful":
+		if e.complexity.UpdateWhatsAppPayload.Successful == nil {
+			break
+		}
+
+		return e.complexity.UpdateWhatsAppPayload.Successful(childComplexity), true
+
+	case "UpdateWhatsAppPayload.whatsApp":
+		if e.complexity.UpdateWhatsAppPayload.WhatsApp == nil {
+			break
+		}
+
+		return e.complexity.UpdateWhatsAppPayload.WhatsApp(childComplexity), true
+
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -916,12 +1015,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.ProfilePictureURL(childComplexity), true
 
-	case "WhatsApp.number":
-		if e.complexity.WhatsApp.Number == nil {
+	case "WhatsApp.phoneNumber":
+		if e.complexity.WhatsApp.PhoneNumber == nil {
 			break
 		}
 
-		return e.complexity.WhatsApp.Number(childComplexity), true
+		return e.complexity.WhatsApp.PhoneNumber(childComplexity), true
 
 	case "WhatsApp.url":
 		if e.complexity.WhatsApp.URL == nil {
@@ -938,8 +1037,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCreatePhoneNumberInput,
 		ec.unmarshalInputCreateShopInput,
+		ec.unmarshalInputCreateWhatsAppInput,
 		ec.unmarshalInputSignInInput,
+		ec.unmarshalInputUpdatePhoneNumberInput,
+		ec.unmarshalInputUpdateShopInput,
+		ec.unmarshalInputUpdateWhatsAppInput,
 	)
 	first := true
 
@@ -1071,6 +1175,21 @@ func (ec *executionContext) field_Mutation_createShop_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createWhatsApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.CreateWhatsAppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNCreateWhatsAppInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateWhatsAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_signInUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1078,6 +1197,36 @@ func (ec *executionContext) field_Mutation_signInUser_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNSignInInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐSignInInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateShop_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateShopInput
+	if tmp, ok := rawArgs["shop"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shop"))
+		arg0, err = ec.unmarshalNUpdateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateShopInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["shop"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateWhatsApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateWhatsAppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateWhatsAppInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateWhatsAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2016,6 +2165,97 @@ func (ec *executionContext) fieldContext_CreateShopPayload_successful(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _CreateWhatsAppPayload_whatsApp(ctx context.Context, field graphql.CollectedField, obj *model.CreateWhatsAppPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateWhatsAppPayload_whatsApp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.WhatsApp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.WhatsApp)
+	fc.Result = res
+	return ec.marshalOWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐWhatsApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateWhatsAppPayload_whatsApp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateWhatsAppPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "url":
+				return ec.fieldContext_WhatsApp_url(ctx, field)
+			case "phoneNumber":
+				return ec.fieldContext_WhatsApp_phoneNumber(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WhatsApp", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateWhatsAppPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.CreateWhatsAppPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateWhatsAppPayload_successful(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Successful, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateWhatsAppPayload_successful(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateWhatsAppPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Facebook_url(ctx context.Context, field graphql.CollectedField, obj *model.Facebook) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Facebook_url(ctx, field)
 	if err != nil {
@@ -2437,6 +2677,183 @@ func (ec *executionContext) fieldContext_Mutation_createShop(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createShop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateShop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateShop(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateShop(rctx, fc.Args["shop"].(model.UpdateShopInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.UpdateShopPayload)
+	fc.Result = res
+	return ec.marshalOUpdateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateShopPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateShop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "shop":
+				return ec.fieldContext_UpdateShopPayload_shop(ctx, field)
+			case "successful":
+				return ec.fieldContext_UpdateShopPayload_successful(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UpdateShopPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateShop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createWhatsApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createWhatsApp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateWhatsApp(rctx, fc.Args["input"].(model.CreateWhatsAppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CreateWhatsAppPayload)
+	fc.Result = res
+	return ec.marshalOCreateWhatsAppPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateWhatsAppPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createWhatsApp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "whatsApp":
+				return ec.fieldContext_CreateWhatsAppPayload_whatsApp(ctx, field)
+			case "successful":
+				return ec.fieldContext_CreateWhatsAppPayload_successful(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateWhatsAppPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createWhatsApp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateWhatsApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateWhatsApp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateWhatsApp(rctx, fc.Args["input"].(model.UpdateWhatsAppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UpdateWhatsAppPayload)
+	fc.Result = res
+	return ec.marshalNUpdateWhatsAppPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateWhatsAppPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateWhatsApp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "whatsApp":
+				return ec.fieldContext_UpdateWhatsAppPayload_whatsApp(ctx, field)
+			case "successful":
+				return ec.fieldContext_UpdateWhatsAppPayload_successful(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UpdateWhatsAppPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateWhatsApp_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4877,8 +5294,8 @@ func (ec *executionContext) fieldContext_Shop_whatsApp(_ context.Context, field 
 			switch field.Name {
 			case "url":
 				return ec.fieldContext_WhatsApp_url(ctx, field)
-			case "number":
-				return ec.fieldContext_WhatsApp_number(ctx, field)
+			case "phoneNumber":
+				return ec.fieldContext_WhatsApp_phoneNumber(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type WhatsApp", field.Name)
 		},
@@ -5515,6 +5932,227 @@ func (ec *executionContext) fieldContext_SignInUserPayload_user(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _UpdateShopPayload_shop(ctx context.Context, field graphql.CollectedField, obj *model.UpdateShopPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateShopPayload_shop(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Shop, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Shop)
+	fc.Result = res
+	return ec.marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateShopPayload_shop(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateShopPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Shop_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Shop_title(ctx, field)
+			case "defaultDomain":
+				return ec.fieldContext_Shop_defaultDomain(ctx, field)
+			case "contactPhone":
+				return ec.fieldContext_Shop_contactPhone(ctx, field)
+			case "contactEmail":
+				return ec.fieldContext_Shop_contactEmail(ctx, field)
+			case "location":
+				return ec.fieldContext_Shop_location(ctx, field)
+			case "products":
+				return ec.fieldContext_Shop_products(ctx, field)
+			case "whatsApp":
+				return ec.fieldContext_Shop_whatsApp(ctx, field)
+			case "facebook":
+				return ec.fieldContext_Shop_facebook(ctx, field)
+			case "siteLogoUrl":
+				return ec.fieldContext_Shop_siteLogoUrl(ctx, field)
+			case "faviconUrl":
+				return ec.fieldContext_Shop_faviconUrl(ctx, field)
+			case "currencyCode":
+				return ec.fieldContext_Shop_currencyCode(ctx, field)
+			case "status":
+				return ec.fieldContext_Shop_status(ctx, field)
+			case "about":
+				return ec.fieldContext_Shop_about(ctx, field)
+			case "seoDescription":
+				return ec.fieldContext_Shop_seoDescription(ctx, field)
+			case "seoKeywords":
+				return ec.fieldContext_Shop_seoKeywords(ctx, field)
+			case "seoTitle":
+				return ec.fieldContext_Shop_seoTitle(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Shop_updatedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Shop_createdAt(ctx, field)
+			case "owner":
+				return ec.fieldContext_Shop_owner(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Shop", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateShopPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.UpdateShopPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateShopPayload_successful(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Successful, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateShopPayload_successful(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateShopPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateWhatsAppPayload_whatsApp(ctx context.Context, field graphql.CollectedField, obj *model.UpdateWhatsAppPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateWhatsAppPayload_whatsApp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.WhatsApp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.WhatsApp)
+	fc.Result = res
+	return ec.marshalNWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐWhatsApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateWhatsAppPayload_whatsApp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateWhatsAppPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "url":
+				return ec.fieldContext_WhatsApp_url(ctx, field)
+			case "phoneNumber":
+				return ec.fieldContext_WhatsApp_phoneNumber(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type WhatsApp", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateWhatsAppPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.UpdateWhatsAppPayload) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UpdateWhatsAppPayload_successful(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Successful, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UpdateWhatsAppPayload_successful(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateWhatsAppPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
@@ -5811,8 +6449,8 @@ func (ec *executionContext) fieldContext_WhatsApp_url(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _WhatsApp_number(ctx context.Context, field graphql.CollectedField, obj *model.WhatsApp) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_WhatsApp_number(ctx, field)
+func (ec *executionContext) _WhatsApp_phoneNumber(ctx context.Context, field graphql.CollectedField, obj *model.WhatsApp) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_WhatsApp_phoneNumber(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -5825,7 +6463,7 @@ func (ec *executionContext) _WhatsApp_number(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Number, nil
+		return obj.PhoneNumber, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5842,7 +6480,7 @@ func (ec *executionContext) _WhatsApp_number(ctx context.Context, field graphql.
 	return ec.marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumber(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_WhatsApp_number(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_WhatsApp_phoneNumber(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "WhatsApp",
 		Field:      field,
@@ -7634,6 +8272,40 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputCreatePhoneNumberInput(ctx context.Context, obj interface{}) (model.CreatePhoneNumberInput, error) {
+	var it model.CreatePhoneNumberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"number", "countryCode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "number":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Number = data
+		case "countryCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("countryCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CountryCode = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, obj interface{}) (model.CreateShopInput, error) {
 	var it model.CreateShopInput
 	asMap := map[string]interface{}{}
@@ -7668,6 +8340,40 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateWhatsAppInput(ctx context.Context, obj interface{}) (model.CreateWhatsAppInput, error) {
+	var it model.CreateWhatsAppInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"url", "phoneNumber"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.URL = data
+		case "phoneNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumber"))
+			data, err := ec.unmarshalNCreatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreatePhoneNumberInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSignInInput(ctx context.Context, obj interface{}) (model.SignInInput, error) {
 	var it model.SignInInput
 	asMap := map[string]interface{}{}
@@ -7689,6 +8395,164 @@ func (ec *executionContext) unmarshalInputSignInInput(ctx context.Context, obj i
 				return it, err
 			}
 			it.Username = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdatePhoneNumberInput(ctx context.Context, obj interface{}) (model.UpdatePhoneNumberInput, error) {
+	var it model.UpdatePhoneNumberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"number", "countryCode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "number":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Number = data
+		case "countryCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("countryCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CountryCode = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, obj interface{}) (model.UpdateShopInput, error) {
+	var it model.UpdateShopInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"title", "contactEmail", "siteLogoUrl", "faviconUrl", "currencyCode", "status", "about", "seoDescription", "seoKeywords", "seoTitle"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "contactEmail":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contactEmail"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ContactEmail = data
+		case "siteLogoUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("siteLogoUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SiteLogoURL = data
+		case "faviconUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("faviconUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FaviconURL = data
+		case "currencyCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currencyCode"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CurrencyCode = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Status = data
+		case "about":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("about"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.About = data
+		case "seoDescription":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seoDescription"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeoDescription = data
+		case "seoKeywords":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seoKeywords"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeoKeywords = data
+		case "seoTitle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seoTitle"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeoTitle = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateWhatsAppInput(ctx context.Context, obj interface{}) (model.UpdateWhatsAppInput, error) {
+	var it model.UpdateWhatsAppInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"url", "phoneNumber"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "url":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.URL = data
+		case "phoneNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumber"))
+			data, err := ec.unmarshalOUpdatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdatePhoneNumberInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumber = data
 		}
 	}
 
@@ -7974,6 +8838,47 @@ func (ec *executionContext) _CreateShopPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var createWhatsAppPayloadImplementors = []string{"CreateWhatsAppPayload"}
+
+func (ec *executionContext) _CreateWhatsAppPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CreateWhatsAppPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createWhatsAppPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateWhatsAppPayload")
+		case "whatsApp":
+			out.Values[i] = ec._CreateWhatsAppPayload_whatsApp(ctx, field, obj)
+		case "successful":
+			out.Values[i] = ec._CreateWhatsAppPayload_successful(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var facebookImplementors = []string{"Facebook", "SocialMediaContact"}
 
 func (ec *executionContext) _Facebook(ctx context.Context, sel ast.SelectionSet, obj *model.Facebook) graphql.Marshaler {
@@ -8141,6 +9046,21 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createShop(ctx, field)
 			})
+		case "updateShop":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateShop(ctx, field)
+			})
+		case "createWhatsApp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createWhatsApp(ctx, field)
+			})
+		case "updateWhatsApp":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateWhatsApp(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8851,6 +9771,91 @@ func (ec *executionContext) _SignInUserPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var updateShopPayloadImplementors = []string{"UpdateShopPayload"}
+
+func (ec *executionContext) _UpdateShopPayload(ctx context.Context, sel ast.SelectionSet, obj *model.UpdateShopPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateShopPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateShopPayload")
+		case "shop":
+			out.Values[i] = ec._UpdateShopPayload_shop(ctx, field, obj)
+		case "successful":
+			out.Values[i] = ec._UpdateShopPayload_successful(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var updateWhatsAppPayloadImplementors = []string{"UpdateWhatsAppPayload"}
+
+func (ec *executionContext) _UpdateWhatsAppPayload(ctx context.Context, sel ast.SelectionSet, obj *model.UpdateWhatsAppPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateWhatsAppPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateWhatsAppPayload")
+		case "whatsApp":
+			out.Values[i] = ec._UpdateWhatsAppPayload_whatsApp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "successful":
+			out.Values[i] = ec._UpdateWhatsAppPayload_successful(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userImplementors = []string{"User", "Node"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
@@ -8919,8 +9924,8 @@ func (ec *executionContext) _WhatsApp(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "number":
-			out.Values[i] = ec._WhatsApp_number(ctx, field, obj)
+		case "phoneNumber":
+			out.Values[i] = ec._WhatsApp_phoneNumber(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -9384,8 +10389,18 @@ func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋnayti
 	return ec._Category(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCreatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreatePhoneNumberInput(ctx context.Context, v interface{}) (*model.CreatePhoneNumberInput, error) {
+	res, err := ec.unmarshalInputCreatePhoneNumberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopInput(ctx context.Context, v interface{}) (model.CreateShopInput, error) {
 	res, err := ec.unmarshalInputCreateShopInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateWhatsAppInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateWhatsAppInput(ctx context.Context, v interface{}) (model.CreateWhatsAppInput, error) {
+	res, err := ec.unmarshalInputCreateWhatsAppInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -9848,6 +10863,30 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) unmarshalNUpdateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateShopInput(ctx context.Context, v interface{}) (model.UpdateShopInput, error) {
+	res, err := ec.unmarshalInputUpdateShopInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateWhatsAppInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateWhatsAppInput(ctx context.Context, v interface{}) (model.UpdateWhatsAppInput, error) {
+	res, err := ec.unmarshalInputUpdateWhatsAppInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpdateWhatsAppPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateWhatsAppPayload(ctx context.Context, sel ast.SelectionSet, v model.UpdateWhatsAppPayload) graphql.Marshaler {
+	return ec._UpdateWhatsAppPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUpdateWhatsAppPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateWhatsAppPayload(ctx context.Context, sel ast.SelectionSet, v *model.UpdateWhatsAppPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UpdateWhatsAppPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -9856,6 +10895,16 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋpetrejonnᚋnaytife�
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWhatsApp2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐWhatsApp(ctx context.Context, sel ast.SelectionSet, v *model.WhatsApp) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._WhatsApp(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -10158,6 +11207,13 @@ func (ec *executionContext) marshalOCreateShopPayload2ᚖgithubᚗcomᚋpetrejon
 	return ec._CreateShopPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOCreateWhatsAppPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateWhatsAppPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateWhatsAppPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CreateWhatsAppPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalODateTime2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -10305,6 +11361,60 @@ func (ec *executionContext) marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytife�
 	return ec._Shop(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, v interface{}) (*model.ShopStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ShopStatus)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, sel ast.SelectionSet, v *model.ShopStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -10319,6 +11429,21 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOUpdatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdatePhoneNumberInput(ctx context.Context, v interface{}) (*model.UpdatePhoneNumberInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdatePhoneNumberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUpdateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateShopPayload(ctx context.Context, sel ast.SelectionSet, v *model.UpdateShopPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UpdateShopPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

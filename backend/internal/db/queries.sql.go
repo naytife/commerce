@@ -57,6 +57,16 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	return i, err
 }
 
+const deleteShop = `-- name: DeleteShop :exec
+DELETE FROM shops
+WHERE shop_id = $1
+`
+
+func (q *Queries) DeleteShop(ctx context.Context, shopID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteShop, shopID)
+	return err
+}
+
 const getShop = `-- name: GetShop :one
 SELECT shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE shop_id = $1
@@ -64,6 +74,32 @@ WHERE shop_id = $1
 
 func (q *Queries) GetShop(ctx context.Context, shopID uuid.UUID) (Shop, error) {
 	row := q.db.QueryRow(ctx, getShop, shopID)
+	var i Shop
+	err := row.Scan(
+		&i.ShopID,
+		&i.OwnerID,
+		&i.Title,
+		&i.DefaultDomain,
+		&i.FaviconUrl,
+		&i.CurrencyCode,
+		&i.Status,
+		&i.About,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getShopByDomain = `-- name: GetShopByDomain :one
+SELECT shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+WHERE default_domain = $1
+`
+
+func (q *Queries) GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error) {
+	row := q.db.QueryRow(ctx, getShopByDomain, defaultDomain)
 	var i Shop
 	err := row.Scan(
 		&i.ShopID,
@@ -138,6 +174,82 @@ func (q *Queries) GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, erro
 		&i.ProfilePictureUrl,
 		&i.CreatedAt,
 		&i.LastLogin,
+	)
+	return i, err
+}
+
+const getWhatsappsByShop = `-- name: GetWhatsappsByShop :many
+SELECT whatsapp_id, shop_id, number, country_code, url, created_at FROM whatsapps
+WHERE shop_id = $1
+`
+
+func (q *Queries) GetWhatsappsByShop(ctx context.Context, shopID uuid.UUID) ([]Whatsapp, error) {
+	rows, err := q.db.Query(ctx, getWhatsappsByShop, shopID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Whatsapp
+	for rows.Next() {
+		var i Whatsapp
+		if err := rows.Scan(
+			&i.WhatsappID,
+			&i.ShopID,
+			&i.Number,
+			&i.CountryCode,
+			&i.Url,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateShop = `-- name: UpdateShop :one
+UPDATE shops
+SET title = $2, favicon_url = $3, currency_code = $4, about = $5, status = $6
+WHERE default_domain = $1
+RETURNING shop_id, owner_id, title, default_domain, favicon_url, currency_code, status, about, seo_description, seo_keywords, seo_title, updated_at, created_at
+`
+
+type UpdateShopParams struct {
+	DefaultDomain string
+	Title         string
+	FaviconUrl    pgtype.Text
+	CurrencyCode  string
+	About         pgtype.Text
+	Status        string
+}
+
+func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
+	row := q.db.QueryRow(ctx, updateShop,
+		arg.DefaultDomain,
+		arg.Title,
+		arg.FaviconUrl,
+		arg.CurrencyCode,
+		arg.About,
+		arg.Status,
+	)
+	var i Shop
+	err := row.Scan(
+		&i.ShopID,
+		&i.OwnerID,
+		&i.Title,
+		&i.DefaultDomain,
+		&i.FaviconUrl,
+		&i.CurrencyCode,
+		&i.Status,
+		&i.About,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.UpdatedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

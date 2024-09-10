@@ -7,6 +7,7 @@ package graph
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/google/uuid"
@@ -74,6 +75,42 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model1.CreateSho
 	return &model1.CreateShopPayload{Successful: true, Shop: &model1.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model1.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
 }
 
+// UpdateShop is the resolver for the updateShop field.
+func (r *mutationResolver) UpdateShop(ctx context.Context, shop model1.UpdateShopInput) (*model1.UpdateShopPayload, error) {
+	_, ok := ctx.Value("userClaims").(*auth.CustomClaims)
+	if !ok {
+		return nil, errors.New("Unauthorized")
+	}
+	// TODO: Check if user has update permission
+	host, ok := ctx.Value("shopHost").(string)
+	if !ok {
+		return nil, errors.New("host not found")
+	}
+	dbShop, err := r.Repository.UpdateShop(ctx, db.UpdateShopParams{
+		DefaultDomain: host,
+		Title:         *shop.Title,
+		FaviconUrl:    pgtype.Text{String: *shop.FaviconURL, Valid: true},
+		CurrencyCode:  *shop.CurrencyCode,
+		Status:        model1.ShopStatus(*shop.Status).String(),
+		About:         pgtype.Text{String: *shop.About, Valid: true},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return &model1.UpdateShopPayload{Successful: true, Shop: &model1.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model1.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
+}
+
+// CreateWhatsApp is the resolver for the createWhatsApp field.
+func (r *mutationResolver) CreateWhatsApp(ctx context.Context, input model1.CreateWhatsAppInput) (*model1.CreateWhatsAppPayload, error) {
+	panic(fmt.Errorf("not implemented: CreateWhatsApp - createWhatsApp"))
+}
+
+// UpdateWhatsApp is the resolver for the updateWhatsApp field.
+func (r *mutationResolver) UpdateWhatsApp(ctx context.Context, input model1.UpdateWhatsAppInput) (*model1.UpdateWhatsAppPayload, error) {
+	panic(fmt.Errorf("not implemented: UpdateWhatsApp - updateWhatsApp"))
+}
+
 // Shop is the resolver for the shop field.
 func (r *queryResolver) Shop(ctx context.Context, id string) (*model1.Shop, error) {
 	shopId, err := uuid.Parse(id)
@@ -103,7 +140,7 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model1.Shop, error) {
 	}
 	shopList := make([]model1.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model1.Shop{ID: shop.ShopID.String(), Title: shop.Title, Status: model1.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode}
+		shopList[i] = model1.Shop{ID: shop.ShopID.String(), Title: shop.Title, Status: model1.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode, FaviconURL: &shop.FaviconUrl.String, About: &shop.About.String}
 	}
 	return shopList, nil
 }

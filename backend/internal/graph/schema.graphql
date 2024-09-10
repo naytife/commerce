@@ -8,6 +8,9 @@ type Query {
 type Mutation {
   signInUser(input: SignInInput!): SignInUserPayload!
   createShop(shop: CreateShopInput!): CreateShopPayload
+  updateShop(shop: UpdateShopInput!): UpdateShopPayload
+  createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
+  updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
   # checkDomainAvailability(domain: String)
   # updateShop(id:ID!):Shop! @requireAuthorization
   # deleteShop(id:ID!): @requireAuthorization
@@ -61,7 +64,7 @@ interface SocialMediaContact {
 }
 type WhatsApp implements SocialMediaContact {
   url: String!
-  number: PhoneNumber!
+  phoneNumber: PhoneNumber!
 }
 type Facebook implements SocialMediaContact {
   url: String!
@@ -78,6 +81,46 @@ input CreateShopInput {
 type CreateShopPayload {
   shop: Shop
   successful: Boolean!
+}
+input UpdateShopInput {
+  title: String
+  contactEmail: String
+  siteLogoUrl: String
+  faviconUrl: String
+  currencyCode: String
+  status: ShopStatus
+  about: String
+  seoDescription: String
+  seoKeywords: [String!]
+  seoTitle: String
+}
+type UpdateShopPayload {
+  shop: Shop
+  successful: Boolean!
+}
+type CreateWhatsAppPayload {
+  whatsApp: WhatsApp
+  successful: Boolean!
+}
+input CreateWhatsAppInput {
+  url: String!
+  phoneNumber: CreatePhoneNumberInput!
+}
+type UpdateWhatsAppPayload {
+  whatsApp: WhatsApp!
+  successful: Boolean!
+}
+input UpdateWhatsAppInput {
+  url: String
+  phoneNumber: UpdatePhoneNumberInput
+}
+input UpdatePhoneNumberInput {
+  number: String!
+  countryCode: String!
+}
+input CreatePhoneNumberInput {
+  number: String!
+  countryCode: String!
 }
 type Shop implements Node {
   id: ID!

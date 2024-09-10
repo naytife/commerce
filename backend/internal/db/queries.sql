@@ -21,3 +21,21 @@ WHERE shop_id = $1;
 -- name: GetShopsByOwner :many
 SELECT * FROM shops
 WHERE owner_id = $1;
+
+-- name: UpdateShop :one
+UPDATE shops
+SET title = $2, favicon_url = $3, currency_code = $4, about = $5, status = $6
+WHERE default_domain = $1
+RETURNING *;
+
+-- name: DeleteShop :exec
+DELETE FROM shops
+WHERE shop_id = $1;
+
+-- name: GetShopByDomain :one
+SELECT * FROM shops
+WHERE default_domain = $1;
+
+-- name: GetWhatsappsByShop :many
+SELECT * FROM whatsapps
+WHERE shop_id = $1;

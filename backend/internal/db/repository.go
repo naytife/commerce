@@ -37,6 +37,7 @@ type Repository interface {
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
 	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
+	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShop(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 }
@@ -66,7 +67,19 @@ func (r *repoSvc) CreateShop(ctx context.Context, shopArg CreateShopParams) (Sho
 		var err error
 		shop, err = q.CreateShop(ctx, shopArg)
 		if err != nil {
-			log.Println(shopArg)
+			log.Println(err)
+		}
+		return err
+	})
+	return shop, err
+}
+
+func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
+	shop := Shop{}
+	err := r.withTx(ctx, func(q *Queries) error {
+		var err error
+		shop, err = q.UpdateShop(ctx, arg)
+		if err != nil {
 			log.Println(err)
 		}
 		return err

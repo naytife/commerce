@@ -45,6 +45,11 @@ type CategoryImage struct {
 	URL string `json:"url"`
 }
 
+type CreatePhoneNumberInput struct {
+	Number      string `json:"number"`
+	CountryCode string `json:"countryCode"`
+}
+
 type CreateShopInput struct {
 	Title  string `json:"title"`
 	Domain string `json:"domain"`
@@ -53,6 +58,16 @@ type CreateShopInput struct {
 type CreateShopPayload struct {
 	Shop       *Shop `json:"shop,omitempty"`
 	Successful bool  `json:"successful"`
+}
+
+type CreateWhatsAppInput struct {
+	URL         string                  `json:"url"`
+	PhoneNumber *CreatePhoneNumberInput `json:"phoneNumber"`
+}
+
+type CreateWhatsAppPayload struct {
+	WhatsApp   *WhatsApp `json:"whatsApp,omitempty"`
+	Successful bool      `json:"successful"`
 }
 
 type Facebook struct {
@@ -189,6 +204,39 @@ type SignInUserPayload struct {
 	User       *User `json:"user,omitempty"`
 }
 
+type UpdatePhoneNumberInput struct {
+	Number      string `json:"number"`
+	CountryCode string `json:"countryCode"`
+}
+
+type UpdateShopInput struct {
+	Title          *string     `json:"title,omitempty"`
+	ContactEmail   *string     `json:"contactEmail,omitempty"`
+	SiteLogoURL    *string     `json:"siteLogoUrl,omitempty"`
+	FaviconURL     *string     `json:"faviconUrl,omitempty"`
+	CurrencyCode   *string     `json:"currencyCode,omitempty"`
+	Status         *ShopStatus `json:"status,omitempty"`
+	About          *string     `json:"about,omitempty"`
+	SeoDescription *string     `json:"seoDescription,omitempty"`
+	SeoKeywords    []string    `json:"seoKeywords,omitempty"`
+	SeoTitle       *string     `json:"seoTitle,omitempty"`
+}
+
+type UpdateShopPayload struct {
+	Shop       *Shop `json:"shop,omitempty"`
+	Successful bool  `json:"successful"`
+}
+
+type UpdateWhatsAppInput struct {
+	URL         *string                 `json:"url,omitempty"`
+	PhoneNumber *UpdatePhoneNumberInput `json:"phoneNumber,omitempty"`
+}
+
+type UpdateWhatsAppPayload struct {
+	WhatsApp   *WhatsApp `json:"whatsApp"`
+	Successful bool      `json:"successful"`
+}
+
 type User struct {
 	ID                string  `json:"id"`
 	Email             string  `json:"email"`
@@ -202,8 +250,8 @@ func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
 
 type WhatsApp struct {
-	URL    string       `json:"url"`
-	Number *PhoneNumber `json:"number"`
+	URL         string       `json:"url"`
+	PhoneNumber *PhoneNumber `json:"phoneNumber"`
 }
 
 func (WhatsApp) IsSocialMediaContact() {}

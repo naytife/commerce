@@ -34,3 +34,12 @@ type User struct {
 	CreatedAt         pgtype.Timestamp
 	LastLogin         pgtype.Timestamp
 }
+
+type Whatsapp struct {
+	WhatsappID  int64
+	ShopID      uuid.UUID
+	Number      string
+	CountryCode string
+	Url         string
+	CreatedAt   pgtype.Timestamptz
+}

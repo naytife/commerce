@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -130,6 +131,10 @@ func ParseAuth0Token(ctx context.Context, tokenString string) (*CustomClaims, er
 func JWTMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			host, _, err := net.SplitHostPort(r.Host)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			// Extract the token from the Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
@@ -148,6 +153,9 @@ func JWTMiddleware() func(http.Handler) http.Handler {
 
 			// Store the claims in the request context
 			ctx := context.WithValue(r.Context(), "userClaims", claims)
+
+			// Set the host in the request context
+			ctx = context.WithValue(ctx, "shopHost", host)
 
 			// Pass the request along with the new context
 			next.ServeHTTP(w, r.WithContext(ctx))
