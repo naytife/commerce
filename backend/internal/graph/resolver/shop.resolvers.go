@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
@@ -38,7 +37,6 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 		return nil, err
 	}
 	return &model.CreateShopPayload{Successful: true, Shop: &model.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
-
 }
 
 // UpdateShop is the resolver for the updateShop field.
@@ -52,20 +50,35 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 	if !ok {
 		return nil, errors.New("host not found")
 	}
-	dbShop, err := r.Repository.UpdateShop(ctx, db.UpdateShopParams{
-		DefaultDomain: host,
-		Title:         *shop.Title,
-		FaviconUrl:    pgtype.Text{String: *shop.FaviconURL, Valid: true},
-		CurrencyCode:  *shop.CurrencyCode,
-		Status:        model.ShopStatus(*shop.Status).String(),
-		About:         pgtype.Text{String: *shop.About, Valid: true},
-	})
+	params := db.UpdateShopParams{
+		DefaultDomain:  host,
+		Title:          pgTextFromStringPointer(shop.Title),        // Pass the pointer, no need to dereference here
+		CurrencyCode:   pgTextFromStringPointer(shop.CurrencyCode), // Pass the pointer
+		About:          pgTextFromStringPointer(shop.About),
+		SeoTitle:       pgTextFromStringPointer(shop.SeoTitle),
+		SeoDescription: pgTextFromStringPointer(shop.SeoDescription),
+		Email:          pgTextFromStringPointer(shop.ContactEmail),
+		PhoneNumber:    pgTextFromStringPointer(&shop.ContactPhone.E164),
+	}
+
+	dbShop, err := r.Repository.UpdateShop(ctx, params)
 
 	if err != nil {
 		return nil, err
 	}
-	return &model.UpdateShopPayload{Successful: true, Shop: &model.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
-
+	return &model.UpdateShopPayload{Successful: true, Shop: &model.Shop{
+		ID:             dbShop.ShopID.String(),
+		CurrencyCode:   dbShop.CurrencyCode,
+		Status:         model.ShopStatus(dbShop.Status),
+		Title:          dbShop.Title,
+		DefaultDomain:  dbShop.DefaultDomain,
+		About:          &dbShop.About.String,
+		SeoTitle:       &dbShop.SeoTitle.String,
+		SeoDescription: &dbShop.SeoDescription.String,
+		ContactEmail:   &dbShop.Email,
+		ContactPhone: &model.PhoneNumber{
+			E164: dbShop.PhoneNumber.String},
+	}}, nil
 }
 
 // CreateWhatsApp is the resolver for the createWhatsApp field.
@@ -79,16 +92,27 @@ func (r *mutationResolver) UpdateWhatsApp(ctx context.Context, input model.Updat
 }
 
 // Shop is the resolver for the shop field.
-func (r *queryResolver) Shop(ctx context.Context, id string) (*model.Shop, error) {
-	shopId, err := uuid.Parse(id)
+func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
+	host, ok := ctx.Value("shopHost").(string)
+	if !ok {
+		return nil, errors.New("host not found")
+	}
+	shop, err := r.Repository.GetShopByDomain(ctx, host)
 	if err != nil {
 		return nil, err
 	}
-	shop, err := r.Repository.GetShop(ctx, shopId)
-	if err != nil {
-		return nil, err
-	}
-	return &model.Shop{Title: shop.Title}, nil
+	return &model.Shop{
+		ID:             shop.ShopID.String(),
+		Title:          shop.Title,
+		DefaultDomain:  shop.DefaultDomain,
+		CurrencyCode:   shop.CurrencyCode,
+		Status:         model.ShopStatus(shop.Status),
+		About:          &shop.About.String,
+		SeoDescription: &shop.SeoDescription.String,
+		SeoTitle:       &shop.SeoTitle.String,
+		UpdatedAt:      shop.UpdatedAt.Time,
+		CreatedAt:      shop.CreatedAt.Time,
+	}, nil
 }
 
 // MyShops is the resolver for the myShops field.

@@ -15,11 +15,15 @@ type Shop struct {
 	Title          string
 	DefaultDomain  string
 	FaviconUrl     pgtype.Text
+	LogoUrl        pgtype.Text
+	Email          string
 	CurrencyCode   string
 	Status         string
 	About          pgtype.Text
+	Address        pgtype.Text
+	PhoneNumber    pgtype.Text
 	SeoDescription pgtype.Text
-	SeoKeywords    pgtype.Text
+	SeoKeywords    []string
 	SeoTitle       pgtype.Text
 	UpdatedAt      pgtype.Timestamptz
 	CreatedAt      pgtype.Timestamptz
@@ -38,7 +42,7 @@ type User struct {
 type Whatsapp struct {
 	WhatsappID  int64
 	ShopID      uuid.UUID
-	Number      string
+	PhoneNumber string
 	CountryCode string
 	Url         string
 	CreatedAt   pgtype.Timestamptz

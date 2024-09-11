@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -21,6 +22,7 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
+	defer tx.Rollback(ctx)
 	q := New(tx)
 	err = txFn(q)
 	if err != nil {
@@ -38,8 +40,8 @@ type Repository interface {
 	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
-	GetShop(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
+	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -49,8 +51,11 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	}
 }
 
-func Open(dataSourceName string) (*pgxpool.Pool, error) {
+func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(dataSourceName)
+	config.MaxConns = 50
+	config.MinConns = 5
+	config.MaxConnIdleTime = 5 * time.Minute
 	if err != nil {
 		return nil, err
 	}
@@ -62,19 +67,22 @@ func Open(dataSourceName string) (*pgxpool.Pool, error) {
 }
 
 func (r *repoSvc) CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
 	shop := Shop{}
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.CreateShop(ctx, shopArg)
-		if err != nil {
-			log.Println(err)
-		}
 		return err
 	})
 	return shop, err
 }
 
 func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
 	shop := Shop{}
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error

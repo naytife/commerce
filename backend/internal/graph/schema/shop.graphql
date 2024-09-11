@@ -1,6 +1,6 @@
 # ======== SHOP ========
 extend type Query {
-  shop(id: ID!): Shop!
+  shop: Shop!
   myShops: [Shop!]!
 }
 
@@ -17,10 +17,11 @@ enum ShopStatus {
   ARCHIVED
   SUSPENDED
 }
-type ShopLocation {
+type ShopAddress {
   address: String!
-  state: String!
-  country: String!
+}
+input ShopAddressInput {
+  address: String!
 }
 type PhoneNumber {
   e164: String! # Standard format for phone numbers internationally
@@ -51,10 +52,9 @@ type CreateShopPayload {
 input UpdateShopInput {
   title: String
   contactEmail: String
-  siteLogoUrl: String
-  faviconUrl: String
+  contactPhone: PhoneNumberInput
+  address: ShopAddressInput
   currencyCode: String
-  status: ShopStatus
   about: String
   seoDescription: String
   seoKeywords: [String!]
@@ -70,7 +70,7 @@ type CreateWhatsAppPayload {
 }
 input CreateWhatsAppInput {
   url: String!
-  phoneNumber: CreatePhoneNumberInput!
+  phoneNumber: PhoneNumberInput!
 }
 type UpdateWhatsAppPayload {
   whatsApp: WhatsApp!
@@ -78,15 +78,11 @@ type UpdateWhatsAppPayload {
 }
 input UpdateWhatsAppInput {
   url: String
-  phoneNumber: UpdatePhoneNumberInput
+  phoneNumber: PhoneNumberInput
 }
-input UpdatePhoneNumberInput {
-  number: String!
-  countryCode: String!
-}
-input CreatePhoneNumberInput {
-  number: String!
-  countryCode: String!
+
+input PhoneNumberInput {
+  e164: String!
 }
 type Shop implements Node {
   id: ID!
@@ -94,7 +90,7 @@ type Shop implements Node {
   defaultDomain: String!
   contactPhone: PhoneNumber
   contactEmail: String
-  location: ShopLocation
+  address: ShopAddress
   products(first: Int = 20, after: ID): ProductConnection
   whatsApp: WhatsApp
   facebook: Facebook

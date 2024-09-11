@@ -171,11 +171,12 @@ type ComplexityRoot struct {
 	Query struct {
 		MyShops func(childComplexity int) int
 		Node    func(childComplexity int, id string) int
-		Shop    func(childComplexity int, id string) int
+		Shop    func(childComplexity int) int
 	}
 
 	Shop struct {
 		About          func(childComplexity int) int
+		Address        func(childComplexity int) int
 		ContactEmail   func(childComplexity int) int
 		ContactPhone   func(childComplexity int) int
 		CreatedAt      func(childComplexity int) int
@@ -184,7 +185,6 @@ type ComplexityRoot struct {
 		Facebook       func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Images         func(childComplexity int) int
-		Location       func(childComplexity int) int
 		Owner          func(childComplexity int) int
 		Products       func(childComplexity int, first *int, after *string) int
 		SeoDescription func(childComplexity int) int
@@ -196,17 +196,15 @@ type ComplexityRoot struct {
 		WhatsApp       func(childComplexity int) int
 	}
 
+	ShopAddress struct {
+		Address func(childComplexity int) int
+	}
+
 	ShopImages struct {
 		Banner     func(childComplexity int) int
 		CoverImage func(childComplexity int) int
 		Favicon    func(childComplexity int) int
 		SiteLogo   func(childComplexity int) int
-	}
-
-	ShopLocation struct {
-		Address func(childComplexity int) int
-		Country func(childComplexity int) int
-		State   func(childComplexity int) int
 	}
 
 	SignInUserPayload struct {
@@ -248,7 +246,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
-	Shop(ctx context.Context, id string) (*model.Shop, error)
+	Shop(ctx context.Context) (*model.Shop, error)
 	MyShops(ctx context.Context) ([]model.Shop, error)
 }
 
@@ -789,12 +787,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_shop_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Shop(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.Shop(childComplexity), true
 
 	case "Shop.about":
 		if e.complexity.Shop.About == nil {
@@ -802,6 +795,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Shop.About(childComplexity), true
+
+	case "Shop.address":
+		if e.complexity.Shop.Address == nil {
+			break
+		}
+
+		return e.complexity.Shop.Address(childComplexity), true
 
 	case "Shop.contactEmail":
 		if e.complexity.Shop.ContactEmail == nil {
@@ -858,13 +858,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Shop.Images(childComplexity), true
-
-	case "Shop.location":
-		if e.complexity.Shop.Location == nil {
-			break
-		}
-
-		return e.complexity.Shop.Location(childComplexity), true
 
 	case "Shop.owner":
 		if e.complexity.Shop.Owner == nil {
@@ -934,6 +927,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Shop.WhatsApp(childComplexity), true
 
+	case "ShopAddress.address":
+		if e.complexity.ShopAddress.Address == nil {
+			break
+		}
+
+		return e.complexity.ShopAddress.Address(childComplexity), true
+
 	case "ShopImages.banner":
 		if e.complexity.ShopImages.Banner == nil {
 			break
@@ -961,27 +961,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ShopImages.SiteLogo(childComplexity), true
-
-	case "ShopLocation.address":
-		if e.complexity.ShopLocation.Address == nil {
-			break
-		}
-
-		return e.complexity.ShopLocation.Address(childComplexity), true
-
-	case "ShopLocation.country":
-		if e.complexity.ShopLocation.Country == nil {
-			break
-		}
-
-		return e.complexity.ShopLocation.Country(childComplexity), true
-
-	case "ShopLocation.state":
-		if e.complexity.ShopLocation.State == nil {
-			break
-		}
-
-		return e.complexity.ShopLocation.State(childComplexity), true
 
 	case "SignInUserPayload.successful":
 		if e.complexity.SignInUserPayload.Successful == nil {
@@ -1089,11 +1068,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
-		ec.unmarshalInputCreatePhoneNumberInput,
 		ec.unmarshalInputCreateShopInput,
 		ec.unmarshalInputCreateWhatsAppInput,
+		ec.unmarshalInputPhoneNumberInput,
+		ec.unmarshalInputShopAddressInput,
 		ec.unmarshalInputSignInInput,
-		ec.unmarshalInputUpdatePhoneNumberInput,
 		ec.unmarshalInputUpdateShopInput,
 		ec.unmarshalInputUpdateWhatsAppInput,
 	)
@@ -1306,7 +1285,7 @@ type Mutation {
 `, BuiltIn: false},
 	{Name: "../schema/shop.graphql", Input: `# ======== SHOP ========
 extend type Query {
-  shop(id: ID!): Shop!
+  shop: Shop!
   myShops: [Shop!]!
 }
 
@@ -1323,10 +1302,11 @@ enum ShopStatus {
   ARCHIVED
   SUSPENDED
 }
-type ShopLocation {
+type ShopAddress {
   address: String!
-  state: String!
-  country: String!
+}
+input ShopAddressInput {
+  address: String!
 }
 type PhoneNumber {
   e164: String! # Standard format for phone numbers internationally
@@ -1357,10 +1337,9 @@ type CreateShopPayload {
 input UpdateShopInput {
   title: String
   contactEmail: String
-  siteLogoUrl: String
-  faviconUrl: String
+  contactPhone: PhoneNumberInput
+  address: ShopAddressInput
   currencyCode: String
-  status: ShopStatus
   about: String
   seoDescription: String
   seoKeywords: [String!]
@@ -1376,7 +1355,7 @@ type CreateWhatsAppPayload {
 }
 input CreateWhatsAppInput {
   url: String!
-  phoneNumber: CreatePhoneNumberInput!
+  phoneNumber: PhoneNumberInput!
 }
 type UpdateWhatsAppPayload {
   whatsApp: WhatsApp!
@@ -1384,15 +1363,11 @@ type UpdateWhatsAppPayload {
 }
 input UpdateWhatsAppInput {
   url: String
-  phoneNumber: UpdatePhoneNumberInput
+  phoneNumber: PhoneNumberInput
 }
-input UpdatePhoneNumberInput {
-  number: String!
-  countryCode: String!
-}
-input CreatePhoneNumberInput {
-  number: String!
-  countryCode: String!
+
+input PhoneNumberInput {
+  e164: String!
 }
 type Shop implements Node {
   id: ID!
@@ -1400,7 +1375,7 @@ type Shop implements Node {
   defaultDomain: String!
   contactPhone: PhoneNumber
   contactEmail: String
-  location: ShopLocation
+  address: ShopAddress
   products(first: Int = 20, after: ID): ProductConnection
   whatsApp: WhatsApp
   facebook: Facebook
@@ -1541,21 +1516,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_shop_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -2395,8 +2355,8 @@ func (ec *executionContext) fieldContext_CreateShopPayload_shop(_ context.Contex
 				return ec.fieldContext_Shop_contactPhone(ctx, field)
 			case "contactEmail":
 				return ec.fieldContext_Shop_contactEmail(ctx, field)
-			case "location":
-				return ec.fieldContext_Shop_location(ctx, field)
+			case "address":
+				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
 			case "whatsApp":
@@ -4913,7 +4873,7 @@ func (ec *executionContext) _Query_shop(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Shop(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Query().Shop(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4930,7 +4890,7 @@ func (ec *executionContext) _Query_shop(ctx context.Context, field graphql.Colle
 	return ec.marshalNShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShop(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_shop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_shop(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4948,8 +4908,8 @@ func (ec *executionContext) fieldContext_Query_shop(ctx context.Context, field g
 				return ec.fieldContext_Shop_contactPhone(ctx, field)
 			case "contactEmail":
 				return ec.fieldContext_Shop_contactEmail(ctx, field)
-			case "location":
-				return ec.fieldContext_Shop_location(ctx, field)
+			case "address":
+				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
 			case "whatsApp":
@@ -4979,17 +4939,6 @@ func (ec *executionContext) fieldContext_Query_shop(ctx context.Context, field g
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Shop", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_shop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -5043,8 +4992,8 @@ func (ec *executionContext) fieldContext_Query_myShops(_ context.Context, field 
 				return ec.fieldContext_Shop_contactPhone(ctx, field)
 			case "contactEmail":
 				return ec.fieldContext_Shop_contactEmail(ctx, field)
-			case "location":
-				return ec.fieldContext_Shop_location(ctx, field)
+			case "address":
+				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
 			case "whatsApp":
@@ -5425,8 +5374,8 @@ func (ec *executionContext) fieldContext_Shop_contactEmail(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Shop_location(ctx context.Context, field graphql.CollectedField, obj *model.Shop) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Shop_location(ctx, field)
+func (ec *executionContext) _Shop_address(ctx context.Context, field graphql.CollectedField, obj *model.Shop) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Shop_address(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -5439,7 +5388,7 @@ func (ec *executionContext) _Shop_location(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Location, nil
+		return obj.Address, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5448,12 +5397,12 @@ func (ec *executionContext) _Shop_location(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.ShopLocation)
+	res := resTmp.(*model.ShopAddress)
 	fc.Result = res
-	return ec.marshalOShopLocation2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopLocation(ctx, field.Selections, res)
+	return ec.marshalOShopAddress2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopAddress(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Shop_location(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Shop_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Shop",
 		Field:      field,
@@ -5462,13 +5411,9 @@ func (ec *executionContext) fieldContext_Shop_location(_ context.Context, field 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "address":
-				return ec.fieldContext_ShopLocation_address(ctx, field)
-			case "state":
-				return ec.fieldContext_ShopLocation_state(ctx, field)
-			case "country":
-				return ec.fieldContext_ShopLocation_country(ctx, field)
+				return ec.fieldContext_ShopAddress_address(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ShopLocation", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ShopAddress", field.Name)
 		},
 	}
 	return fc, nil
@@ -6078,6 +6023,50 @@ func (ec *executionContext) fieldContext_Shop_owner(_ context.Context, field gra
 	return fc, nil
 }
 
+func (ec *executionContext) _ShopAddress_address(ctx context.Context, field graphql.CollectedField, obj *model.ShopAddress) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ShopAddress_address(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Address, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ShopAddress_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShopAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ShopImages_siteLogo(ctx context.Context, field graphql.CollectedField, obj *model.ShopImages) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ShopImages_siteLogo(ctx, field)
 	if err != nil {
@@ -6266,138 +6255,6 @@ func (ec *executionContext) fieldContext_ShopImages_coverImage(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ShopLocation_address(ctx context.Context, field graphql.CollectedField, obj *model.ShopLocation) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ShopLocation_address(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Address, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ShopLocation_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShopLocation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ShopLocation_state(ctx context.Context, field graphql.CollectedField, obj *model.ShopLocation) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ShopLocation_state(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.State, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ShopLocation_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShopLocation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ShopLocation_country(ctx context.Context, field graphql.CollectedField, obj *model.ShopLocation) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ShopLocation_country(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Country, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ShopLocation_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShopLocation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _SignInUserPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.SignInUserPayload) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_SignInUserPayload_successful(ctx, field)
 	if err != nil {
@@ -6543,8 +6400,8 @@ func (ec *executionContext) fieldContext_UpdateShopPayload_shop(_ context.Contex
 				return ec.fieldContext_Shop_contactPhone(ctx, field)
 			case "contactEmail":
 				return ec.fieldContext_Shop_contactEmail(ctx, field)
-			case "location":
-				return ec.fieldContext_Shop_location(ctx, field)
+			case "address":
+				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
 			case "whatsApp":
@@ -8839,40 +8696,6 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputCreatePhoneNumberInput(ctx context.Context, obj interface{}) (model.CreatePhoneNumberInput, error) {
-	var it model.CreatePhoneNumberInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"number", "countryCode"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "number":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Number = data
-		case "countryCode":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("countryCode"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CountryCode = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, obj interface{}) (model.CreateShopInput, error) {
 	var it model.CreateShopInput
 	asMap := map[string]interface{}{}
@@ -8930,11 +8753,65 @@ func (ec *executionContext) unmarshalInputCreateWhatsAppInput(ctx context.Contex
 			it.URL = data
 		case "phoneNumber":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumber"))
-			data, err := ec.unmarshalNCreatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreatePhoneNumberInput(ctx, v)
+			data, err := ec.unmarshalNPhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumberInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.PhoneNumber = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputPhoneNumberInput(ctx context.Context, obj interface{}) (model.PhoneNumberInput, error) {
+	var it model.PhoneNumberInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"e164"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "e164":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("e164"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.E164 = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShopAddressInput(ctx context.Context, obj interface{}) (model.ShopAddressInput, error) {
+	var it model.ShopAddressInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"address"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Address = data
 		}
 	}
 
@@ -8968,40 +8845,6 @@ func (ec *executionContext) unmarshalInputSignInInput(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdatePhoneNumberInput(ctx context.Context, obj interface{}) (model.UpdatePhoneNumberInput, error) {
-	var it model.UpdatePhoneNumberInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"number", "countryCode"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "number":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Number = data
-		case "countryCode":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("countryCode"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CountryCode = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, obj interface{}) (model.UpdateShopInput, error) {
 	var it model.UpdateShopInput
 	asMap := map[string]interface{}{}
@@ -9009,7 +8852,7 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "contactEmail", "siteLogoUrl", "faviconUrl", "currencyCode", "status", "about", "seoDescription", "seoKeywords", "seoTitle"}
+	fieldsInOrder := [...]string{"title", "contactEmail", "contactPhone", "address", "currencyCode", "about", "seoDescription", "seoKeywords", "seoTitle"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -9030,20 +8873,20 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.ContactEmail = data
-		case "siteLogoUrl":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("siteLogoUrl"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+		case "contactPhone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contactPhone"))
+			data, err := ec.unmarshalOPhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumberInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.SiteLogoURL = data
-		case "faviconUrl":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("faviconUrl"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			it.ContactPhone = data
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalOShopAddressInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopAddressInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.FaviconURL = data
+			it.Address = data
 		case "currencyCode":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currencyCode"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -9051,13 +8894,6 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.CurrencyCode = data
-		case "status":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-			data, err := ec.unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Status = data
 		case "about":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("about"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -9115,7 +8951,7 @@ func (ec *executionContext) unmarshalInputUpdateWhatsAppInput(ctx context.Contex
 			it.URL = data
 		case "phoneNumber":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumber"))
-			data, err := ec.unmarshalOUpdatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdatePhoneNumberInput(ctx, v)
+			data, err := ec.unmarshalOPhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumberInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10250,8 +10086,8 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Shop_contactPhone(ctx, field, obj)
 		case "contactEmail":
 			out.Values[i] = ec._Shop_contactEmail(ctx, field, obj)
-		case "location":
-			out.Values[i] = ec._Shop_location(ctx, field, obj)
+		case "address":
+			out.Values[i] = ec._Shop_address(ctx, field, obj)
 		case "products":
 			out.Values[i] = ec._Shop_products(ctx, field, obj)
 		case "whatsApp":
@@ -10319,25 +10155,22 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
-var shopImagesImplementors = []string{"ShopImages"}
+var shopAddressImplementors = []string{"ShopAddress"}
 
-func (ec *executionContext) _ShopImages(ctx context.Context, sel ast.SelectionSet, obj *model.ShopImages) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, shopImagesImplementors)
+func (ec *executionContext) _ShopAddress(ctx context.Context, sel ast.SelectionSet, obj *model.ShopAddress) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shopAddressImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("ShopImages")
-		case "siteLogo":
-			out.Values[i] = ec._ShopImages_siteLogo(ctx, field, obj)
-		case "favicon":
-			out.Values[i] = ec._ShopImages_favicon(ctx, field, obj)
-		case "banner":
-			out.Values[i] = ec._ShopImages_banner(ctx, field, obj)
-		case "coverImage":
-			out.Values[i] = ec._ShopImages_coverImage(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("ShopAddress")
+		case "address":
+			out.Values[i] = ec._ShopAddress_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10361,32 +10194,25 @@ func (ec *executionContext) _ShopImages(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
-var shopLocationImplementors = []string{"ShopLocation"}
+var shopImagesImplementors = []string{"ShopImages"}
 
-func (ec *executionContext) _ShopLocation(ctx context.Context, sel ast.SelectionSet, obj *model.ShopLocation) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, shopLocationImplementors)
+func (ec *executionContext) _ShopImages(ctx context.Context, sel ast.SelectionSet, obj *model.ShopImages) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shopImagesImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("ShopLocation")
-		case "address":
-			out.Values[i] = ec._ShopLocation_address(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "state":
-			out.Values[i] = ec._ShopLocation_state(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "country":
-			out.Values[i] = ec._ShopLocation_country(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
+			out.Values[i] = graphql.MarshalString("ShopImages")
+		case "siteLogo":
+			out.Values[i] = ec._ShopImages_siteLogo(ctx, field, obj)
+		case "favicon":
+			out.Values[i] = ec._ShopImages_favicon(ctx, field, obj)
+		case "banner":
+			out.Values[i] = ec._ShopImages_banner(ctx, field, obj)
+		case "coverImage":
+			out.Values[i] = ec._ShopImages_coverImage(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11075,11 +10901,6 @@ func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋnayti
 	return ec._Category(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreatePhoneNumberInput(ctx context.Context, v interface{}) (*model.CreatePhoneNumberInput, error) {
-	res, err := ec.unmarshalInputCreatePhoneNumberInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopInput(ctx context.Context, v interface{}) (model.CreateShopInput, error) {
 	res, err := ec.unmarshalInputCreateShopInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -11153,6 +10974,11 @@ func (ec *executionContext) marshalNPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋna
 		return graphql.Null
 	}
 	return ec._PhoneNumber(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumberInput(ctx context.Context, v interface{}) (*model.PhoneNumberInput, error) {
+	res, err := ec.unmarshalInputPhoneNumberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNProduct2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v *model.Product) graphql.Marshaler {
@@ -11976,6 +11802,14 @@ func (ec *executionContext) marshalOPhoneNumber2ᚖgithubᚗcomᚋpetrejonnᚋna
 	return ec._PhoneNumber(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOPhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPhoneNumberInput(ctx context.Context, v interface{}) (*model.PhoneNumberInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPhoneNumberInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalOProductAttributeDataType2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, v interface{}) (*model.ProductAttributeDataType, error) {
 	if v == nil {
 		return nil, nil
@@ -12038,34 +11872,26 @@ func (ec *executionContext) marshalOShop2ᚖgithubᚗcomᚋpetrejonnᚋnaytife�
 	return ec._Shop(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOShopAddress2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopAddress(ctx context.Context, sel ast.SelectionSet, v *model.ShopAddress) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ShopAddress(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOShopAddressInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopAddressInput(ctx context.Context, v interface{}) (*model.ShopAddressInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputShopAddressInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOShopImages2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopImages(ctx context.Context, sel ast.SelectionSet, v *model.ShopImages) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._ShopImages(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOShopLocation2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopLocation(ctx context.Context, sel ast.SelectionSet, v *model.ShopLocation) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ShopLocation(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, v interface{}) (*model.ShopStatus, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(model.ShopStatus)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOShopStatus2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐShopStatus(ctx context.Context, sel ast.SelectionSet, v *model.ShopStatus) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
@@ -12120,14 +11946,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOUpdatePhoneNumberInput2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdatePhoneNumberInput(ctx context.Context, v interface{}) (*model.UpdatePhoneNumberInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputUpdatePhoneNumberInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOUpdateShopPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐUpdateShopPayload(ctx context.Context, sel ast.SelectionSet, v *model.UpdateShopPayload) graphql.Marshaler {

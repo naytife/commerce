@@ -18,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	dbase, err := db.Open(env.DATABASE_URL)
+	dbase, err := db.InitDB(env.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}

@@ -46,11 +46,6 @@ type CategoryImage struct {
 	URL string `json:"url"`
 }
 
-type CreatePhoneNumberInput struct {
-	Number      string `json:"number"`
-	CountryCode string `json:"countryCode"`
-}
-
 type CreateShopInput struct {
 	Title  string `json:"title"`
 	Domain string `json:"domain"`
@@ -62,8 +57,8 @@ type CreateShopPayload struct {
 }
 
 type CreateWhatsAppInput struct {
-	URL         string                  `json:"url"`
-	PhoneNumber *CreatePhoneNumberInput `json:"phoneNumber"`
+	URL         string            `json:"url"`
+	PhoneNumber *PhoneNumberInput `json:"phoneNumber"`
 }
 
 type CreateWhatsAppPayload struct {
@@ -103,6 +98,10 @@ type PageInfo struct {
 }
 
 type PhoneNumber struct {
+	E164 string `json:"e164"`
+}
+
+type PhoneNumberInput struct {
 	E164 string `json:"e164"`
 }
 
@@ -174,7 +173,7 @@ type Shop struct {
 	DefaultDomain  string             `json:"defaultDomain"`
 	ContactPhone   *PhoneNumber       `json:"contactPhone,omitempty"`
 	ContactEmail   *string            `json:"contactEmail,omitempty"`
-	Location       *ShopLocation      `json:"location,omitempty"`
+	Address        *ShopAddress       `json:"address,omitempty"`
 	Products       *ProductConnection `json:"products,omitempty"`
 	WhatsApp       *WhatsApp          `json:"whatsApp,omitempty"`
 	Facebook       *Facebook          `json:"facebook,omitempty"`
@@ -193,17 +192,19 @@ type Shop struct {
 func (Shop) IsNode()            {}
 func (this Shop) GetID() string { return this.ID }
 
+type ShopAddress struct {
+	Address string `json:"address"`
+}
+
+type ShopAddressInput struct {
+	Address string `json:"address"`
+}
+
 type ShopImages struct {
 	SiteLogo   *Image `json:"siteLogo,omitempty"`
 	Favicon    *Image `json:"favicon,omitempty"`
 	Banner     *Image `json:"banner,omitempty"`
 	CoverImage *Image `json:"coverImage,omitempty"`
-}
-
-type ShopLocation struct {
-	Address string `json:"address"`
-	State   string `json:"state"`
-	Country string `json:"country"`
 }
 
 type SignInInput struct {
@@ -215,22 +216,16 @@ type SignInUserPayload struct {
 	User       *User `json:"user,omitempty"`
 }
 
-type UpdatePhoneNumberInput struct {
-	Number      string `json:"number"`
-	CountryCode string `json:"countryCode"`
-}
-
 type UpdateShopInput struct {
-	Title          *string     `json:"title,omitempty"`
-	ContactEmail   *string     `json:"contactEmail,omitempty"`
-	SiteLogoURL    *string     `json:"siteLogoUrl,omitempty"`
-	FaviconURL     *string     `json:"faviconUrl,omitempty"`
-	CurrencyCode   *string     `json:"currencyCode,omitempty"`
-	Status         *ShopStatus `json:"status,omitempty"`
-	About          *string     `json:"about,omitempty"`
-	SeoDescription *string     `json:"seoDescription,omitempty"`
-	SeoKeywords    []string    `json:"seoKeywords,omitempty"`
-	SeoTitle       *string     `json:"seoTitle,omitempty"`
+	Title          *string           `json:"title,omitempty"`
+	ContactEmail   *string           `json:"contactEmail,omitempty"`
+	ContactPhone   *PhoneNumberInput `json:"contactPhone,omitempty"`
+	Address        *ShopAddressInput `json:"address,omitempty"`
+	CurrencyCode   *string           `json:"currencyCode,omitempty"`
+	About          *string           `json:"about,omitempty"`
+	SeoDescription *string           `json:"seoDescription,omitempty"`
+	SeoKeywords    []string          `json:"seoKeywords,omitempty"`
+	SeoTitle       *string           `json:"seoTitle,omitempty"`
 }
 
 type UpdateShopPayload struct {
@@ -239,8 +234,8 @@ type UpdateShopPayload struct {
 }
 
 type UpdateWhatsAppInput struct {
-	URL         *string                 `json:"url,omitempty"`
-	PhoneNumber *UpdatePhoneNumberInput `json:"phoneNumber,omitempty"`
+	URL         *string           `json:"url,omitempty"`
+	PhoneNumber *PhoneNumberInput `json:"phoneNumber,omitempty"`
 }
 
 type UpdateWhatsAppPayload struct {

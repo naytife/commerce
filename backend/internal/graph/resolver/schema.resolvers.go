@@ -6,11 +6,8 @@ package resolver
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
-	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	auth "github.com/petrejonn/naytife/internal"
@@ -18,21 +15,6 @@ import (
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
 )
-
-func fromGlobalID(globalID string) (string, string, error) {
-	bytes, err := base64.StdEncoding.DecodeString(globalID)
-	if err != nil {
-		return "", "", err
-	}
-	parts := strings.SplitN(string(bytes), ":", 2)
-	if len(parts) != 2 {
-		return "", "", errors.New("invalid global ID")
-	}
-	return parts[0], parts[1], nil
-}
-func toGlobalID(typ, id string) string {
-	return base64.StdEncoding.EncodeToString([]byte(typ + ":" + id))
-}
 
 // SignInUser is the resolver for the signInUser field.
 func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInput) (*model.SignInUserPayload, error) {
@@ -70,7 +52,20 @@ func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInp
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
-	panic(fmt.Errorf("not implemented: Node - node"))
+	typ, localID, err := fromGlobalID(id)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(localID)
+
+	switch typ {
+	// case "Shop":
+	// 	return r.Resolver.GetShopByID(ctx, localID)
+	// case "Product":
+	// 	return r.Resolver.GetProductByID(ctx, localID)
+	default:
+		return nil, errors.New("unknown node type")
+	}
 }
 
 // Mutation returns generated.MutationResolver implementation.
