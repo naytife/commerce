@@ -1,18 +1,56 @@
 # ========= CATEGORY ========
+extend type Query {
+  categories: [Category!]!
+  category(id: ID!): Category
+}
+
+extend type Mutation {
+  createCategory(category: CreateCategoryInput!): CreateCategoryPayload
+  updateCategory(category: UpdateCategoryInput!): UpdateCategoryPayload
+}
+
+type CategoryConnection {
+  edges: [CategoryEdge!]!
+  pageInfo: PageInfo!
+}
+type CategoryEdge {
+  cursor: String!
+  node: Category!
+}
+
+input CreateCategoryInput {
+  parentID: ID
+  title: String!
+  description: String!
+}
+
+input UpdateCategoryInput {
+  parentID: ID
+  title: String
+  description: String
+}
+type CreateCategoryPayload {
+  category: Category
+  successful: Boolean!
+}
+type UpdateCategoryPayload {
+  category: Category
+  successful: Boolean!
+}
 type Category implements Node {
   id: ID!
   slug: String!
   title: String!
-  description: String
+  description: String!
   parent: Category
-  children: [Category]!
+  children: [Category!]
   products: ProductConnection
   allowedAttributes: [AllowedProductAttributes!]!
-  image: CategoryImage
+  images: CategoryImages
   updatedAt: DateTime!
   createdAt: DateTime!
 }
 
-type CategoryImage {
-  url: String!
+type CategoryImages {
+  banner: Image!
 }

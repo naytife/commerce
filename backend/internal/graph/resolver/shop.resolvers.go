@@ -36,7 +36,7 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 	if err != nil {
 		return nil, err
 	}
-	return &model.CreateShopPayload{Successful: true, Shop: &model.Shop{ID: dbShop.ShopID.String(), CurrencyCode: dbShop.CurrencyCode, Status: model.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
+	return &model.CreateShopPayload{Successful: true, Shop: &model.Shop{ID: toGlobalID("Shop", dbShop.ShopID), CurrencyCode: dbShop.CurrencyCode, Status: model.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
 }
 
 // UpdateShop is the resolver for the updateShop field.
@@ -67,7 +67,7 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		return nil, err
 	}
 	return &model.UpdateShopPayload{Successful: true, Shop: &model.Shop{
-		ID:             dbShop.ShopID.String(),
+		ID:             toGlobalID("Shop", dbShop.ShopID),
 		CurrencyCode:   dbShop.CurrencyCode,
 		Status:         model.ShopStatus(dbShop.Status),
 		Title:          dbShop.Title,
@@ -77,7 +77,8 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		SeoDescription: &dbShop.SeoDescription.String,
 		ContactEmail:   &dbShop.Email,
 		ContactPhone: &model.PhoneNumber{
-			E164: dbShop.PhoneNumber.String},
+			E164: dbShop.PhoneNumber.String,
+		},
 	}}, nil
 }
 
@@ -102,7 +103,7 @@ func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
 		return nil, err
 	}
 	return &model.Shop{
-		ID:             shop.ShopID.String(),
+		ID:             toGlobalID("Shop", shop.ShopID),
 		Title:          shop.Title,
 		DefaultDomain:  shop.DefaultDomain,
 		CurrencyCode:   shop.CurrencyCode,
@@ -131,7 +132,7 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
 	}
 	shopList := make([]model.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model.Shop{ID: shop.ShopID.String(), Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
+		shopList[i] = model.Shop{ID: toGlobalID("Shop", shop.ShopID), Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
 	}
 	return shopList, nil
 }

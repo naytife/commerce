@@ -75,14 +75,41 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	return i, err
 }
 
-const deleteShop = `-- name: DeleteShop :exec
-DELETE FROM shops
-WHERE shop_id = $1
+const createShopCategory = `-- name: CreateShopCategory :one
+INSERT INTO categories (slug, title, description, parent_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING category_id, slug, title, description, parent_id, allowed_attributes, created_at, updated_at, shop_id
 `
 
-func (q *Queries) DeleteShop(ctx context.Context, shopID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteShop, shopID)
-	return err
+type CreateShopCategoryParams struct {
+	Slug        string
+	Title       string
+	Description pgtype.Text
+	ParentID    pgtype.Int8
+	ShopID      int64
+}
+
+func (q *Queries) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
+	row := q.db.QueryRow(ctx, createShopCategory,
+		arg.Slug,
+		arg.Title,
+		arg.Description,
+		arg.ParentID,
+		arg.ShopID,
+	)
+	var i Category
+	err := row.Scan(
+		&i.CategoryID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.ParentID,
+		&i.AllowedAttributes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopID,
+	)
+	return i, err
 }
 
 const getShop = `-- name: GetShop :one
@@ -90,7 +117,7 @@ SELECT shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, c
 WHERE shop_id = $1
 `
 
-func (q *Queries) GetShop(ctx context.Context, shopID uuid.UUID) (Shop, error) {
+func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 	row := q.db.QueryRow(ctx, getShop, shopID)
 	var i Shop
 	err := row.Scan(
@@ -141,6 +168,28 @@ func (q *Queries) GetShopByDomain(ctx context.Context, defaultDomain string) (Sh
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getShopCategory = `-- name: GetShopCategory :one
+SELECT category_id, slug, title, description, parent_id, allowed_attributes, created_at, updated_at, shop_id FROM categories
+WHERE category_id = $1
+`
+
+func (q *Queries) GetShopCategory(ctx context.Context, categoryID int64) (Category, error) {
+	row := q.db.QueryRow(ctx, getShopCategory, categoryID)
+	var i Category
+	err := row.Scan(
+		&i.CategoryID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.ParentID,
+		&i.AllowedAttributes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopID,
 	)
 	return i, err
 }
@@ -206,38 +255,6 @@ func (q *Queries) GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, erro
 		&i.LastLogin,
 	)
 	return i, err
-}
-
-const getWhatsappsByShop = `-- name: GetWhatsappsByShop :many
-SELECT whatsapp_id, shop_id, phone_number, country_code, url, created_at FROM whatsapps
-WHERE shop_id = $1
-`
-
-func (q *Queries) GetWhatsappsByShop(ctx context.Context, shopID uuid.UUID) ([]Whatsapp, error) {
-	rows, err := q.db.Query(ctx, getWhatsappsByShop, shopID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Whatsapp
-	for rows.Next() {
-		var i Whatsapp
-		if err := rows.Scan(
-			&i.WhatsappID,
-			&i.ShopID,
-			&i.PhoneNumber,
-			&i.CountryCode,
-			&i.Url,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const updateShop = `-- name: UpdateShop :one

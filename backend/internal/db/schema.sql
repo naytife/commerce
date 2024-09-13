@@ -9,7 +9,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE shops (
-    shop_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id BIGSERIAL PRIMARY KEY,
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
     default_domain VARCHAR(50) UNIQUE NOT NULL CHECK (default_domain LIKE '%.%'),
@@ -31,10 +31,26 @@ CREATE TABLE shops (
 
 CREATE TABLE whatsapps (
     whatsapp_id BIGSERIAL PRIMARY KEY,
-    shop_id UUID NOT NULL,
     phone_number VARCHAR(15) NOT NULL,
     country_code VARCHAR(5) NOT NULL,
     url TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id)
+);
+
+CREATE TABLE categories (
+    category_id BIGSERIAL PRIMARY KEY,
+    slug VARCHAR(50) NOT NULL,
+    title VARCHAR(50) NOT NULL,
+    description VARCHAR(255),
+    parent_id BIGINT,
+    allowed_attributes JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    shop_id BIGINT NOT NULL,
+    UNIQUE (title, shop_id),
+    UNIQUE (slug, shop_id),
+    CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES categories(category_id),
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id)
 );

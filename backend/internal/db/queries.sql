@@ -39,14 +39,15 @@ SET
 WHERE default_domain = sqlc.arg('default_domain')
 RETURNING *;
 
--- name: DeleteShop :exec
-DELETE FROM shops
-WHERE shop_id = $1;
-
 -- name: GetShopByDomain :one
 SELECT * FROM shops
 WHERE default_domain = $1;
 
--- name: GetWhatsappsByShop :many
-SELECT * FROM whatsapps
-WHERE shop_id = $1;
+-- name: CreateShopCategory :one
+INSERT INTO categories (slug, title, description, parent_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
+
+-- name: GetShopCategory :one
+SELECT * FROM categories
+WHERE category_id = $1;

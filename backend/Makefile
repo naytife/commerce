@@ -31,7 +31,7 @@ generate-sqlc: ## Generate SQL code from .sql files
 
 .PHONY: generate-gqlgen
 generate-gqlgen: ## Generate GraphQL code from schema
-	go run github.com/99designs/gqlgen generate 
+	go get github.com/99designs/gqlgen && go run github.com/99designs/gqlgen generate 
 
 # Migration targets
 .PHONY: migrate-up

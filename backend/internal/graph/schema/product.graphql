@@ -20,12 +20,7 @@ type ProductEdge {
   cursor: String!
   node: Product!
 }
-type PageInfo {
-  endCursor: String
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: String
-}
+
 type Product implements Node {
   id: ID!
   slug: String!

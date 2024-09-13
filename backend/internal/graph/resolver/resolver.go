@@ -3,6 +3,7 @@ package resolver
 import (
 	"encoding/base64"
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,19 +18,24 @@ type Resolver struct {
 	Repository db.Repository
 }
 
-func fromGlobalID(globalID string) (string, string, error) {
+func fromGlobalID(globalID string) (string, *int64, error) {
 	bytes, err := base64.StdEncoding.DecodeString(globalID)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 	parts := strings.SplitN(string(bytes), ":", 2)
 	if len(parts) != 2 {
-		return "", "", errors.New("invalid global ID")
+		return "", nil, errors.New("invalid global ID")
 	}
-	return parts[0], parts[1], nil
+	key, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return "", nil, err
+	}
+	keyInt64 := int64(key)
+	return parts[0], &keyInt64, nil
 }
-func toGlobalID(typ, id string) string {
-	return base64.StdEncoding.EncodeToString([]byte(typ + ":" + id))
+func toGlobalID(typ string, id int64) string {
+	return base64.StdEncoding.EncodeToString([]byte(typ + ":" + strconv.Itoa(int(id))))
 }
 
 func pgTextFromStringPointer(s *string) pgtype.Text {

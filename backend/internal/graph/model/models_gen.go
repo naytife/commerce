@@ -29,12 +29,12 @@ type Category struct {
 	ID                string                     `json:"id"`
 	Slug              string                     `json:"slug"`
 	Title             string                     `json:"title"`
-	Description       *string                    `json:"description,omitempty"`
+	Description       string                     `json:"description"`
 	Parent            *Category                  `json:"parent,omitempty"`
-	Children          []*Category                `json:"children"`
+	Children          []Category                 `json:"children,omitempty"`
 	Products          *ProductConnection         `json:"products,omitempty"`
 	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
-	Image             *CategoryImage             `json:"image,omitempty"`
+	Images            *CategoryImages            `json:"images,omitempty"`
 	UpdatedAt         time.Time                  `json:"updatedAt"`
 	CreatedAt         time.Time                  `json:"createdAt"`
 }
@@ -42,8 +42,29 @@ type Category struct {
 func (Category) IsNode()            {}
 func (this Category) GetID() string { return this.ID }
 
-type CategoryImage struct {
-	URL string `json:"url"`
+type CategoryConnection struct {
+	Edges    []CategoryEdge `json:"edges"`
+	PageInfo *PageInfo      `json:"pageInfo"`
+}
+
+type CategoryEdge struct {
+	Cursor string    `json:"cursor"`
+	Node   *Category `json:"node"`
+}
+
+type CategoryImages struct {
+	Banner *Image `json:"banner"`
+}
+
+type CreateCategoryInput struct {
+	ParentID    *string `json:"parentID,omitempty"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+}
+
+type CreateCategoryPayload struct {
+	Category   *Category `json:"category,omitempty"`
+	Successful bool      `json:"successful"`
 }
 
 type CreateShopInput struct {
@@ -214,6 +235,17 @@ type SignInInput struct {
 type SignInUserPayload struct {
 	Successful bool  `json:"successful"`
 	User       *User `json:"user,omitempty"`
+}
+
+type UpdateCategoryInput struct {
+	ParentID    *string `json:"parentID,omitempty"`
+	Title       *string `json:"title,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type UpdateCategoryPayload struct {
+	Category   *Category `json:"category,omitempty"`
+	Successful bool      `json:"successful"`
 }
 
 type UpdateShopInput struct {

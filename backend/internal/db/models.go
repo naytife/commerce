@@ -9,8 +9,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Category struct {
+	CategoryID        int64
+	Slug              string
+	Title             string
+	Description       pgtype.Text
+	ParentID          pgtype.Int8
+	AllowedAttributes []byte
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+	ShopID            int64
+}
+
 type Shop struct {
-	ShopID         uuid.UUID
+	ShopID         int64
 	OwnerID        uuid.UUID
 	Title          string
 	DefaultDomain  string
@@ -41,9 +53,9 @@ type User struct {
 
 type Whatsapp struct {
 	WhatsappID  int64
-	ShopID      uuid.UUID
 	PhoneNumber string
 	CountryCode string
 	Url         string
 	CreatedAt   pgtype.Timestamptz
+	ShopID      int64
 }

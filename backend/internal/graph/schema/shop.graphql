@@ -24,7 +24,7 @@ input ShopAddressInput {
   address: String!
 }
 type PhoneNumber {
-  e164: String! # Standard format for phone numbers internationally
+  e164: String!
 }
 interface SocialMediaContact {
   url: String

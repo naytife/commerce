@@ -42,6 +42,8 @@ type Repository interface {
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
+	CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error)
+	GetShopCategory(ctx context.Context, categoryID int64) (Category, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -93,4 +95,17 @@ func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		return err
 	})
 	return shop, err
+}
+
+func (r *repoSvc) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	category := Category{}
+	err := r.withTx(ctx, func(q *Queries) error {
+		var err error
+		category, err = q.CreateShopCategory(ctx, arg)
+		return err
+	})
+	return category, err
 }
