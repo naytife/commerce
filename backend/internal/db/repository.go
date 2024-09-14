@@ -36,14 +36,21 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 }
 
 type Repository interface {
+	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
 	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
+	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
+	// CATEGORY
 	CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error)
 	GetShopCategory(ctx context.Context, categoryID int64) (Category, error)
+	UpdateShopCategory(ctx context.Context, arg UpdateShopCategoryParams) (Category, error)
+	GetShopCategories(ctx context.Context, shopID int64) ([]Category, error)
+	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
+	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {

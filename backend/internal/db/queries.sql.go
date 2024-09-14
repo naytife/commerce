@@ -12,6 +12,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createCategoryAttribute = `-- name: CreateCategoryAttribute :one
+UPDATE categories
+SET category_attributes = jsonb_set(
+    COALESCE(category_attributes, '{}'), 
+    ARRAY[UPPER($1)::text], 
+    to_jsonb($2::text)
+)
+WHERE category_id = $3
+RETURNING category_attributes
+`
+
+type CreateCategoryAttributeParams struct {
+	Title      interface{}
+	DataType   string
+	CategoryID int64
+}
+
+func (q *Queries) CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, createCategoryAttribute, arg.Title, arg.DataType, arg.CategoryID)
+	var category_attributes []byte
+	err := row.Scan(&category_attributes)
+	return category_attributes, err
+}
+
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (owner_id, title, default_domain, favicon_url,logo_url,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
@@ -76,17 +100,18 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 }
 
 const createShopCategory = `-- name: CreateShopCategory :one
-INSERT INTO categories (slug, title, description, parent_id, shop_id)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING category_id, slug, title, description, parent_id, allowed_attributes, created_at, updated_at, shop_id
+INSERT INTO categories (slug, title, description, parent_id, shop_id, category_attributes)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING category_id, slug, title, description, parent_id, created_at, updated_at, shop_id, category_attributes
 `
 
 type CreateShopCategoryParams struct {
-	Slug        string
-	Title       string
-	Description pgtype.Text
-	ParentID    pgtype.Int8
-	ShopID      int64
+	Slug               string
+	Title              string
+	Description        pgtype.Text
+	ParentID           pgtype.Int8
+	ShopID             int64
+	CategoryAttributes []byte
 }
 
 func (q *Queries) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
@@ -96,6 +121,7 @@ func (q *Queries) CreateShopCategory(ctx context.Context, arg CreateShopCategory
 		arg.Description,
 		arg.ParentID,
 		arg.ShopID,
+		arg.CategoryAttributes,
 	)
 	var i Category
 	err := row.Scan(
@@ -104,12 +130,31 @@ func (q *Queries) CreateShopCategory(ctx context.Context, arg CreateShopCategory
 		&i.Title,
 		&i.Description,
 		&i.ParentID,
-		&i.AllowedAttributes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ShopID,
+		&i.CategoryAttributes,
 	)
 	return i, err
+}
+
+const deleteCategoryAttribute = `-- name: DeleteCategoryAttribute :one
+UPDATE categories
+SET category_attributes = category_attributes - $1::text
+WHERE category_id = $2
+RETURNING category_attributes
+`
+
+type DeleteCategoryAttributeParams struct {
+	Attribute  string
+	CategoryID int64
+}
+
+func (q *Queries) DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, deleteCategoryAttribute, arg.Attribute, arg.CategoryID)
+	var category_attributes []byte
+	err := row.Scan(&category_attributes)
+	return category_attributes, err
 }
 
 const getShop = `-- name: GetShop :one
@@ -172,8 +217,43 @@ func (q *Queries) GetShopByDomain(ctx context.Context, defaultDomain string) (Sh
 	return i, err
 }
 
+const getShopCategories = `-- name: GetShopCategories :many
+SELECT category_id, slug, title, description, parent_id, created_at, updated_at, shop_id, category_attributes FROM categories
+WHERE shop_id = $1
+`
+
+func (q *Queries) GetShopCategories(ctx context.Context, shopID int64) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getShopCategories, shopID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Category
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(
+			&i.CategoryID,
+			&i.Slug,
+			&i.Title,
+			&i.Description,
+			&i.ParentID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ShopID,
+			&i.CategoryAttributes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getShopCategory = `-- name: GetShopCategory :one
-SELECT category_id, slug, title, description, parent_id, allowed_attributes, created_at, updated_at, shop_id FROM categories
+SELECT category_id, slug, title, description, parent_id, created_at, updated_at, shop_id, category_attributes FROM categories
 WHERE category_id = $1
 `
 
@@ -186,10 +266,10 @@ func (q *Queries) GetShopCategory(ctx context.Context, categoryID int64) (Catego
 		&i.Title,
 		&i.Description,
 		&i.ParentID,
-		&i.AllowedAttributes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ShopID,
+		&i.CategoryAttributes,
 	)
 	return i, err
 }
@@ -324,6 +404,45 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateShopCategory = `-- name: UpdateShopCategory :one
+UPDATE categories
+SET 
+    title = COALESCE($1, title),
+    description = COALESCE($2, description),
+    parent_id = COALESCE($3, parent_id)
+WHERE category_id = $4
+RETURNING category_id, slug, title, description, parent_id, created_at, updated_at, shop_id, category_attributes
+`
+
+type UpdateShopCategoryParams struct {
+	Title       pgtype.Text
+	Description pgtype.Text
+	ParentID    pgtype.Int8
+	CategoryID  int64
+}
+
+func (q *Queries) UpdateShopCategory(ctx context.Context, arg UpdateShopCategoryParams) (Category, error) {
+	row := q.db.QueryRow(ctx, updateShopCategory,
+		arg.Title,
+		arg.Description,
+		arg.ParentID,
+		arg.CategoryID,
+	)
+	var i Category
+	err := row.Scan(
+		&i.CategoryID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.ParentID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopID,
+		&i.CategoryAttributes,
 	)
 	return i, err
 }

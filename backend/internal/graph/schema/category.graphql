@@ -6,7 +6,18 @@ extend type Query {
 
 extend type Mutation {
   createCategory(category: CreateCategoryInput!): CreateCategoryPayload
-  updateCategory(category: UpdateCategoryInput!): UpdateCategoryPayload
+  updateCategory(
+    categoryID: ID!
+    category: UpdateCategoryInput!
+  ): UpdateCategoryPayload
+  createCategoryAttribute(
+    categoryID: ID!
+    attribute: CreateCategoryAttributeInput!
+  ): CreateCategoryAttributePayload
+  deleteCategoryAttribute(
+    categoryID: ID!
+    attribute: String!
+  ): DeleteCategoryAttributePayload
 }
 
 type CategoryConnection {
@@ -23,7 +34,6 @@ input CreateCategoryInput {
   title: String!
   description: String!
 }
-
 input UpdateCategoryInput {
   parentID: ID
   title: String
@@ -37,6 +47,18 @@ type UpdateCategoryPayload {
   category: Category
   successful: Boolean!
 }
+input CreateCategoryAttributeInput {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+type CreateCategoryAttributePayload {
+  attributes: [AllowedCategoryAttributes!]!
+  successful: Boolean!
+}
+type DeleteCategoryAttributePayload {
+  attributes: [AllowedCategoryAttributes!]!
+  successful: Boolean!
+}
 type Category implements Node {
   id: ID!
   slug: String!
@@ -45,10 +67,14 @@ type Category implements Node {
   parent: Category
   children: [Category!]
   products: ProductConnection
-  allowedAttributes: [AllowedProductAttributes!]!
+  allowedAttributes: [AllowedCategoryAttributes!]!
   images: CategoryImages
   updatedAt: DateTime!
   createdAt: DateTime!
+}
+type AllowedCategoryAttributes {
+  title: String!
+  dataType: ProductAttributeDataType!
 }
 
 type CategoryImages {

@@ -19,24 +19,29 @@ type SocialMediaContact interface {
 	GetURL() *string
 }
 
+type AllowedCategoryAttributes struct {
+	Title    string                   `json:"title"`
+	DataType ProductAttributeDataType `json:"dataType"`
+}
+
 type AllowedProductAttributes struct {
-	Key      string                    `json:"key"`
-	DataType *ProductAttributeDataType `json:"dataType,omitempty"`
-	Options  []ProductAttributeValue   `json:"options"`
+	Key      string                   `json:"key"`
+	DataType ProductAttributeDataType `json:"dataType"`
+	Options  []ProductAttributeValue  `json:"options"`
 }
 
 type Category struct {
-	ID                string                     `json:"id"`
-	Slug              string                     `json:"slug"`
-	Title             string                     `json:"title"`
-	Description       string                     `json:"description"`
-	Parent            *Category                  `json:"parent,omitempty"`
-	Children          []Category                 `json:"children,omitempty"`
-	Products          *ProductConnection         `json:"products,omitempty"`
-	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
-	Images            *CategoryImages            `json:"images,omitempty"`
-	UpdatedAt         time.Time                  `json:"updatedAt"`
-	CreatedAt         time.Time                  `json:"createdAt"`
+	ID                string                      `json:"id"`
+	Slug              string                      `json:"slug"`
+	Title             string                      `json:"title"`
+	Description       string                      `json:"description"`
+	Parent            *Category                   `json:"parent,omitempty"`
+	Children          []Category                  `json:"children,omitempty"`
+	Products          *ProductConnection          `json:"products,omitempty"`
+	AllowedAttributes []AllowedCategoryAttributes `json:"allowedAttributes"`
+	Images            *CategoryImages             `json:"images,omitempty"`
+	UpdatedAt         time.Time                   `json:"updatedAt"`
+	CreatedAt         time.Time                   `json:"createdAt"`
 }
 
 func (Category) IsNode()            {}
@@ -54,6 +59,16 @@ type CategoryEdge struct {
 
 type CategoryImages struct {
 	Banner *Image `json:"banner"`
+}
+
+type CreateCategoryAttributeInput struct {
+	Title    string                   `json:"title"`
+	DataType ProductAttributeDataType `json:"dataType"`
+}
+
+type CreateCategoryAttributePayload struct {
+	Attributes []AllowedCategoryAttributes `json:"attributes"`
+	Successful bool                        `json:"successful"`
 }
 
 type CreateCategoryInput struct {
@@ -85,6 +100,11 @@ type CreateWhatsAppInput struct {
 type CreateWhatsAppPayload struct {
 	WhatsApp   *WhatsApp `json:"whatsApp,omitempty"`
 	Successful bool      `json:"successful"`
+}
+
+type DeleteCategoryAttributePayload struct {
+	Attributes []AllowedCategoryAttributes `json:"attributes"`
+	Successful bool                        `json:"successful"`
 }
 
 type Facebook struct {
@@ -189,25 +209,26 @@ type Query struct {
 }
 
 type Shop struct {
-	ID             string             `json:"id"`
-	Title          string             `json:"title"`
-	DefaultDomain  string             `json:"defaultDomain"`
-	ContactPhone   *PhoneNumber       `json:"contactPhone,omitempty"`
-	ContactEmail   *string            `json:"contactEmail,omitempty"`
-	Address        *ShopAddress       `json:"address,omitempty"`
-	Products       *ProductConnection `json:"products,omitempty"`
-	WhatsApp       *WhatsApp          `json:"whatsApp,omitempty"`
-	Facebook       *Facebook          `json:"facebook,omitempty"`
-	Images         *ShopImages        `json:"images,omitempty"`
-	CurrencyCode   string             `json:"currencyCode"`
-	Status         ShopStatus         `json:"status"`
-	About          *string            `json:"about,omitempty"`
-	SeoDescription *string            `json:"seoDescription,omitempty"`
-	SeoKeywords    []string           `json:"seoKeywords"`
-	SeoTitle       *string            `json:"seoTitle,omitempty"`
-	UpdatedAt      time.Time          `json:"updatedAt"`
-	CreatedAt      time.Time          `json:"createdAt"`
-	Owner          *User              `json:"owner"`
+	ID                   string             `json:"id"`
+	Title                string             `json:"title"`
+	DefaultDomain        string             `json:"defaultDomain"`
+	ContactPhone         *PhoneNumber       `json:"contactPhone,omitempty"`
+	ContactEmail         *string            `json:"contactEmail,omitempty"`
+	Address              *ShopAddress       `json:"address,omitempty"`
+	Products             *ProductConnection `json:"products,omitempty"`
+	WhatsApp             *WhatsApp          `json:"whatsApp,omitempty"`
+	Facebook             *Facebook          `json:"facebook,omitempty"`
+	Images               *ShopImages        `json:"images,omitempty"`
+	CurrencyCode         string             `json:"currencyCode"`
+	Status               ShopStatus         `json:"status"`
+	About                *string            `json:"about,omitempty"`
+	ShopProductsCategory *string            `json:"shopProductsCategory,omitempty"`
+	SeoDescription       *string            `json:"seoDescription,omitempty"`
+	SeoKeywords          []string           `json:"seoKeywords"`
+	SeoTitle             *string            `json:"seoTitle,omitempty"`
+	UpdatedAt            time.Time          `json:"updatedAt"`
+	CreatedAt            time.Time          `json:"createdAt"`
+	Owner                *User              `json:"owner"`
 }
 
 func (Shop) IsNode()            {}

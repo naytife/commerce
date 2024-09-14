@@ -45,7 +45,7 @@ CREATE TABLE categories (
     title VARCHAR(50) NOT NULL,
     description VARCHAR(255),
     parent_id BIGINT,
-    allowed_attributes JSONB,
+    category_attributes JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     shop_id BIGINT NOT NULL,

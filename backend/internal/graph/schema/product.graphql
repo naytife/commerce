@@ -8,10 +8,6 @@ enum ProductStatus {
   PUBLISHED
   ARCHIVED
 }
-type ProductAttributeValue {
-  intValue: Int
-  stringValue: String
-}
 type ProductConnection {
   edges: [ProductEdge!]!
   pageInfo: PageInfo!
@@ -38,8 +34,12 @@ type Product implements Node {
 }
 type AllowedProductAttributes {
   key: String!
-  dataType: ProductAttributeDataType
+  dataType: ProductAttributeDataType!
   options: [ProductAttributeValue!]!
+}
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
 }
 type ProductImage {
   imageUrl: String!

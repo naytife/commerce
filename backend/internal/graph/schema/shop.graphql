@@ -98,6 +98,7 @@ type Shop implements Node {
   currencyCode: String!
   status: ShopStatus!
   about: String
+  shopProductsCategory: String # Pets|Groceries|Fruits|Vegetables
   # template: StoreFrontTemplate!
   seoDescription: String
   seoKeywords: [String!]!

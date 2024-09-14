@@ -10,15 +10,15 @@ import (
 )
 
 type Category struct {
-	CategoryID        int64
-	Slug              string
-	Title             string
-	Description       pgtype.Text
-	ParentID          pgtype.Int8
-	AllowedAttributes []byte
-	CreatedAt         pgtype.Timestamptz
-	UpdatedAt         pgtype.Timestamptz
-	ShopID            int64
+	CategoryID         int64
+	Slug               string
+	Title              string
+	Description        pgtype.Text
+	ParentID           pgtype.Int8
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+	ShopID             int64
+	CategoryAttributes []byte
 }
 
 type Shop struct {

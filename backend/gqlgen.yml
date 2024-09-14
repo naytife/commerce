@@ -90,3 +90,11 @@ models:
       - github.com/google/uuid.UUID
   DateTime:
     model: github.com/99designs/gqlgen/graphql.Time
+  Category:
+    fields:
+      id:
+        resolver: true
+  Shop:
+    fields:
+      id:
+        resolver: true
