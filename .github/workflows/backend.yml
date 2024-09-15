@@ -54,9 +54,11 @@ jobs:
         run: atlas migrate apply --env prod --url ${{ secrets.DATABASE_URL }}
         working-directory: ./backend
 
-      # # Deploy to Railway
-      # - name: Deploy to Railway
-      #   uses: railwayapp/railway-action@v1
-      #   with:
-      #     project: ${{ secrets.RAILWAY_PROJECT_ID }}
-      #     token: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Install Railway
+        run: npm i -g @railway/cli
+
+      - name: Deploy
+        run: railway up
+        working-directory: ./backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
