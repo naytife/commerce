@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type CreateCategoryPayload interface {
+	IsCreateCategoryPayload()
+}
+
 type Node interface {
 	IsNode()
 	GetID() string
@@ -17,6 +21,13 @@ type Node interface {
 type SocialMediaContact interface {
 	IsSocialMediaContact()
 	GetURL() *string
+}
+
+type UserError interface {
+	IsUserError()
+	GetMessage() string
+	GetCode() ErrorCode
+	GetPath() []string
 }
 
 type AllowedCategoryAttributes struct {
@@ -61,6 +72,28 @@ type CategoryImages struct {
 	Banner *Image `json:"banner"`
 }
 
+type CategoryNotFoundError struct {
+	Message string    `json:"message"`
+	Code    ErrorCode `json:"code"`
+	Path    []string  `json:"path"`
+}
+
+func (CategoryNotFoundError) IsCreateCategoryPayload() {}
+
+func (CategoryNotFoundError) IsUserError()            {}
+func (this CategoryNotFoundError) GetMessage() string { return this.Message }
+func (this CategoryNotFoundError) GetCode() ErrorCode { return this.Code }
+func (this CategoryNotFoundError) GetPath() []string {
+	if this.Path == nil {
+		return nil
+	}
+	interfaceSlice := make([]string, 0, len(this.Path))
+	for _, concrete := range this.Path {
+		interfaceSlice = append(interfaceSlice, concrete)
+	}
+	return interfaceSlice
+}
+
 type CreateCategoryAttributeInput struct {
 	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
@@ -77,10 +110,11 @@ type CreateCategoryInput struct {
 	Description string  `json:"description"`
 }
 
-type CreateCategoryPayload struct {
-	Category   *Category `json:"category,omitempty"`
-	Successful bool      `json:"successful"`
+type CreateCategorySuccess struct {
+	Category *Category `json:"category,omitempty"`
 }
+
+func (CreateCategorySuccess) IsCreateCategoryPayload() {}
 
 type CreateShopInput struct {
 	Title  string `json:"title"`
@@ -249,6 +283,26 @@ type ShopImages struct {
 	CoverImage *Image `json:"coverImage,omitempty"`
 }
 
+type ShopNotFoundError struct {
+	Message string    `json:"message"`
+	Code    ErrorCode `json:"code"`
+	Path    []string  `json:"path"`
+}
+
+func (ShopNotFoundError) IsUserError()            {}
+func (this ShopNotFoundError) GetMessage() string { return this.Message }
+func (this ShopNotFoundError) GetCode() ErrorCode { return this.Code }
+func (this ShopNotFoundError) GetPath() []string {
+	if this.Path == nil {
+		return nil
+	}
+	interfaceSlice := make([]string, 0, len(this.Path))
+	for _, concrete := range this.Path {
+		interfaceSlice = append(interfaceSlice, concrete)
+	}
+	return interfaceSlice
+}
+
 type SignInInput struct {
 	Username *string `json:"username,omitempty"`
 }
@@ -315,6 +369,55 @@ type WhatsApp struct {
 
 func (WhatsApp) IsSocialMediaContact() {}
 func (this WhatsApp) GetURL() *string  { return &this.URL }
+
+type ErrorCode string
+
+const (
+	ErrorCodeNotFoundShop           ErrorCode = "NOT_FOUND_SHOP"
+	ErrorCodeNotFoundCategory       ErrorCode = "NOT_FOUND_CATEGORY"
+	ErrorCodeAuthInvalidToken       ErrorCode = "AUTH_INVALID_TOKEN"
+	ErrorCodeValidationInvalidInput ErrorCode = "VALIDATION_INVALID_INPUT"
+	ErrorCodeServerErrorInternal    ErrorCode = "SERVER_ERROR_INTERNAL"
+	ErrorCodeRateLimitExceeded      ErrorCode = "RATE_LIMIT_EXCEEDED"
+)
+
+var AllErrorCode = []ErrorCode{
+	ErrorCodeNotFoundShop,
+	ErrorCodeNotFoundCategory,
+	ErrorCodeAuthInvalidToken,
+	ErrorCodeValidationInvalidInput,
+	ErrorCodeServerErrorInternal,
+	ErrorCodeRateLimitExceeded,
+}
+
+func (e ErrorCode) IsValid() bool {
+	switch e {
+	case ErrorCodeNotFoundShop, ErrorCodeNotFoundCategory, ErrorCodeAuthInvalidToken, ErrorCodeValidationInvalidInput, ErrorCodeServerErrorInternal, ErrorCodeRateLimitExceeded:
+		return true
+	}
+	return false
+}
+
+func (e ErrorCode) String() string {
+	return string(e)
+}
+
+func (e *ErrorCode) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ErrorCode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ErrorCode", str)
+	}
+	return nil
+}
+
+func (e ErrorCode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
 
 type ProductAttributeDataType string
 

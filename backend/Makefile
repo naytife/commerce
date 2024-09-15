@@ -36,15 +36,15 @@ generate-gqlgen: ## Generate GraphQL code from schema
 # Migration targets
 .PHONY: migrate-up
 migrate-up: ## Apply all up migrations
-	atlas migrate apply --env local
+	atlas migrate apply --env $(env)
 
 .PHONY: migrate-down
 migrate-down: ## Rollback the last migration
-	atlas migrate down --env local --dev-url $(ATLAS_DEV_URL)
+	atlas migrate down --env $(env) --dev-url $(ATLAS_DEV_URL)
 
 .PHONY: migrate-clean
 migrate-clean: ## Clean the database
-	atlas schema clean --env local
+	atlas schema clean --env $(env)
 
 .PHONY: migrate-new
 migrate-new: ## Create a new migration file

@@ -17,6 +17,11 @@ enum ShopStatus {
   ARCHIVED
   SUSPENDED
 }
+type ShopNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
 type ShopAddress {
   address: String!
 }
