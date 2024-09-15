@@ -1,4 +1,4 @@
-name: Deploy to Backend
+name: Deploy Backend
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
       # Install Atlas CLI
       - name: Install Atlas CLI
         run: |
-          curl -sSf https://get.atlasgo.io | sh
+          curl -sSf https://atlasgo.sh | sh
 
       # Build the Go application
       - name: Build
