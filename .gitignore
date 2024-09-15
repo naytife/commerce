@@ -17,7 +17,7 @@ tmp/
 air/
 
 # Atlas migration lock file
-atlas.sum
+# atlas.sum
 
 # Vendor directory
 /vendor/
