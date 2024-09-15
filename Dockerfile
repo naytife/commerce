@@ -12,7 +12,7 @@ RUN go mod download
 COPY ./backend ./
 
 # Build the Go application
-RUN go build -o bin/api
+RUN go build -o bin/api ./cmd/api
 
 # Use a minimal image for running the application
 FROM ubuntu:jammy
