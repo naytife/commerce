@@ -43,9 +43,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      # Deploy to Railway
-      - name: Deploy to Railway
-        uses: railwayapp/railway-action@v1
-        with:
-          project: ${{ secrets.RAILWAY_PROJECT_ID }}
-          token: ${{ secrets.RAILWAY_TOKEN }}
+      # # Deploy to Railway
+      # - name: Deploy to Railway
+      #   uses: railwayapp/railway-action@v1
+      #   with:
+      #     project: ${{ secrets.RAILWAY_PROJECT_ID }}
+      #     token: ${{ secrets.RAILWAY_TOKEN }}
