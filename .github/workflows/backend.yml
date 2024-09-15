@@ -1,0 +1,51 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main # Or your main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Set up Go
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.22.6" # Adjust to your Go version
+
+      # Not sure why i need this
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Install dependencies
+      - name: Install dependencies
+        run: go mod tidy
+
+      # Build the Go application
+      - name: Build
+        run: make build
+
+      # Migrate the database (optional step if required)
+      - name: Apply Migrations with Atlas
+        run: atlas migrate apply --env prod
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Deploy to Railway
+      - name: Deploy to Railway
+        uses: railwayapp/railway-action@v1
+        with:
+          project: ${{ secrets.RAILWAY_PROJECT_ID }}
+          token: ${{ secrets.RAILWAY_TOKEN }}
