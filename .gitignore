@@ -52,7 +52,7 @@ coverage.out
 /tmp/
 
 # Go module files
-go.sum
+# go.sum
 
 # IDE/Editor specific files
 /.idea/
