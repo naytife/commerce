@@ -39,9 +39,14 @@ input UpdateCategoryInput {
   title: String
   description: String
 }
-type CreateCategoryPayload {
+union CreateCategoryPayload = CreateCategorySuccess | CategoryNotFoundError
+type CreateCategorySuccess {
   category: Category
-  successful: Boolean!
+}
+type CategoryNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
 }
 type UpdateCategoryPayload {
   category: Category

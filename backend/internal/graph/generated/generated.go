@@ -88,14 +88,19 @@ type ComplexityRoot struct {
 		Banner func(childComplexity int) int
 	}
 
+	CategoryNotFoundError struct {
+		Code    func(childComplexity int) int
+		Message func(childComplexity int) int
+		Path    func(childComplexity int) int
+	}
+
 	CreateCategoryAttributePayload struct {
 		Attributes func(childComplexity int) int
 		Successful func(childComplexity int) int
 	}
 
-	CreateCategoryPayload struct {
-		Category   func(childComplexity int) int
-		Successful func(childComplexity int) int
+	CreateCategorySuccess struct {
+		Category func(childComplexity int) int
 	}
 
 	CreateShopPayload struct {
@@ -246,6 +251,12 @@ type ComplexityRoot struct {
 		SiteLogo   func(childComplexity int) int
 	}
 
+	ShopNotFoundError struct {
+		Code    func(childComplexity int) int
+		Message func(childComplexity int) int
+		Path    func(childComplexity int) int
+	}
+
 	SignInUserPayload struct {
 		Successful func(childComplexity int) int
 		User       func(childComplexity int) int
@@ -286,7 +297,7 @@ type CategoryResolver interface {
 }
 type MutationResolver interface {
 	SignInUser(ctx context.Context, input model.SignInInput) (*model.SignInUserPayload, error)
-	CreateCategory(ctx context.Context, category model.CreateCategoryInput) (*model.CreateCategoryPayload, error)
+	CreateCategory(ctx context.Context, category model.CreateCategoryInput) (model.CreateCategoryPayload, error)
 	UpdateCategory(ctx context.Context, categoryID string, category model.UpdateCategoryInput) (*model.UpdateCategoryPayload, error)
 	CreateCategoryAttribute(ctx context.Context, categoryID string, attribute model.CreateCategoryAttributeInput) (*model.CreateCategoryAttributePayload, error)
 	DeleteCategoryAttribute(ctx context.Context, categoryID string, attribute string) (*model.DeleteCategoryAttributePayload, error)
@@ -472,6 +483,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CategoryImages.Banner(childComplexity), true
 
+	case "CategoryNotFoundError.code":
+		if e.complexity.CategoryNotFoundError.Code == nil {
+			break
+		}
+
+		return e.complexity.CategoryNotFoundError.Code(childComplexity), true
+
+	case "CategoryNotFoundError.message":
+		if e.complexity.CategoryNotFoundError.Message == nil {
+			break
+		}
+
+		return e.complexity.CategoryNotFoundError.Message(childComplexity), true
+
+	case "CategoryNotFoundError.path":
+		if e.complexity.CategoryNotFoundError.Path == nil {
+			break
+		}
+
+		return e.complexity.CategoryNotFoundError.Path(childComplexity), true
+
 	case "CreateCategoryAttributePayload.attributes":
 		if e.complexity.CreateCategoryAttributePayload.Attributes == nil {
 			break
@@ -486,19 +518,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CreateCategoryAttributePayload.Successful(childComplexity), true
 
-	case "CreateCategoryPayload.category":
-		if e.complexity.CreateCategoryPayload.Category == nil {
+	case "CreateCategorySuccess.category":
+		if e.complexity.CreateCategorySuccess.Category == nil {
 			break
 		}
 
-		return e.complexity.CreateCategoryPayload.Category(childComplexity), true
-
-	case "CreateCategoryPayload.successful":
-		if e.complexity.CreateCategoryPayload.Successful == nil {
-			break
-		}
-
-		return e.complexity.CreateCategoryPayload.Successful(childComplexity), true
+		return e.complexity.CreateCategorySuccess.Category(childComplexity), true
 
 	case "CreateShopPayload.shop":
 		if e.complexity.CreateShopPayload.Shop == nil {
@@ -1176,6 +1201,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ShopImages.SiteLogo(childComplexity), true
 
+	case "ShopNotFoundError.code":
+		if e.complexity.ShopNotFoundError.Code == nil {
+			break
+		}
+
+		return e.complexity.ShopNotFoundError.Code(childComplexity), true
+
+	case "ShopNotFoundError.message":
+		if e.complexity.ShopNotFoundError.Message == nil {
+			break
+		}
+
+		return e.complexity.ShopNotFoundError.Message(childComplexity), true
+
+	case "ShopNotFoundError.path":
+		if e.complexity.ShopNotFoundError.Path == nil {
+			break
+		}
+
+		return e.complexity.ShopNotFoundError.Path(childComplexity), true
+
 	case "SignInUserPayload.successful":
 		if e.complexity.SignInUserPayload.Successful == nil {
 			break
@@ -1444,9 +1490,14 @@ input UpdateCategoryInput {
   title: String
   description: String
 }
-type CreateCategoryPayload {
+union CreateCategoryPayload = CreateCategorySuccess | CategoryNotFoundError
+type CreateCategorySuccess {
   category: Category
-  successful: Boolean!
+}
+type CategoryNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
 }
 type UpdateCategoryPayload {
   category: Category
@@ -1558,6 +1609,15 @@ type ProductAttribute {
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphql", Input: `scalar DateTime
 
+enum ErrorCode {
+  NOT_FOUND_SHOP
+  NOT_FOUND_CATEGORY
+  AUTH_INVALID_TOKEN
+  VALIDATION_INVALID_INPUT
+  SERVER_ERROR_INTERNAL
+  RATE_LIMIT_EXCEEDED
+}
+
 interface Node {
   id: ID!
 }
@@ -1578,6 +1638,11 @@ type PageInfo {
   hasPreviousPage: Boolean!
   startCursor: String
 }
+interface UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
 `, BuiltIn: false},
 	{Name: "../schema/shop.graphql", Input: `# ======== SHOP ========
 extend type Query {
@@ -1597,6 +1662,11 @@ enum ShopStatus {
   PUBLISHED
   ARCHIVED
   SUSPENDED
+}
+type ShopNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
 }
 type ShopAddress {
   address: String!
@@ -3346,6 +3416,138 @@ func (ec *executionContext) fieldContext_CategoryImages_banner(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _CategoryNotFoundError_message(ctx context.Context, field graphql.CollectedField, obj *model.CategoryNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CategoryNotFoundError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CategoryNotFoundError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CategoryNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CategoryNotFoundError_code(ctx context.Context, field graphql.CollectedField, obj *model.CategoryNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CategoryNotFoundError_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ErrorCode)
+	fc.Result = res
+	return ec.marshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐErrorCode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CategoryNotFoundError_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CategoryNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ErrorCode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CategoryNotFoundError_path(ctx context.Context, field graphql.CollectedField, obj *model.CategoryNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CategoryNotFoundError_path(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Path, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CategoryNotFoundError_path(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CategoryNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CreateCategoryAttributePayload_attributes(ctx context.Context, field graphql.CollectedField, obj *model.CreateCategoryAttributePayload) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_CreateCategoryAttributePayload_attributes(ctx, field)
 	if err != nil {
@@ -3440,8 +3642,8 @@ func (ec *executionContext) fieldContext_CreateCategoryAttributePayload_successf
 	return fc, nil
 }
 
-func (ec *executionContext) _CreateCategoryPayload_category(ctx context.Context, field graphql.CollectedField, obj *model.CreateCategoryPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CreateCategoryPayload_category(ctx, field)
+func (ec *executionContext) _CreateCategorySuccess_category(ctx context.Context, field graphql.CollectedField, obj *model.CreateCategorySuccess) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateCategorySuccess_category(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3468,9 +3670,9 @@ func (ec *executionContext) _CreateCategoryPayload_category(ctx context.Context,
 	return ec.marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_CreateCategoryPayload_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_CreateCategorySuccess_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "CreateCategoryPayload",
+		Object:     "CreateCategorySuccess",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -3500,50 +3702,6 @@ func (ec *executionContext) fieldContext_CreateCategoryPayload_category(_ contex
 				return ec.fieldContext_Category_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CreateCategoryPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.CreateCategoryPayload) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_CreateCategoryPayload_successful(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Successful, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_CreateCategoryPayload_successful(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CreateCategoryPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4206,9 +4364,9 @@ func (ec *executionContext) _Mutation_createCategory(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.CreateCategoryPayload)
+	res := resTmp.(model.CreateCategoryPayload)
 	fc.Result = res
-	return ec.marshalOCreateCategoryPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateCategoryPayload(ctx, field.Selections, res)
+	return ec.marshalOCreateCategoryPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateCategoryPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4218,13 +4376,7 @@ func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "category":
-				return ec.fieldContext_CreateCategoryPayload_category(ctx, field)
-			case "successful":
-				return ec.fieldContext_CreateCategoryPayload_successful(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CreateCategoryPayload", field.Name)
+			return nil, errors.New("field of type CreateCategoryPayload does not have child fields")
 		},
 	}
 	defer func() {
@@ -8012,6 +8164,138 @@ func (ec *executionContext) fieldContext_ShopImages_coverImage(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _ShopNotFoundError_message(ctx context.Context, field graphql.CollectedField, obj *model.ShopNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ShopNotFoundError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ShopNotFoundError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShopNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShopNotFoundError_code(ctx context.Context, field graphql.CollectedField, obj *model.ShopNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ShopNotFoundError_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ErrorCode)
+	fc.Result = res
+	return ec.marshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐErrorCode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ShopNotFoundError_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShopNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ErrorCode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ShopNotFoundError_path(ctx context.Context, field graphql.CollectedField, obj *model.ShopNotFoundError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ShopNotFoundError_path(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Path, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ShopNotFoundError_path(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ShopNotFoundError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SignInUserPayload_successful(ctx context.Context, field graphql.CollectedField, obj *model.SignInUserPayload) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_SignInUserPayload_successful(ctx, field)
 	if err != nil {
@@ -10950,6 +11234,41 @@ func (ec *executionContext) unmarshalInputUpdateWhatsAppInput(ctx context.Contex
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _CreateCategoryPayload(ctx context.Context, sel ast.SelectionSet, obj model.CreateCategoryPayload) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.CategoryNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"CreateCategoryPayload", "CategoryNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		return ec._CategoryNotFoundError(ctx, sel, &obj)
+	case *model.CategoryNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"CreateCategoryPayload", "CategoryNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CategoryNotFoundError(ctx, sel, obj)
+	case model.CreateCategorySuccess:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"CreateCategoryPayload", "CreateCategorySuccess"})) == 0 {
+			return graphql.Empty{}
+		}
+		return ec._CreateCategorySuccess(ctx, sel, &obj)
+	case *model.CreateCategorySuccess:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"CreateCategoryPayload", "CreateCategorySuccess"})) == 0 {
+			return graphql.Empty{}
+		}
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CreateCategorySuccess(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj model.Node) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -11067,6 +11386,41 @@ func (ec *executionContext) _SocialMediaContact(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._Instagram(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _UserError(ctx context.Context, sel ast.SelectionSet, obj model.UserError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.CategoryNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"UserError", "CategoryNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		return ec._CategoryNotFoundError(ctx, sel, &obj)
+	case *model.CategoryNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"UserError", "CategoryNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CategoryNotFoundError(ctx, sel, obj)
+	case model.ShopNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"UserError", "ShopNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		return ec._ShopNotFoundError(ctx, sel, &obj)
+	case *model.ShopNotFoundError:
+		if len(graphql.CollectFields(ec.OperationContext, sel, []string{"UserError", "ShopNotFoundError"})) == 0 {
+			return graphql.Empty{}
+		}
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ShopNotFoundError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -11793,6 +12147,115 @@ func (ec *executionContext) _CategoryImages(ctx context.Context, sel ast.Selecti
 	return out
 }
 
+var categoryNotFoundErrorImplementors = []string{"CategoryNotFoundError", "CreateCategoryPayload", "UserError"}
+
+func (ec *executionContext) _CategoryNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *model.CategoryNotFoundError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, categoryNotFoundErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CategoryNotFoundError")
+		case "message":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._CategoryNotFoundError_message(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._CategoryNotFoundError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._CategoryNotFoundError_code(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._CategoryNotFoundError_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "path":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._CategoryNotFoundError_path(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._CategoryNotFoundError_path(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var createCategoryAttributePayloadImplementors = []string{"CreateCategoryAttributePayload"}
 
 func (ec *executionContext) _CreateCategoryAttributePayload(ctx context.Context, sel ast.SelectionSet, obj *model.CreateCategoryAttributePayload) graphql.Marshaler {
@@ -11877,17 +12340,17 @@ func (ec *executionContext) _CreateCategoryAttributePayload(ctx context.Context,
 	return out
 }
 
-var createCategoryPayloadImplementors = []string{"CreateCategoryPayload"}
+var createCategorySuccessImplementors = []string{"CreateCategorySuccess", "CreateCategoryPayload"}
 
-func (ec *executionContext) _CreateCategoryPayload(ctx context.Context, sel ast.SelectionSet, obj *model.CreateCategoryPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, createCategoryPayloadImplementors)
+func (ec *executionContext) _CreateCategorySuccess(ctx context.Context, sel ast.SelectionSet, obj *model.CreateCategorySuccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createCategorySuccessImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("CreateCategoryPayload")
+			out.Values[i] = graphql.MarshalString("CreateCategorySuccess")
 		case "category":
 			field := field
 
@@ -11902,39 +12365,14 @@ func (ec *executionContext) _CreateCategoryPayload(ctx context.Context, sel ast.
 					deferred[field.Deferrable.Label] = dfs
 				}
 				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._CreateCategoryPayload_category(ctx, field, obj)
+					return ec._CreateCategorySuccess_category(ctx, field, obj)
 				})
 
 				// don't run the out.Concurrently() call below
 				out.Values[i] = graphql.Null
 				continue
 			}
-			out.Values[i] = ec._CreateCategoryPayload_category(ctx, field, obj)
-		case "successful":
-			field := field
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return ec._CreateCategoryPayload_successful(ctx, field, obj)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-			out.Values[i] = ec._CreateCategoryPayload_successful(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
+			out.Values[i] = ec._CreateCategorySuccess_category(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14528,6 +14966,115 @@ func (ec *executionContext) _ShopImages(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var shopNotFoundErrorImplementors = []string{"ShopNotFoundError", "UserError"}
+
+func (ec *executionContext) _ShopNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *model.ShopNotFoundError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, shopNotFoundErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ShopNotFoundError")
+		case "message":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._ShopNotFoundError_message(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._ShopNotFoundError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "code":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._ShopNotFoundError_code(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._ShopNotFoundError_code(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "path":
+			field := field
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return ec._ShopNotFoundError_path(ctx, field, obj)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+			out.Values[i] = ec._ShopNotFoundError_path(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var signInUserPayloadImplementors = []string{"SignInUserPayload"}
 
 func (ec *executionContext) _SignInUserPayload(ctx context.Context, sel ast.SelectionSet, obj *model.SignInUserPayload) graphql.Marshaler {
@@ -16395,6 +16942,16 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 	return res
 }
 
+func (ec *executionContext) unmarshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐErrorCode(ctx context.Context, v interface{}) (model.ErrorCode, error) {
+	var res model.ErrorCode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐErrorCode(ctx context.Context, sel ast.SelectionSet, v model.ErrorCode) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -17260,7 +17817,7 @@ func (ec *executionContext) marshalOCreateCategoryAttributePayload2ᚖgithubᚗc
 	return ec._CreateCategoryAttributePayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCreateCategoryPayload2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateCategoryPayload(ctx context.Context, sel ast.SelectionSet, v *model.CreateCategoryPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOCreateCategoryPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateCategoryPayload(ctx context.Context, sel ast.SelectionSet, v model.CreateCategoryPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

@@ -1,5 +1,14 @@
 scalar DateTime
 
+enum ErrorCode {
+  NOT_FOUND_SHOP
+  NOT_FOUND_CATEGORY
+  AUTH_INVALID_TOKEN
+  VALIDATION_INVALID_INPUT
+  SERVER_ERROR_INTERNAL
+  RATE_LIMIT_EXCEEDED
+}
+
 interface Node {
   id: ID!
 }
@@ -19,4 +28,9 @@ type PageInfo {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   startCursor: String
+}
+interface UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
 }
