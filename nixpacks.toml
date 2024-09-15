@@ -1,9 +1,11 @@
 [build]
+# Change directory to backend and build the Go application
 commands = [
   "cd backend",
   "go mod tidy",
-  "make build"
+  "go build -o bin/api"  # Make sure this matches your binary output
 ]
 
 [run]
-command = "./backend/bin/api" 
+# Specify the binary or entrypoint for running the application
+command = "./backend/bin/api"
