@@ -32,14 +32,17 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: go mod tidy
+        working-directory: ./backend
 
       # Build the Go application
       - name: Build
         run: make build
+        working-directory: ./backend
 
       # Migrate the database (optional step if required)
       - name: Apply Migrations with Atlas
         run: atlas migrate apply --env prod
+        working-directory: ./backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
