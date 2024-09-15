@@ -17,6 +17,11 @@ RUN go build -o bin/api ./cmd/api
 # Use a minimal image for running the application
 FROM ubuntu:jammy
 
+# Install CA certificates
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    apt-get clean
+
 # Set the working directory for the runtime
 WORKDIR /app
 
