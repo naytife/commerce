@@ -1,4 +1,4 @@
-name: Deploy to Railway
+name: Deploy to Backend
 
 on:
   push:
@@ -29,10 +29,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Change directory to backend
+        run: cd backend
+
       # Install dependencies
       - name: Install dependencies
         run: go mod tidy
         working-directory: ./backend
+
+      # Install Atlas CLI
+      - name: Install Atlas CLI
+        run: |
+          curl -sSf https://get.atlasgo.io | sh
 
       # Build the Go application
       - name: Build
