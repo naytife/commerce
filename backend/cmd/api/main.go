@@ -35,7 +35,7 @@ func main() {
 	log.Println(env.AUTH0_AUDIENCE)
 
 	// run the server
-	port := ":" + env.PORT
+	port := "0.0.0.0:8080" // + env.PORT
 	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://localhost%s\n", port)
 	fmt.Fprintln(os.Stderr, http.ListenAndServe(port, mux))
 
