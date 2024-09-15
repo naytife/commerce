@@ -15,6 +15,10 @@ type EnvVars struct {
 
 func LoadConfig() (config EnvVars, err error) {
 	viper.AutomaticEnv()
+	viper.BindEnv("AUTH0_DOMAIN")   // Binds $AUTH0_DOMAIN to viper.Get("AUTH0_DOMAIN")
+	viper.BindEnv("AUTH0_AUDIENCE") // Binds $AUTH0_AUDIENCE to viper.Get("AUTH0_AUDIENCE")
+	viper.BindEnv("PORT")           // Binds $PORT to viper.Get("PORT")
+	viper.BindEnv("DATABASE_URL")
 
 	if _, err := os.Stat(".env.local"); err == nil {
 		viper.AddConfigPath(".")

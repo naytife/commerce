@@ -29,17 +29,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
 	mux.Handle("/query", auth.JWTMiddleware()(graph.NewHandler(repo)))
-	// log.Println(env.PORT)
-	// log.Println(env.AUTH0_DOMAIN)
-	// log.Println(env.DATABASE_URL)
-	// log.Println(env.AUTH0_AUDIENCE)
-	log.Println(os.Getenv("PORT"))
-	log.Println(os.Getenv("AUTH0_DOMAIN"))
-	log.Println(os.Getenv("DATABASE_URL"))
 
 	// run the server
-	port := "0.0.0.0:8080" // + env.PORT
-	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://localhost%s\n", port)
-	fmt.Fprintln(os.Stderr, http.ListenAndServe(port, mux))
+	address := "0.0.0.0:" + env.PORT
+	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://%s\n", address)
+	fmt.Fprintln(os.Stderr, http.ListenAndServe(address, mux))
 
 }
