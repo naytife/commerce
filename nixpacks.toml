@@ -1,0 +1,4 @@
+[phases]
+install = "cd backend && go mod tidy"
+build = "cd backend && make build"
+start = "cd backend && ./bin/api" # or whatever your start command is
