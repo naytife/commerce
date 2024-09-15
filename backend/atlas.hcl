@@ -8,7 +8,6 @@ env "local" {
 
 # The "prod" environment
 env "prod" {
-  url = env("DATABASE_URL") 
   migration {
     dir = "file://internal/db/migrations"
   }

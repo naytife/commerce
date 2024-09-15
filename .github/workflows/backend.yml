@@ -49,10 +49,8 @@ jobs:
 
       # Migrate the database (optional step if required)
       - name: Apply Migrations with Atlas
-        run: atlas migrate apply --env prod
+        run: atlas migrate apply --env prod --url ${{ secrets.DATABASE_URL }}
         working-directory: ./backend
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # # Deploy to Railway
       # - name: Deploy to Railway
