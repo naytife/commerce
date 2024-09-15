@@ -29,9 +29,13 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
 	mux.Handle("/query", auth.JWTMiddleware()(graph.NewHandler(repo)))
+	log.Println(env.PORT)
+	log.Println(env.AUTH0_DOMAIN)
+	log.Println(env.DATABASE_URL)
+	log.Println(env.AUTH0_AUDIENCE)
 
 	// run the server
-	port := ":8001" //+ env.PORT
+	port := ":" + env.PORT
 	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://localhost%s\n", port)
 	fmt.Fprintln(os.Stderr, http.ListenAndServe(port, mux))
 
