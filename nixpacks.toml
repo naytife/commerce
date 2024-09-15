@@ -1,4 +1,8 @@
-[phases]
-install = "cd backend && go mod tidy"
-build = "cd backend && make build"
-start = "cd backend && ./bin/api" # or whatever your start command is
+[[phases.install]]
+cmds = ["cd backend", "go mod tidy"]
+
+[[phases.build]]
+cmds = ["cd backend", "make build"]
+
+[[phases.start]]
+cmd = "cd backend && ./bin/api"  # Use the correct start command for your app
