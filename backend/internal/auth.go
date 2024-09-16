@@ -134,6 +134,7 @@ func JWTMiddleware() func(http.Handler) http.Handler {
 			host, _, err := net.SplitHostPort(r.Host)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			// Extract the token from the Authorization header
 			authHeader := r.Header.Get("Authorization")
