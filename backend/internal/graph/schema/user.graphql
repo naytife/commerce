@@ -7,12 +7,10 @@ type User implements Node {
   createdAt: String!
   lastLogin: String!
 }
-
 input SignInInput {
   username: String
 }
-
-type SignInUserPayload {
-  successful: Boolean!
+union SignInUserPayload = SignInUserSuccess
+type SignInUserSuccess {
   user: User
 }

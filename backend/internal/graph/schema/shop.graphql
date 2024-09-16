@@ -3,14 +3,12 @@ extend type Query {
   shop: Shop!
   myShops: [Shop!]!
 }
-
 extend type Mutation {
   createShop(shop: CreateShopInput!): CreateShopPayload
   updateShop(shop: UpdateShopInput!): UpdateShopPayload
   createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
   updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
 }
-
 enum ShopStatus {
   DRAFT
   PUBLISHED
@@ -50,9 +48,9 @@ input CreateShopInput {
   title: String!
   domain: String!
 }
-type CreateShopPayload {
+union CreateShopPayload = CreateShopSuccess
+type CreateShopSuccess {
   shop: Shop
-  successful: Boolean!
 }
 input UpdateShopInput {
   title: String
@@ -65,27 +63,26 @@ input UpdateShopInput {
   seoKeywords: [String!]
   seoTitle: String
 }
-type UpdateShopPayload {
+union UpdateShopPayload = UpdateShopSuccess | ShopNotFoundError
+type UpdateShopSuccess {
   shop: Shop
-  successful: Boolean!
 }
-type CreateWhatsAppPayload {
+union CreateWhatsAppPayload = CreateWhatsAppSuccess | ShopNotFoundError
+type CreateWhatsAppSuccess {
   whatsApp: WhatsApp
-  successful: Boolean!
 }
 input CreateWhatsAppInput {
   url: String!
   phoneNumber: PhoneNumberInput!
 }
-type UpdateWhatsAppPayload {
+union UpdateWhatsAppPayload = UpdateWhatsAppSuccess | ShopNotFoundError
+type UpdateWhatsAppSuccess {
   whatsApp: WhatsApp!
-  successful: Boolean!
 }
 input UpdateWhatsAppInput {
   url: String
   phoneNumber: PhoneNumberInput
 }
-
 input PhoneNumberInput {
   e164: String!
 }
@@ -112,7 +109,6 @@ type Shop implements Node {
   createdAt: DateTime!
   owner: User!
 }
-
 type ShopImages {
   siteLogo: Image
   favicon: Image

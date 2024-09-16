@@ -9,8 +9,24 @@ import (
 	"time"
 )
 
+type CreateCategoryAttributePayload interface {
+	IsCreateCategoryAttributePayload()
+}
+
 type CreateCategoryPayload interface {
 	IsCreateCategoryPayload()
+}
+
+type CreateShopPayload interface {
+	IsCreateShopPayload()
+}
+
+type CreateWhatsAppPayload interface {
+	IsCreateWhatsAppPayload()
+}
+
+type DeleteCategoryAttributePayload interface {
+	IsDeleteCategoryAttributePayload()
 }
 
 type Node interface {
@@ -18,9 +34,25 @@ type Node interface {
 	GetID() string
 }
 
+type SignInUserPayload interface {
+	IsSignInUserPayload()
+}
+
 type SocialMediaContact interface {
 	IsSocialMediaContact()
 	GetURL() *string
+}
+
+type UpdateCategoryPayload interface {
+	IsUpdateCategoryPayload()
+}
+
+type UpdateShopPayload interface {
+	IsUpdateShopPayload()
+}
+
+type UpdateWhatsAppPayload interface {
+	IsUpdateWhatsAppPayload()
 }
 
 type UserError interface {
@@ -78,8 +110,6 @@ type CategoryNotFoundError struct {
 	Path    []string  `json:"path"`
 }
 
-func (CategoryNotFoundError) IsCreateCategoryPayload() {}
-
 func (CategoryNotFoundError) IsUserError()            {}
 func (this CategoryNotFoundError) GetMessage() string { return this.Message }
 func (this CategoryNotFoundError) GetCode() ErrorCode { return this.Code }
@@ -94,15 +124,22 @@ func (this CategoryNotFoundError) GetPath() []string {
 	return interfaceSlice
 }
 
+func (CategoryNotFoundError) IsUpdateCategoryPayload() {}
+
+func (CategoryNotFoundError) IsCreateCategoryAttributePayload() {}
+
+func (CategoryNotFoundError) IsDeleteCategoryAttributePayload() {}
+
 type CreateCategoryAttributeInput struct {
 	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
 }
 
-type CreateCategoryAttributePayload struct {
+type CreateCategoryAttributeSuccess struct {
 	Attributes []AllowedCategoryAttributes `json:"attributes"`
-	Successful bool                        `json:"successful"`
 }
+
+func (CreateCategoryAttributeSuccess) IsCreateCategoryAttributePayload() {}
 
 type CreateCategoryInput struct {
 	ParentID    *string `json:"parentID,omitempty"`
@@ -121,25 +158,28 @@ type CreateShopInput struct {
 	Domain string `json:"domain"`
 }
 
-type CreateShopPayload struct {
-	Shop       *Shop `json:"shop,omitempty"`
-	Successful bool  `json:"successful"`
+type CreateShopSuccess struct {
+	Shop *Shop `json:"shop,omitempty"`
 }
+
+func (CreateShopSuccess) IsCreateShopPayload() {}
 
 type CreateWhatsAppInput struct {
 	URL         string            `json:"url"`
 	PhoneNumber *PhoneNumberInput `json:"phoneNumber"`
 }
 
-type CreateWhatsAppPayload struct {
-	WhatsApp   *WhatsApp `json:"whatsApp,omitempty"`
-	Successful bool      `json:"successful"`
+type CreateWhatsAppSuccess struct {
+	WhatsApp *WhatsApp `json:"whatsApp,omitempty"`
 }
 
-type DeleteCategoryAttributePayload struct {
+func (CreateWhatsAppSuccess) IsCreateWhatsAppPayload() {}
+
+type DeleteCategoryAttributeSuccess struct {
 	Attributes []AllowedCategoryAttributes `json:"attributes"`
-	Successful bool                        `json:"successful"`
 }
+
+func (DeleteCategoryAttributeSuccess) IsDeleteCategoryAttributePayload() {}
 
 type Facebook struct {
 	URL    string `json:"url"`
@@ -303,14 +343,21 @@ func (this ShopNotFoundError) GetPath() []string {
 	return interfaceSlice
 }
 
+func (ShopNotFoundError) IsUpdateShopPayload() {}
+
+func (ShopNotFoundError) IsCreateWhatsAppPayload() {}
+
+func (ShopNotFoundError) IsUpdateWhatsAppPayload() {}
+
 type SignInInput struct {
 	Username *string `json:"username,omitempty"`
 }
 
-type SignInUserPayload struct {
-	Successful bool  `json:"successful"`
-	User       *User `json:"user,omitempty"`
+type SignInUserSuccess struct {
+	User *User `json:"user,omitempty"`
 }
+
+func (SignInUserSuccess) IsSignInUserPayload() {}
 
 type UpdateCategoryInput struct {
 	ParentID    *string `json:"parentID,omitempty"`
@@ -318,10 +365,11 @@ type UpdateCategoryInput struct {
 	Description *string `json:"description,omitempty"`
 }
 
-type UpdateCategoryPayload struct {
-	Category   *Category `json:"category,omitempty"`
-	Successful bool      `json:"successful"`
+type UpdateCategorySuccess struct {
+	Category *Category `json:"category,omitempty"`
 }
+
+func (UpdateCategorySuccess) IsUpdateCategoryPayload() {}
 
 type UpdateShopInput struct {
 	Title          *string           `json:"title,omitempty"`
@@ -335,20 +383,22 @@ type UpdateShopInput struct {
 	SeoTitle       *string           `json:"seoTitle,omitempty"`
 }
 
-type UpdateShopPayload struct {
-	Shop       *Shop `json:"shop,omitempty"`
-	Successful bool  `json:"successful"`
+type UpdateShopSuccess struct {
+	Shop *Shop `json:"shop,omitempty"`
 }
+
+func (UpdateShopSuccess) IsUpdateShopPayload() {}
 
 type UpdateWhatsAppInput struct {
 	URL         *string           `json:"url,omitempty"`
 	PhoneNumber *PhoneNumberInput `json:"phoneNumber,omitempty"`
 }
 
-type UpdateWhatsAppPayload struct {
-	WhatsApp   *WhatsApp `json:"whatsApp"`
-	Successful bool      `json:"successful"`
+type UpdateWhatsAppSuccess struct {
+	WhatsApp *WhatsApp `json:"whatsApp"`
 }
+
+func (UpdateWhatsAppSuccess) IsUpdateWhatsAppPayload() {}
 
 type User struct {
 	ID                string  `json:"id"`

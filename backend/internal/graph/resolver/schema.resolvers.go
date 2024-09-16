@@ -17,7 +17,7 @@ import (
 )
 
 // SignInUser is the resolver for the signInUser field.
-func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInput) (*model.SignInUserPayload, error) {
+func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInput) (model.SignInUserPayload, error) {
 	// Retrieve the user claims from the context
 	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
 	if !ok {
@@ -39,8 +39,7 @@ func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInp
 		return nil, errors.New("user not found")
 	}
 	// Return the user data and a JWT token
-	return &model.SignInUserPayload{
-		Successful: true,
+	return &model.SignInUserSuccess{
 		User: &model.User{
 			ID:                user.UserID.String(),
 			Email:             user.Email,

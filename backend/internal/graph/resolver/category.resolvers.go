@@ -72,7 +72,7 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 }
 
 // UpdateCategory is the resolver for the updateCategory field.
-func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string, category model.UpdateCategoryInput) (*model.UpdateCategoryPayload, error) {
+func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string, category model.UpdateCategoryInput) (model.UpdateCategoryPayload, error) {
 	_, catId, err := DecodeRelayID(categoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
@@ -99,8 +99,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 	if err != nil {
 		return nil, errors.New("could not unmarshal category attributes")
 	}
-	return &model.UpdateCategoryPayload{
-		Successful: true,
+	return &model.UpdateCategorySuccess{
 		Category: &model.Category{
 			ID:                strconv.FormatInt(dbCat.CategoryID, 10),
 			Slug:              dbCat.Slug,
@@ -117,7 +116,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 }
 
 // CreateCategoryAttribute is the resolver for the createCategoryAttribute field.
-func (r *mutationResolver) CreateCategoryAttribute(ctx context.Context, categoryID string, attribute model.CreateCategoryAttributeInput) (*model.CreateCategoryAttributePayload, error) {
+func (r *mutationResolver) CreateCategoryAttribute(ctx context.Context, categoryID string, attribute model.CreateCategoryAttributeInput) (model.CreateCategoryAttributePayload, error) {
 	_, catId, err := DecodeRelayID(categoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
@@ -144,14 +143,13 @@ func (r *mutationResolver) CreateCategoryAttribute(ctx context.Context, category
 			DataType: model.ProductAttributeDataType(dataType.(string)), // The map value is the data type
 		})
 	}
-	return &model.CreateCategoryAttributePayload{
+	return &model.CreateCategoryAttributeSuccess{
 		Attributes: attributes,
-		Successful: true,
 	}, nil
 }
 
 // DeleteCategoryAttribute is the resolver for the deleteCategoryAttribute field.
-func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, categoryID string, attribute string) (*model.DeleteCategoryAttributePayload, error) {
+func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, categoryID string, attribute string) (model.DeleteCategoryAttributePayload, error) {
 	_, catId, err := DecodeRelayID(categoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
@@ -176,9 +174,8 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 			DataType: model.ProductAttributeDataType(dataType.(string)), // The map value is the data type
 		})
 	}
-	return &model.DeleteCategoryAttributePayload{
+	return &model.DeleteCategoryAttributeSuccess{
 		Attributes: attributes,
-		Successful: true,
 	}, nil
 }
 
