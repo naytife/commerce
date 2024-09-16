@@ -18,7 +18,7 @@ import (
 )
 
 // CreateShop is the resolver for the createShop field.
-func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (*model.CreateShopPayload, error) {
+func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (model.CreateShopPayload, error) {
 	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
 	if !ok {
 		return nil, errors.New("Unauthorized")
@@ -38,11 +38,20 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 	if err != nil {
 		return nil, err
 	}
-	return &model.CreateShopPayload{Successful: true, Shop: &model.Shop{ID: strconv.FormatInt(dbShop.ShopID, 10), CurrencyCode: dbShop.CurrencyCode, Status: model.ShopStatus(dbShop.Status), Title: dbShop.Title, DefaultDomain: dbShop.DefaultDomain}}, nil
+	return &model.CreateShopSuccess{Shop: &model.Shop{
+		ID: strconv.FormatInt(
+			dbShop.ShopID,
+			10,
+		),
+		CurrencyCode:  dbShop.CurrencyCode,
+		Status:        model.ShopStatus(dbShop.Status),
+		Title:         dbShop.Title,
+		DefaultDomain: dbShop.DefaultDomain,
+	}}, nil
 }
 
 // UpdateShop is the resolver for the updateShop field.
-func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShopInput) (*model.UpdateShopPayload, error) {
+func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShopInput) (model.UpdateShopPayload, error) {
 	_, ok := ctx.Value("userClaims").(*auth.CustomClaims)
 	if !ok {
 		return nil, errors.New("Unauthorized")
@@ -68,7 +77,7 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 	if err != nil {
 		return nil, err
 	}
-	return &model.UpdateShopPayload{Successful: true, Shop: &model.Shop{
+	return &model.UpdateShopSuccess{Shop: &model.Shop{
 		ID:             strconv.FormatInt(dbShop.ShopID, 10),
 		CurrencyCode:   dbShop.CurrencyCode,
 		Status:         model.ShopStatus(dbShop.Status),
@@ -85,12 +94,12 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 }
 
 // CreateWhatsApp is the resolver for the createWhatsApp field.
-func (r *mutationResolver) CreateWhatsApp(ctx context.Context, input model.CreateWhatsAppInput) (*model.CreateWhatsAppPayload, error) {
+func (r *mutationResolver) CreateWhatsApp(ctx context.Context, input model.CreateWhatsAppInput) (model.CreateWhatsAppPayload, error) {
 	panic(fmt.Errorf("not implemented: CreateWhatsApp - createWhatsApp"))
 }
 
 // UpdateWhatsApp is the resolver for the updateWhatsApp field.
-func (r *mutationResolver) UpdateWhatsApp(ctx context.Context, input model.UpdateWhatsAppInput) (*model.UpdateWhatsAppPayload, error) {
+func (r *mutationResolver) UpdateWhatsApp(ctx context.Context, input model.UpdateWhatsAppInput) (model.UpdateWhatsAppPayload, error) {
 	panic(fmt.Errorf("not implemented: UpdateWhatsApp - updateWhatsApp"))
 }
 

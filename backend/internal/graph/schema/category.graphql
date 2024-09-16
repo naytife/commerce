@@ -39,7 +39,7 @@ input UpdateCategoryInput {
   title: String
   description: String
 }
-union CreateCategoryPayload = CreateCategorySuccess | CategoryNotFoundError
+union CreateCategoryPayload = CreateCategorySuccess
 type CreateCategorySuccess {
   category: Category
 }
@@ -48,21 +48,25 @@ type CategoryNotFoundError implements UserError {
   code: ErrorCode!
   path: [String!]!
 }
-type UpdateCategoryPayload {
+union UpdateCategoryPayload = UpdateCategorySuccess | CategoryNotFoundError
+type UpdateCategorySuccess {
   category: Category
-  successful: Boolean!
 }
 input CreateCategoryAttributeInput {
   title: String!
   dataType: ProductAttributeDataType!
 }
-type CreateCategoryAttributePayload {
+union CreateCategoryAttributePayload =
+    CreateCategoryAttributeSuccess
+  | CategoryNotFoundError
+type CreateCategoryAttributeSuccess {
   attributes: [AllowedCategoryAttributes!]!
-  successful: Boolean!
 }
-type DeleteCategoryAttributePayload {
+union DeleteCategoryAttributePayload =
+    DeleteCategoryAttributeSuccess
+  | CategoryNotFoundError
+type DeleteCategoryAttributeSuccess {
   attributes: [AllowedCategoryAttributes!]!
-  successful: Boolean!
 }
 type Category implements Node {
   id: ID!
