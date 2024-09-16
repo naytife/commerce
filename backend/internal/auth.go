@@ -133,7 +133,8 @@ func JWTMiddleware() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			host, _, err := net.SplitHostPort(r.Host)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println("Error splitting host and port:", err)
+				http.Error(w, "Invalid host", http.StatusInternalServerError)
 				return
 			}
 			// Extract the token from the Authorization header
