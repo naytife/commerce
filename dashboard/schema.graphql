@@ -1,0 +1,361 @@
+"""
+The @defer directive may be specified on a fragment spread to imply de-prioritization, that causes the fragment to be omitted in the initial response, and delivered as a subsequent response afterward. A query with @defer directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred delivered in a subsequent response. @include and @skip take precedence over @defer.
+"""
+directive @defer(if: Boolean = true, label: String) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+type AllowedCategoryAttributes {
+  dataType: ProductAttributeDataType!
+  title: String!
+}
+
+type AllowedProductAttributes {
+  dataType: ProductAttributeDataType!
+  key: String!
+  options: [ProductAttributeValue!]!
+}
+
+type Category implements Node {
+  allowedAttributes: [AllowedCategoryAttributes!]!
+  children: [Category!]
+  createdAt: DateTime!
+  description: String!
+  id: ID!
+  images: CategoryImages
+  parent: Category
+  products: ProductConnection
+  slug: String!
+  title: String!
+  updatedAt: DateTime!
+}
+
+type CategoryConnection {
+  edges: [CategoryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CategoryEdge {
+  cursor: String!
+  node: Category!
+}
+
+type CategoryImages {
+  banner: Image!
+}
+
+type CategoryNotFoundError implements UserError {
+  code: ErrorCode!
+  message: String!
+  path: [String!]!
+}
+
+input CreateCategoryAttributeInput {
+  dataType: ProductAttributeDataType!
+  title: String!
+}
+
+union CreateCategoryAttributePayload = CategoryNotFoundError | CreateCategoryAttributeSuccess
+
+type CreateCategoryAttributeSuccess {
+  attributes: [AllowedCategoryAttributes!]!
+}
+
+input CreateCategoryInput {
+  description: String!
+  parentID: ID
+  title: String!
+}
+
+union CreateCategoryPayload = CreateCategorySuccess
+
+type CreateCategorySuccess {
+  category: Category
+}
+
+input CreateShopInput {
+  domain: String!
+  title: String!
+}
+
+union CreateShopPayload = CreateShopSuccess
+
+type CreateShopSuccess {
+  shop: Shop
+}
+
+input CreateWhatsAppInput {
+  phoneNumber: PhoneNumberInput!
+  url: String!
+}
+
+union CreateWhatsAppPayload = CreateWhatsAppSuccess | ShopNotFoundError
+
+type CreateWhatsAppSuccess {
+  whatsApp: WhatsApp
+}
+
+scalar DateTime
+
+union DeleteCategoryAttributePayload = CategoryNotFoundError | DeleteCategoryAttributeSuccess
+
+type DeleteCategoryAttributeSuccess {
+  attributes: [AllowedCategoryAttributes!]!
+}
+
+enum ErrorCode {
+  AUTH_INVALID_TOKEN
+  NOT_FOUND_CATEGORY
+  NOT_FOUND_SHOP
+  RATE_LIMIT_EXCEEDED
+  SERVER_ERROR_INTERNAL
+  VALIDATION_INVALID_INPUT
+}
+
+type Facebook implements SocialMediaContact {
+  handle: String!
+  url: String!
+}
+
+type Image {
+  altText: String
+  url: String!
+}
+
+type Instagram implements SocialMediaContact {
+  handle: String!
+  url: String!
+}
+
+type Mutation {
+  createCategory(category: CreateCategoryInput!): CreateCategoryPayload
+  createCategoryAttribute(attribute: CreateCategoryAttributeInput!, categoryID: ID!): CreateCategoryAttributePayload
+  createShop(shop: CreateShopInput!): CreateShopPayload
+  createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
+  deleteCategoryAttribute(attribute: String!, categoryID: ID!): DeleteCategoryAttributePayload
+  signInUser(input: SignInInput!): SignInUserPayload!
+  updateCategory(category: UpdateCategoryInput!, categoryID: ID!): UpdateCategoryPayload
+  updateShop(shop: UpdateShopInput!): UpdateShopPayload
+  updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type PhoneNumber {
+  e164: String!
+}
+
+input PhoneNumberInput {
+  e164: String!
+}
+
+type Product implements Node {
+  allowedAttributes: [AllowedProductAttributes!]!
+  category: Category!
+  createdAt: DateTime!
+  defaultVariant: ProductVariant!
+  description: String!
+  id: ID!
+  images: [ProductImage!]!
+  price: Float!
+  slug: String!
+  status: ProductStatus
+  title: String!
+  updatedAt: DateTime!
+  variants: [ProductVariant!]!
+}
+
+type ProductAttribute {
+  key: String!
+  value: String
+}
+
+enum ProductAttributeDataType {
+  INTEGER
+  STRING
+}
+
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
+}
+
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProductEdge {
+  cursor: String!
+  node: Product!
+}
+
+type ProductImage {
+  imageUrl: String!
+}
+
+enum ProductStatus {
+  ARCHIVED
+  DRAFT
+  PUBLISHED
+}
+
+enum ProductStockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+}
+
+type ProductVariant implements Node {
+  attributes: [ProductAttribute!]!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  price: Float
+  quantity: Int
+  slug: String!
+  stockStatus: ProductStockStatus
+  title: String
+  updatedAt: DateTime!
+}
+
+type Query {
+  categories: [Category!]!
+  category(id: ID!): Category
+  myShops: [Shop!]!
+  node(id: ID!): Node
+  shop: Shop!
+}
+
+type Shop implements Node {
+  about: String
+  address: ShopAddress
+  contactEmail: String
+  contactPhone: PhoneNumber
+  createdAt: DateTime!
+  currencyCode: String!
+  defaultDomain: String!
+  facebook: Facebook
+  id: ID!
+  images: ShopImages
+  owner: User!
+  products(after: ID, first: Int = 20): ProductConnection
+  seoDescription: String
+  seoKeywords: [String!]!
+  seoTitle: String
+  shopProductsCategory: String
+  status: ShopStatus!
+  title: String!
+  updatedAt: DateTime!
+  whatsApp: WhatsApp
+}
+
+type ShopAddress {
+  address: String!
+}
+
+input ShopAddressInput {
+  address: String!
+}
+
+type ShopImages {
+  banner: Image
+  coverImage: Image
+  favicon: Image
+  siteLogo: Image
+}
+
+type ShopNotFoundError implements UserError {
+  code: ErrorCode!
+  message: String!
+  path: [String!]!
+}
+
+enum ShopStatus {
+  ARCHIVED
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+}
+
+input SignInInput {
+  username: String
+}
+
+union SignInUserPayload = SignInUserSuccess
+
+type SignInUserSuccess {
+  user: User
+}
+
+interface SocialMediaContact {
+  url: String
+}
+
+input UpdateCategoryInput {
+  description: String
+  parentID: ID
+  title: String
+}
+
+union UpdateCategoryPayload = CategoryNotFoundError | UpdateCategorySuccess
+
+type UpdateCategorySuccess {
+  category: Category
+}
+
+input UpdateShopInput {
+  about: String
+  address: ShopAddressInput
+  contactEmail: String
+  contactPhone: PhoneNumberInput
+  currencyCode: String
+  seoDescription: String
+  seoKeywords: [String!]
+  seoTitle: String
+  title: String
+}
+
+union UpdateShopPayload = ShopNotFoundError | UpdateShopSuccess
+
+type UpdateShopSuccess {
+  shop: Shop
+}
+
+input UpdateWhatsAppInput {
+  phoneNumber: PhoneNumberInput
+  url: String
+}
+
+union UpdateWhatsAppPayload = ShopNotFoundError | UpdateWhatsAppSuccess
+
+type UpdateWhatsAppSuccess {
+  whatsApp: WhatsApp!
+}
+
+type User implements Node {
+  createdAt: String!
+  email: String!
+  id: ID!
+  lastLogin: String!
+  name: String
+  profilePictureUrl: String
+}
+
+interface UserError {
+  code: ErrorCode!
+  message: String!
+  path: [String!]!
+}
+
+type WhatsApp implements SocialMediaContact {
+  phoneNumber: PhoneNumber!
+  url: String!
+}
