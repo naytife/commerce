@@ -1,0 +1,23 @@
+kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+
+namespace: ory
+
+resources:
+  - deployment.yml
+  - service-admin.yml
+  - service-public.yml
+  - sa.yml
+
+secretGenerator:
+  - name: kratos-secret
+    envs:
+      - .env
+
+configMapGenerator:
+  - name: kratos-config
+    files:
+      - kratos.yaml=config/kratos.yml
+  - name: kratos-identity
+    files:
+      - identity.schema.json=config/identity.schema.json
