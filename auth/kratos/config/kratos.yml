@@ -1,7 +1,15 @@
 kratos:
   config:
-    dsn: postgres://naytife:naytifekey@localhost:5432/naytifedb?search_path=public&sslmode=disable
+    dsn: memory
     
+    serve:
+      public:
+        base_url: http://127.0.0.1:4433/
+        cors:
+          enabled: true
+      admin:
+        base_url: http://kratos:4434/
+        
     secrets:
       cookie:
         - 4159f931cce7cc16d5c17814d76686d960d6ee40675faca165067eb1faa9bd4fa9beb9e1a2a689b2003355ae5746a283bf591f34dbc0e4d8f4a0685e754455b3
@@ -52,7 +60,7 @@ kratos:
           config:
             rp:
               id: naytife.com
-              origin: http://ory.naytife.com
+              origin: http://auth.naytife.com
               display_name: auth.naytife.com
   # automigration:
   #   enabled: true
