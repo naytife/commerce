@@ -22,6 +22,15 @@ spec:
       containers:
       - name: kratos
         image: oryd/kratos:v1.2.0-distroless
+        args:
+          [
+            "serve",
+            "all",
+            "--dev",
+            "--config",
+            "/etc/config/kratos.yaml",
+            "--watch-courier",
+          ]
         ports:
           - containerPort: 4433 # Public API
           - containerPort: 4434 # Admin API
@@ -43,7 +52,10 @@ spec:
                 key: KRATOS_CIPHER_KEY
         volumeMounts:
           - name: config-volume
-            mountPath: /etc/config/kratos
+            mountPath: /etc/config
+            readOnly: true
+          - name: config-identity
+            mountPath: /etc/config/identity
             readOnly: true
         livenessProbe:
           httpGet:
@@ -73,18 +85,25 @@ spec:
           requests:
             memory: "128Mi"
             cpu: "250m"
+      
       initContainers:
-      - name: kratos-migrate
-        image: oryd/kratos:v1.2.0-distroless
-        imagePullPolicy: IfNotPresent
-        command: ["kratos", "migrate", "sql", "--yes", "-e", "--config", "/etc/config/kratos.yml",]
-        env:
-          - name: DSN
-            valueFrom:
-              secretKeyRef:
-                name: kratos-secret
-                key: DSN
+        - name: kratos-migrate
+          image: oryd/kratos:v1.2.0-distroless
+          imagePullPolicy: IfNotPresent
+          command: ["kratos", "migrate", "sql", "--yes", "-e", "--config", "/etc/config/kratos.yaml"]
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+          env:
+            - name: DSN
+              valueFrom:
+                secretKeyRef:
+                  name: kratos-secret
+                  key: DSN
       volumes:
-      - name: config-volume
-        configMap:
-          name: kratos-config
+        - name: config-volume
+          configMap:
+            name: kratos-config
+        - name: config-identity
+          configMap:
+            name: kratos-identity
