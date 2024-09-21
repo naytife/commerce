@@ -3,11 +3,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 
 namespace: ory
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 resources:
-  - deployment.yml
-  - service-admin.yml
-  - service-public.yml
-  - sa.yml
+  - deployment.yaml
+  - service-admin.yaml
+  - service-public.yaml
+  - sa.yaml
 
 secretGenerator:
   - name: kratos-secret
@@ -17,7 +20,7 @@ secretGenerator:
 configMapGenerator:
   - name: kratos-config
     files:
-      - kratos.yaml=config/kratos.yml
+      - kratos.yaml=config/kratos.yaml
   - name: kratos-identity
     files:
       - identity.schema.json=config/identity.schema.json
