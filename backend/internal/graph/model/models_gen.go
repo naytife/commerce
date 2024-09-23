@@ -17,6 +17,10 @@ type CreateCategoryPayload interface {
 	IsCreateCategoryPayload()
 }
 
+type CreateProductPayload interface {
+	IsCreateProductPayload()
+}
+
 type CreateShopPayload interface {
 	IsCreateShopPayload()
 }
@@ -68,9 +72,8 @@ type AllowedCategoryAttributes struct {
 }
 
 type AllowedProductAttributes struct {
-	Key      string                   `json:"key"`
+	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
-	Options  []ProductAttributeValue  `json:"options"`
 }
 
 type Category struct {
@@ -130,6 +133,8 @@ func (CategoryNotFoundError) IsCreateCategoryAttributePayload() {}
 
 func (CategoryNotFoundError) IsDeleteCategoryAttributePayload() {}
 
+func (CategoryNotFoundError) IsCreateProductPayload() {}
+
 type CreateCategoryAttributeInput struct {
 	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
@@ -152,6 +157,19 @@ type CreateCategorySuccess struct {
 }
 
 func (CreateCategorySuccess) IsCreateCategoryPayload() {}
+
+type CreateProductInput struct {
+	CategoryID  string  `json:"categoryID"`
+	Title       string  `json:"title"`
+	Price       float64 `json:"price"`
+	Description string  `json:"description"`
+}
+
+type CreateProductSuccess struct {
+	Product *Product `json:"product"`
+}
+
+func (CreateProductSuccess) IsCreateProductPayload() {}
 
 type CreateShopInput struct {
 	Title  string `json:"title"`
@@ -230,7 +248,7 @@ type Product struct {
 	DefaultVariant    *ProductVariant            `json:"defaultVariant"`
 	Variants          []ProductVariant           `json:"variants"`
 	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
-	Images            []ProductImage             `json:"images"`
+	Images            []Image                    `json:"images"`
 	Status            *ProductStatus             `json:"status,omitempty"`
 	UpdatedAt         time.Time                  `json:"updatedAt"`
 	CreatedAt         time.Time                  `json:"createdAt"`
@@ -259,21 +277,17 @@ type ProductEdge struct {
 	Node   *Product `json:"node"`
 }
 
-type ProductImage struct {
-	ImageURL string `json:"imageUrl"`
-}
-
 type ProductVariant struct {
-	ID          string              `json:"id"`
-	Slug        string              `json:"slug"`
-	Title       *string             `json:"title,omitempty"`
-	Price       *float64            `json:"price,omitempty"`
-	Quantity    *int                `json:"quantity,omitempty"`
-	Description *string             `json:"description,omitempty"`
-	Attributes  []ProductAttribute  `json:"attributes"`
-	StockStatus *ProductStockStatus `json:"stockStatus,omitempty"`
-	UpdatedAt   time.Time           `json:"updatedAt"`
-	CreatedAt   time.Time           `json:"createdAt"`
+	ID                string             `json:"id"`
+	Slug              string             `json:"slug"`
+	Title             string             `json:"title"`
+	Price             float64            `json:"price"`
+	AvailableQuantity int                `json:"availableQuantity"`
+	Description       string             `json:"description"`
+	Attributes        []ProductAttribute `json:"attributes"`
+	StockStatus       ProductStockStatus `json:"stockStatus"`
+	UpdatedAt         time.Time          `json:"updatedAt"`
+	CreatedAt         time.Time          `json:"createdAt"`
 }
 
 func (ProductVariant) IsNode()            {}
@@ -366,7 +380,7 @@ type UpdateCategoryInput struct {
 }
 
 type UpdateCategorySuccess struct {
-	Category *Category `json:"category,omitempty"`
+	Category *Category `json:"category"`
 }
 
 func (UpdateCategorySuccess) IsUpdateCategoryPayload() {}

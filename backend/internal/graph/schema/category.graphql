@@ -50,7 +50,7 @@ type CategoryNotFoundError implements UserError {
 }
 union UpdateCategoryPayload = UpdateCategorySuccess | CategoryNotFoundError
 type UpdateCategorySuccess {
-  category: Category
+  category: Category!
 }
 input CreateCategoryAttributeInput {
   title: String!
