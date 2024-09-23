@@ -3,7 +3,7 @@ module github.com/petrejonn/naytife
 go 1.22.6
 
 require (
-	github.com/99designs/gqlgen v0.17.51
+	github.com/99designs/gqlgen v0.17.54
 	github.com/auth0/go-jwt-middleware/v2 v2.2.2
 	github.com/casbin/casbin/v2 v2.99.0
 	github.com/google/uuid v1.6.0

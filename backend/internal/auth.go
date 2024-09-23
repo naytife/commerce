@@ -5,10 +5,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
@@ -131,32 +129,32 @@ func ParseAuth0Token(ctx context.Context, tokenString string) (*CustomClaims, er
 func JWTMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			host, _, err := net.SplitHostPort(r.Host)
-			if err != nil {
-				host = r.Host
-				// http.Error(w, "Invalid host", http.StatusInternalServerError)
-			}
+			// host, _, err := net.SplitHostPort(r.Host)
+			// if err != nil {
+			// 	host = r.Host
+			// 	// http.Error(w, "Invalid host", http.StatusInternalServerError)
+			// }
 			// Extract the token from the Authorization header
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Authorization header is required", http.StatusUnauthorized)
-				return
-			}
+			// authHeader := r.Header.Get("Authorization")
+			// if authHeader == "" {
+			// 	http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+			// 	return
+			// }
 
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			// tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 			// Parse and validate the token using ParseAuth0Token
-			claims, err := ParseAuth0Token(r.Context(), tokenString)
-			if err != nil {
-				http.Error(w, "Invalid token: "+err.Error(), http.StatusUnauthorized)
-				return
-			}
+			// claims, err := ParseAuth0Token(r.Context(), tokenString)
+			// if err != nil {
+			// 	http.Error(w, "Invalid token: "+err.Error(), http.StatusUnauthorized)
+			// 	return
+			// }
 
 			// Store the claims in the request context
-			ctx := context.WithValue(r.Context(), "userClaims", claims)
+			// ctx := context.WithValue(r.Context(), "userClaims", claims)
 
 			// Set the host in the request context
-			ctx = context.WithValue(ctx, "shopHost", host)
+			ctx := context.WithValue(r.Context(), "shopHost", r.Host)
 
 			// Pass the request along with the new context
 			next.ServeHTTP(w, r.WithContext(ctx))
