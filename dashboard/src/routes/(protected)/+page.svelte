@@ -12,7 +12,7 @@
 	import { page } from '$app/stores';
 
 	/* @type { import('./$houdini').PageData } */
-	export let data;
+	export let data; //../$types.js;
 	$: ({ ProductsQuery } = data);
 	let storeId = $page.params.store;
 </script>
