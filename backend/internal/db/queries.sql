@@ -10,7 +10,7 @@ SELECT * FROM users
 WHERE auth0_sub = $1;
 
 -- name: CreateShop :one
-INSERT INTO shops (owner_id, title, default_domain, favicon_url,logo_url,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
+INSERT INTO shops (owner_id, title, domain, favicon_url,logo_url,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 RETURNING *;
 
@@ -36,12 +36,16 @@ SET
     seo_title = COALESCE(sqlc.narg('seo_title'), seo_title),
     address = COALESCE(sqlc.narg('address'), address),
     email = COALESCE(sqlc.narg('email'), email)
-WHERE default_domain = sqlc.arg('default_domain')
+WHERE domain = sqlc.arg('domain')
 RETURNING *;
 
 -- name: GetShopByDomain :one
 SELECT * FROM shops
-WHERE default_domain = $1;
+WHERE domain = $1;
+
+-- name: GetShopIDByDomain :one
+SELECT shop_id FROM shops
+WHERE domain = $1;
 
 -- name: CreateShopCategory :one
 INSERT INTO categories (slug, title, description, parent_id, shop_id, category_attributes)
@@ -62,8 +66,7 @@ WHERE category_id = sqlc.arg('category_id')
 RETURNING *;
 
 -- name: GetShopCategories :many
-SELECT * FROM categories
-WHERE shop_id = $1;
+SELECT * FROM categories;
 
 -- name: CreateCategoryAttribute :one
 UPDATE categories
@@ -80,3 +83,11 @@ UPDATE categories
 SET category_attributes = category_attributes - sqlc.arg('attribute')::text
 WHERE category_id = sqlc.arg('category_id')
 RETURNING category_attributes;
+
+-- name: CreateProduct :one
+INSERT INTO products ( title, description, category_id, shop_id, allowed_attributes, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING *;
+
+-- name: GetProducts :many
+SELECT * FROM products;

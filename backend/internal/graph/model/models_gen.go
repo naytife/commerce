@@ -297,26 +297,27 @@ type Query struct {
 }
 
 type Shop struct {
-	ID                   string             `json:"id"`
-	Title                string             `json:"title"`
-	DefaultDomain        string             `json:"defaultDomain"`
-	ContactPhone         *PhoneNumber       `json:"contactPhone,omitempty"`
-	ContactEmail         *string            `json:"contactEmail,omitempty"`
-	Address              *ShopAddress       `json:"address,omitempty"`
-	Products             *ProductConnection `json:"products,omitempty"`
-	WhatsApp             *WhatsApp          `json:"whatsApp,omitempty"`
-	Facebook             *Facebook          `json:"facebook,omitempty"`
-	Images               *ShopImages        `json:"images,omitempty"`
-	CurrencyCode         string             `json:"currencyCode"`
-	Status               ShopStatus         `json:"status"`
-	About                *string            `json:"about,omitempty"`
-	ShopProductsCategory *string            `json:"shopProductsCategory,omitempty"`
-	SeoDescription       *string            `json:"seoDescription,omitempty"`
-	SeoKeywords          []string           `json:"seoKeywords"`
-	SeoTitle             *string            `json:"seoTitle,omitempty"`
-	UpdatedAt            time.Time          `json:"updatedAt"`
-	CreatedAt            time.Time          `json:"createdAt"`
-	Owner                *User              `json:"owner"`
+	ID                   string              `json:"id"`
+	Title                string              `json:"title"`
+	DefaultDomain        string              `json:"defaultDomain"`
+	ContactPhone         *PhoneNumber        `json:"contactPhone,omitempty"`
+	ContactEmail         *string             `json:"contactEmail,omitempty"`
+	Address              *ShopAddress        `json:"address,omitempty"`
+	Products             *ProductConnection  `json:"products,omitempty"`
+	Categories           *CategoryConnection `json:"categories,omitempty"`
+	WhatsApp             *WhatsApp           `json:"whatsApp,omitempty"`
+	Facebook             *Facebook           `json:"facebook,omitempty"`
+	Images               *ShopImages         `json:"images,omitempty"`
+	CurrencyCode         string              `json:"currencyCode"`
+	Status               ShopStatus          `json:"status"`
+	About                *string             `json:"about,omitempty"`
+	ShopProductsCategory *string             `json:"shopProductsCategory,omitempty"`
+	SeoDescription       *string             `json:"seoDescription,omitempty"`
+	SeoKeywords          []string            `json:"seoKeywords"`
+	SeoTitle             *string             `json:"seoTitle,omitempty"`
+	UpdatedAt            time.Time           `json:"updatedAt"`
+	CreatedAt            time.Time           `json:"createdAt"`
+	Owner                *User               `json:"owner"`
 }
 
 func (Shop) IsNode()            {}

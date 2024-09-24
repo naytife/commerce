@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 
 	"github.com/gosimple/slug"
@@ -181,15 +182,8 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 
 // Categories is the resolver for the categories field.
 func (r *queryResolver) Categories(ctx context.Context) ([]model.Category, error) {
-	host, ok := ctx.Value("shopHost").(string)
-	if !ok {
-		return nil, errors.New("host not found")
-	}
-	shop, err := r.Repository.GetShopByDomain(ctx, host)
-	if err != nil {
-		return nil, errors.New("could not find shop")
-	}
-	categoriesDB, err := r.Repository.GetShopCategories(ctx, shop.ShopID)
+	log.Println("Entering Categories Resolver")
+	categoriesDB, err := r.Repository.GetShopCategories(ctx)
 	if err != nil {
 		return nil, errors.New("could not fetch categories")
 	}

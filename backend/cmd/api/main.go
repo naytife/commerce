@@ -10,6 +10,7 @@ import (
 	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph"
+	"github.com/petrejonn/naytife/internal/middleware"
 )
 
 func main() {
@@ -28,11 +29,13 @@ func main() {
 	// configure the server
 	mux := http.NewServeMux()
 	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
-	mux.Handle("/query", auth.JWTMiddleware()(graph.NewHandler(repo)))
+	svr := auth.JWTMiddleware()(graph.NewHandler(repo))
+	svr = middleware.ShopIDMiddleware(repo)(svr)
+	mux.Handle("/query", svr)
 
 	// run the server
-	address := "0.0.0.0:" + env.PORT
-	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://%s\n", address)
+	address := ":" + env.PORT
+	fmt.Fprintf(os.Stdout, "🚀 Server ready at port %s\n", address)
 	fmt.Fprintln(os.Stderr, http.ListenAndServe(address, mux))
 
 }

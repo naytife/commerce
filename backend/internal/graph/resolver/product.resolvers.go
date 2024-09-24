@@ -18,7 +18,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context) ([]model.Product, error) {
-	panic(fmt.Errorf("not implemented: Products - products"))
+	return []model.Product{}, nil
 }
 
 // Product is the resolver for the product field.

@@ -94,6 +94,7 @@ type Shop implements Node {
   contactEmail: String
   address: ShopAddress
   products(first: Int = 20, after: ID): ProductConnection
+  categories(first: Int = 20, after: ID): CategoryConnection
   whatsApp: WhatsApp
   facebook: Facebook
   images: ShopImages
