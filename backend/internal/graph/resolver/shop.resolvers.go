@@ -28,11 +28,11 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 		return nil, errors.New("host not found")
 	}
 	param := db.CreateShopParams{
-		Title:         shop.Title,
-		DefaultDomain: shop.Domain + "." + host,
-		OwnerID:       owner.UserID,
-		Status:        model.ShopStatusPublished.String(),
-		CurrencyCode:  "NGN",
+		Title:        shop.Title,
+		Domain:       shop.Domain + "." + host,
+		OwnerID:      owner.UserID,
+		Status:       model.ShopStatusPublished.String(),
+		CurrencyCode: "NGN",
 	}
 	dbShop, err := r.Repository.CreateShop(ctx, param)
 	if err != nil {
@@ -46,7 +46,7 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 		CurrencyCode:  dbShop.CurrencyCode,
 		Status:        model.ShopStatus(dbShop.Status),
 		Title:         dbShop.Title,
-		DefaultDomain: dbShop.DefaultDomain,
+		DefaultDomain: dbShop.Domain,
 	}}, nil
 }
 
@@ -58,7 +58,7 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		return nil, errors.New("host not found")
 	}
 	params := db.UpdateShopParams{
-		DefaultDomain:  host,
+		Domain:         host,
 		Title:          pgTextFromStringPointer(shop.Title),        // Pass the pointer, no need to dereference here
 		CurrencyCode:   pgTextFromStringPointer(shop.CurrencyCode), // Pass the pointer
 		About:          pgTextFromStringPointer(shop.About),
@@ -78,7 +78,7 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		CurrencyCode:   dbShop.CurrencyCode,
 		Status:         model.ShopStatus(dbShop.Status),
 		Title:          dbShop.Title,
-		DefaultDomain:  dbShop.DefaultDomain,
+		DefaultDomain:  dbShop.Domain,
 		About:          &dbShop.About.String,
 		SeoTitle:       &dbShop.SeoTitle.String,
 		SeoDescription: &dbShop.SeoDescription.String,
@@ -112,7 +112,7 @@ func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
 	return &model.Shop{
 		ID:             strconv.FormatInt(shop.ShopID, 10),
 		Title:          shop.Title,
-		DefaultDomain:  shop.DefaultDomain,
+		DefaultDomain:  shop.Domain,
 		CurrencyCode:   shop.CurrencyCode,
 		Status:         model.ShopStatus(shop.Status),
 		About:          &shop.About.String,
@@ -136,7 +136,7 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
 	}
 	shopList := make([]model.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model.Shop{ID: strconv.FormatInt(shop.ShopID, 10), Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.DefaultDomain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
+		shopList[i] = model.Shop{ID: strconv.FormatInt(shop.ShopID, 10), Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.Domain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
 	}
 	return shopList, nil
 }

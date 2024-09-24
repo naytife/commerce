@@ -218,6 +218,7 @@ type ComplexityRoot struct {
 	Shop struct {
 		About                func(childComplexity int) int
 		Address              func(childComplexity int) int
+		Categories           func(childComplexity int, first *int, after *string) int
 		ContactEmail         func(childComplexity int) int
 		ContactPhone         func(childComplexity int) int
 		CreatedAt            func(childComplexity int) int
@@ -1028,6 +1029,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Shop.Address(childComplexity), true
 
+	case "Shop.categories":
+		if e.complexity.Shop.Categories == nil {
+			break
+		}
+
+		args, err := ec.field_Shop_categories_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Shop.Categories(childComplexity, args["first"].(*int), args["after"].(*string)), true
+
 	case "Shop.contactEmail":
 		if e.complexity.Shop.ContactEmail == nil {
 			break
@@ -1737,6 +1750,7 @@ type Shop implements Node {
   contactEmail: String
   address: ShopAddress
   products(first: Int = 20, after: ID): ProductConnection
+  categories(first: Int = 20, after: ID): CategoryConnection
   whatsApp: WhatsApp
   facebook: Facebook
   images: ShopImages
@@ -2309,6 +2323,65 @@ func (ec *executionContext) field_Query_product_argsID(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Shop_categories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Shop_categories_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := ec.field_Shop_categories_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Shop_categories_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["first"]
+	if !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Shop_categories_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["after"]
+	if !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -3790,6 +3863,8 @@ func (ec *executionContext) fieldContext_CreateShopSuccess_shop(_ context.Contex
 				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
+			case "categories":
+				return ec.fieldContext_Shop_categories(ctx, field)
 			case "whatsApp":
 				return ec.fieldContext_Shop_whatsApp(ctx, field)
 			case "facebook":
@@ -6804,6 +6879,8 @@ func (ec *executionContext) fieldContext_Query_shop(_ context.Context, field gra
 				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
+			case "categories":
+				return ec.fieldContext_Shop_categories(ctx, field)
 			case "whatsApp":
 				return ec.fieldContext_Shop_whatsApp(ctx, field)
 			case "facebook":
@@ -6890,6 +6967,8 @@ func (ec *executionContext) fieldContext_Query_myShops(_ context.Context, field 
 				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
+			case "categories":
+				return ec.fieldContext_Shop_categories(ctx, field)
 			case "whatsApp":
 				return ec.fieldContext_Shop_whatsApp(ctx, field)
 			case "facebook":
@@ -7367,6 +7446,64 @@ func (ec *executionContext) fieldContext_Shop_products(ctx context.Context, fiel
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Shop_products_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Shop_categories(ctx context.Context, field graphql.CollectedField, obj *model.Shop) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Shop_categories(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Categories, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CategoryConnection)
+	fc.Result = res
+	return ec.marshalOCategoryConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Shop_categories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Shop",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "edges":
+				return ec.fieldContext_CategoryConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_CategoryConnection_pageInfo(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CategoryConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Shop_categories_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8497,6 +8634,8 @@ func (ec *executionContext) fieldContext_UpdateShopSuccess_shop(_ context.Contex
 				return ec.fieldContext_Shop_address(ctx, field)
 			case "products":
 				return ec.fieldContext_Shop_products(ctx, field)
+			case "categories":
+				return ec.fieldContext_Shop_categories(ctx, field)
 			case "whatsApp":
 				return ec.fieldContext_Shop_whatsApp(ctx, field)
 			case "facebook":
@@ -12955,6 +13094,8 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Shop_address(ctx, field, obj)
 		case "products":
 			out.Values[i] = ec._Shop_products(ctx, field, obj)
+		case "categories":
+			out.Values[i] = ec._Shop_categories(ctx, field, obj)
 		case "whatsApp":
 			out.Values[i] = ec._Shop_whatsApp(ctx, field, obj)
 		case "facebook":
@@ -14863,6 +15004,13 @@ func (ec *executionContext) marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnayti
 		return graphql.Null
 	}
 	return ec._Category(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCategoryConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryConnection(ctx context.Context, sel ast.SelectionSet, v *model.CategoryConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CategoryConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOCategoryImages2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryImages(ctx context.Context, sel ast.SelectionSet, v *model.CategoryImages) graphql.Marshaler {
