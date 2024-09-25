@@ -54,19 +54,19 @@ CREATE TABLE categories (
     CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES categories(category_id),
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY shop_policy ON categories
-FOR SELECT
-USING (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy ON categories
+-- FOR SELECT
+-- USING (shop_id = current_setting('commerce.current_shop_id')::int);
 
-CREATE POLICY shop_policy_insert ON categories
-FOR INSERT
-WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy_insert ON categories
+-- FOR INSERT
+-- WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
 
-CREATE POLICY shop_policy_update ON categories
-FOR UPDATE
-USING (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy_update ON categories
+-- FOR UPDATE
+-- USING (shop_id = current_setting('commerce.current_shop_id')::int);
 
 CREATE TABLE products(
     product_id BIGSERIAL PRIMARY KEY,
@@ -82,16 +82,16 @@ CREATE TABLE products(
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY shop_policy ON products
-FOR SELECT
-USING (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy ON products
+-- FOR SELECT
+-- USING (shop_id = current_setting('commerce.current_shop_id')::int);
 
-CREATE POLICY shop_policy_insert ON products
-FOR INSERT
-WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy_insert ON products
+-- FOR INSERT
+-- WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
 
-CREATE POLICY shop_policy_update ON products
-FOR UPDATE
-USING (shop_id = current_setting('commerce.current_shop_id')::int);
+-- CREATE POLICY shop_policy_update ON products
+-- FOR UPDATE
+-- USING (shop_id = current_setting('commerce.current_shop_id')::int);
