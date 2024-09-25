@@ -7,10 +7,8 @@ package resolver
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
@@ -18,22 +16,18 @@ import (
 
 // SignInUser is the resolver for the signInUser field.
 func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInput) (model.SignInUserPayload, error) {
-	// Retrieve the user claims from the context
-	claims, ok := ctx.Value("userClaims").(*auth.CustomClaims)
-	if !ok {
-		return nil, errors.New("Unauthorized")
-	}
-	// Log the extracted claims for debugging
-	log.Printf("User claims: %+v", claims)
-
+	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
+	fakeEmail := "fake@email.com"
+	fakeName := "Fake Name"
+	fakeUrl := "https://fake-url.com/profile-picture.png"
 	// Check if the user exists in the database
 	user, err := r.Repository.UpsertUser(ctx, db.UpsertUserParams{
-		Auth0Sub: pgtype.Text{String: claims.Sub, Valid: true},
-		Email:    claims.Email,
+		Auth0Sub: pgtype.Text{String: fakeAuthSub, Valid: true},
+		Email:    fakeEmail,
 		Name: pgtype.Text{
-			String: claims.Name,
+			String: fakeName,
 			Valid:  true},
-		ProfilePictureUrl: pgtype.Text{String: claims.ProfilePictureURL, Valid: true},
+		ProfilePictureUrl: pgtype.Text{String: fakeUrl, Valid: true},
 	})
 	if err != nil {
 		return nil, errors.New("user not found")
