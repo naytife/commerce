@@ -6,19 +6,79 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"strconv"
 
+	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/model"
 )
 
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, product model.CreateProductInput) (model.CreateProductPayload, error) {
-	panic(fmt.Errorf("not implemented: CreateProduct - createProduct"))
+	shopID := ctx.Value("shop_id").(int64)
+	_, catID, err := DecodeRelayID(*&product.CategoryID)
+	if err != nil {
+		return nil, errors.New("invalid category ID")
+	}
+	cat, err := r.Repository.GetShopCategory(ctx, *catID)
+	if err != nil {
+		return &model.CategoryNotFoundError{Message: "category not found", Code: model.ErrorCodeNotFoundCategory}, nil
+	}
+	param := db.CreateProductParams{
+		Title:             product.Title,
+		Description:       product.Description,
+		ShopID:            shopID,
+		CategoryID:        *catID,
+		AllowedAttributes: cat.CategoryAttributes,
+		Status:            model.ProductStatusDraft.String(),
+	}
+	dbProduct, err := r.Repository.CreateProduct(ctx, param)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("server error")
+	}
+	attributes, err := unmarshalAllowedProductAttributes(dbProduct.AllowedAttributes)
+	if err != nil {
+		return nil, errors.New("could not understand category")
+	}
+	return model.CreateProductSuccess{Product: &model.Product{
+		ID:                strconv.FormatInt(dbProduct.ProductID, 10),
+		Title:             dbProduct.Title,
+		Description:       dbProduct.Description,
+		AllowedAttributes: attributes,
+		Status:            (*model.ProductStatus)(&dbProduct.Status),
+		CreatedAt:         dbProduct.CreatedAt.Time,
+		UpdatedAt:         dbProduct.UpdatedAt.Time,
+	}}, nil
 }
 
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context) ([]model.Product, error) {
-	return []model.Product{}, nil
+	productsDB, err := r.Repository.GetProducts(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New("server error")
+	}
+	products := make([]model.Product, 0, len(productsDB))
+	for _, productDB := range productsDB {
+		attributes, err := unmarshalAllowedProductAttributes(productDB.AllowedAttributes)
+		if err != nil {
+			return nil, errors.New("could not understand category")
+		}
+		products = append(products, model.Product{
+			ID:                strconv.FormatInt(productDB.ProductID, 10),
+			Title:             productDB.Title,
+			Description:       productDB.Description,
+			AllowedAttributes: attributes,
+			Status:            (*model.ProductStatus)(&productDB.Status),
+			CreatedAt:         productDB.CreatedAt.Time,
+			UpdatedAt:         productDB.UpdatedAt.Time,
+		})
+	}
+
+	return products, nil
 }
 
 // Product is the resolver for the product field.

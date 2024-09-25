@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,6 +53,9 @@ type Repository interface {
 	GetShopCategories(ctx context.Context) ([]Category, error)
 	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
 	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
+	// PRODUCT
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	GetProducts(ctx context.Context) ([]Product, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -83,7 +85,6 @@ func (r *repoSvc) SetShopIDInSession(ctx context.Context, shopID int64) error {
 	query := fmt.Sprintf("SET commerce.current_shop_id = %d", shopID)
 	_, err := r.db.Exec(ctx, query)
 	if err != nil {
-		log.Println(err)
 		return fmt.Errorf("failed to set shop_id in session: %w", err)
 	}
 	return nil
@@ -110,16 +111,12 @@ func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.UpdateShop(ctx, arg)
-		if err != nil {
-			log.Println(err)
-		}
 		return err
 	})
 	return shop, err
 }
 
 func (r *repoSvc) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
-	log.Println("CREATING CAT")
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	category := Category{}

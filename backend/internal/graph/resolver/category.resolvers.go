@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"strconv"
 
 	"github.com/gosimple/slug"
@@ -178,7 +177,6 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 func (r *queryResolver) Categories(ctx context.Context) ([]model.Category, error) {
 	categoriesDB, err := r.Repository.GetShopCategories(ctx)
 	if err != nil {
-		log.Println(err)
 		return nil, errors.New("could not fetch categories")
 	}
 
