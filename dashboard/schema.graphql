@@ -10,8 +10,7 @@ type AllowedCategoryAttributes {
 
 type AllowedProductAttributes {
   dataType: ProductAttributeDataType!
-  key: String!
-  options: [ProductAttributeValue!]!
+  title: String!
 }
 
 type Category implements Node {
@@ -71,6 +70,19 @@ type CreateCategorySuccess {
   category: Category
 }
 
+input CreateProductInput {
+  categoryID: ID!
+  description: String!
+  price: Float!
+  title: String!
+}
+
+union CreateProductPayload = CategoryNotFoundError | CreateProductSuccess
+
+type CreateProductSuccess {
+  product: Product!
+}
+
 input CreateShopInput {
   domain: String!
   title: String!
@@ -128,6 +140,7 @@ type Instagram implements SocialMediaContact {
 type Mutation {
   createCategory(category: CreateCategoryInput!): CreateCategoryPayload
   createCategoryAttribute(attribute: CreateCategoryAttributeInput!, categoryID: ID!): CreateCategoryAttributePayload
+  createProduct(product: CreateProductInput!): CreateProductPayload
   createShop(shop: CreateShopInput!): CreateShopPayload
   createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
   deleteCategoryAttribute(attribute: String!, categoryID: ID!): DeleteCategoryAttributePayload
@@ -163,7 +176,7 @@ type Product implements Node {
   defaultVariant: ProductVariant!
   description: String!
   id: ID!
-  images: [ProductImage!]!
+  images: [Image!]!
   price: Float!
   slug: String!
   status: ProductStatus
@@ -197,10 +210,6 @@ type ProductEdge {
   node: Product!
 }
 
-type ProductImage {
-  imageUrl: String!
-}
-
 enum ProductStatus {
   ARCHIVED
   DRAFT
@@ -215,14 +224,14 @@ enum ProductStockStatus {
 
 type ProductVariant implements Node {
   attributes: [ProductAttribute!]!
+  availableQuantity: Int!
   createdAt: DateTime!
-  description: String
+  description: String!
   id: ID!
-  price: Float
-  quantity: Int
+  price: Float!
   slug: String!
-  stockStatus: ProductStockStatus
-  title: String
+  stockStatus: ProductStockStatus!
+  title: String!
   updatedAt: DateTime!
 }
 
@@ -231,6 +240,8 @@ type Query {
   category(id: ID!): Category
   myShops: [Shop!]!
   node(id: ID!): Node
+  product(id: ID!): Product
+  products: [Product!]!
   shop: Shop!
 }
 
@@ -308,7 +319,7 @@ input UpdateCategoryInput {
 union UpdateCategoryPayload = CategoryNotFoundError | UpdateCategorySuccess
 
 type UpdateCategorySuccess {
-  category: Category
+  category: Category!
 }
 
 input UpdateShopInput {

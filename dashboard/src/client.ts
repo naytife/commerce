@@ -1,8 +1,9 @@
 import { HoudiniClient } from '$houdini';
 
-const currentHost = window.location.host; // gets the current host (e.g., store1.naytife.com)
-const url = `https://${currentHost}/query`; // constructs the query URL dynamically
+const host = window.location.host; // e.g., store1.naytife.com
+const subdomain = host.split('.')[0]; // extracts 'store1'
 
+const url = `https://${subdomain}.naytife.com/query`;
 export default new HoudiniClient({
 	url
 
