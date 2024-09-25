@@ -159,10 +159,9 @@ type CreateCategorySuccess struct {
 func (CreateCategorySuccess) IsCreateCategoryPayload() {}
 
 type CreateProductInput struct {
-	CategoryID  string  `json:"categoryID"`
-	Title       string  `json:"title"`
-	Price       float64 `json:"price"`
-	Description string  `json:"description"`
+	CategoryID  string `json:"categoryID"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type CreateProductSuccess struct {
@@ -240,9 +239,7 @@ type PhoneNumberInput struct {
 
 type Product struct {
 	ID                string                     `json:"id"`
-	Slug              string                     `json:"slug"`
 	Title             string                     `json:"title"`
-	Price             float64                    `json:"price"`
 	Description       string                     `json:"description"`
 	Category          *Category                  `json:"category"`
 	DefaultVariant    *ProductVariant            `json:"defaultVariant"`

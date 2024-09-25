@@ -51,11 +51,10 @@ func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInp
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
-	typ, internalID, err := DecodeRelayID(id)
+	typ, _, err := DecodeRelayID(id)
 	if err != nil {
 		return nil, err
 	}
-	log.Println(internalID)
 
 	switch typ {
 	case "Shop":

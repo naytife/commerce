@@ -40,7 +40,6 @@ type ProductEdge {
 input CreateProductInput {
   categoryID: ID!
   title: String!
-  price: Float!
   description: String!
 }
 
@@ -50,9 +49,7 @@ type CreateProductSuccess {
 }
 type Product implements Node {
   id: ID!
-  slug: String!
   title: String!
-  price: Float!
   description: String!
   category: Category!
   defaultVariant: ProductVariant!

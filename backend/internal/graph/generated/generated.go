@@ -164,8 +164,6 @@ type ComplexityRoot struct {
 		Description       func(childComplexity int) int
 		ID                func(childComplexity int) int
 		Images            func(childComplexity int) int
-		Price             func(childComplexity int) int
-		Slug              func(childComplexity int) int
 		Status            func(childComplexity int) int
 		Title             func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
@@ -782,20 +780,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Product.Images(childComplexity), true
-
-	case "Product.price":
-		if e.complexity.Product.Price == nil {
-			break
-		}
-
-		return e.complexity.Product.Price(childComplexity), true
-
-	case "Product.slug":
-		if e.complexity.Product.Slug == nil {
-			break
-		}
-
-		return e.complexity.Product.Slug(childComplexity), true
 
 	case "Product.status":
 		if e.complexity.Product.Status == nil {
@@ -1562,7 +1546,6 @@ type ProductEdge {
 input CreateProductInput {
   categoryID: ID!
   title: String!
-  price: Float!
   description: String!
 }
 
@@ -1572,9 +1555,7 @@ type CreateProductSuccess {
 }
 type Product implements Node {
   id: ID!
-  slug: String!
   title: String!
-  price: Float!
   description: String!
   category: Category!
   defaultVariant: ProductVariant!
@@ -3782,12 +3763,8 @@ func (ec *executionContext) fieldContext_CreateProductSuccess_product(_ context.
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Product_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Product_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Product_title(ctx, field)
-			case "price":
-				return ec.fieldContext_Product_price(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
 			case "category":
@@ -5040,50 +5017,6 @@ func (ec *executionContext) fieldContext_Product_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Product_slug(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Product_slug(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Slug, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Product_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Product",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Product_title(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Product_title(ctx, field)
 	if err != nil {
@@ -5123,50 +5056,6 @@ func (ec *executionContext) fieldContext_Product_title(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Product_price(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Product_price(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Price, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(float64)
-	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Product_price(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Product",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6001,12 +5890,8 @@ func (ec *executionContext) fieldContext_ProductEdge_node(_ context.Context, fie
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Product_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Product_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Product_title(ctx, field)
-			case "price":
-				return ec.fieldContext_Product_price(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
 			case "category":
@@ -6715,12 +6600,8 @@ func (ec *executionContext) fieldContext_Query_products(_ context.Context, field
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Product_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Product_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Product_title(ctx, field)
-			case "price":
-				return ec.fieldContext_Product_price(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
 			case "category":
@@ -6784,12 +6665,8 @@ func (ec *executionContext) fieldContext_Query_product(ctx context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Product_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Product_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Product_title(ctx, field)
-			case "price":
-				return ec.fieldContext_Product_price(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
 			case "category":
@@ -10924,7 +10801,7 @@ func (ec *executionContext) unmarshalInputCreateProductInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"categoryID", "title", "price", "description"}
+	fieldsInOrder := [...]string{"categoryID", "title", "description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10945,13 +10822,6 @@ func (ec *executionContext) unmarshalInputCreateProductInput(ctx context.Context
 				return it, err
 			}
 			it.Title = data
-		case "price":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("price"))
-			data, err := ec.unmarshalNFloat2float64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Price = data
 		case "description":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -12503,18 +12373,8 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "slug":
-			out.Values[i] = ec._Product_slug(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "title":
 			out.Values[i] = ec._Product_title(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "price":
-			out.Values[i] = ec._Product_price(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
