@@ -3,7 +3,7 @@
 /** @type {import('houdini').ConfigFile} */
 const config = {
     "watchSchema": {
-        "url": "https://gossip.naytife.com/query"
+        "url": "https://apple.naytife.com/api/query"
     },
     "plugins": {
         "houdini-svelte": {}

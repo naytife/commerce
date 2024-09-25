@@ -73,7 +73,6 @@ type CreateCategorySuccess {
 input CreateProductInput {
   categoryID: ID!
   description: String!
-  price: Float!
   title: String!
 }
 
@@ -177,8 +176,6 @@ type Product implements Node {
   description: String!
   id: ID!
   images: [Image!]!
-  price: Float!
-  slug: String!
   status: ProductStatus
   title: String!
   updatedAt: DateTime!
@@ -248,6 +245,7 @@ type Query {
 type Shop implements Node {
   about: String
   address: ShopAddress
+  categories(after: ID, first: Int = 20): CategoryConnection
   contactEmail: String
   contactPhone: PhoneNumber
   createdAt: DateTime!
