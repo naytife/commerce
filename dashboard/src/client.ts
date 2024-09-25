@@ -3,7 +3,7 @@ import { HoudiniClient } from '$houdini';
 const host = window.location.host; // e.g., store1.naytife.com
 const subdomain = host.split('.')[0]; // extracts 'store1'
 
-const url = `https://${subdomain}.naytife.com/query`;
+const url = `https://${subdomain}.naytife.com/api/query`;
 export default new HoudiniClient({
 	url
 
