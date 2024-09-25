@@ -1,25 +1,28 @@
 package graph
 
 import (
-	"net/http"
-
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/resolver"
 )
 
-// NewHandler returns a new graphql endpoint handler.
-func NewHandler(repo db.Repository) http.Handler {
-	return handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+func NewHandler(repo db.Repository) fiber.Handler {
+	// Create the GraphQL server
+	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
 			Repository: repo,
 		},
 	}))
-}
 
-// NewPlaygroundHandler returns a new GraphQL Playground handler.
-func NewPlaygroundHandler(endpoint string) http.Handler {
-	return playground.AltairHandler("Naytife Playground", endpoint)
+	// Use Fiber's adaptor to convert http.Handler to fiber.Handler
+	return adaptor.HTTPHandler(h)
+}
+func NewPlaygroundHandler(endpoint string) fiber.Handler {
+	h := playground.AltairHandler("Naytife Playground", endpoint)
+
+	return adaptor.HTTPHandler(h)
 }
