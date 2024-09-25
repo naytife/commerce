@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -55,7 +54,6 @@ func main() {
 			"message": "Store added successfully",
 		})
 	})
-	app.Use(swagger.New())
 
 	// Start the server
 	address := ":" + env.PORT
