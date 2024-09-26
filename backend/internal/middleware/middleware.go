@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/petrejonn/naytife/internal/db"
 )
@@ -14,6 +16,7 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 		// Query the database to get the shop_id using the domain (host)
 		shopID, err := repo.GetShopIDByDomain(ctx, host)
 		if err != nil {
+			log.Println(err)
 			// Handle error (return unauthorized response)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Invalid shop",

@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strconv"
 
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -26,7 +25,7 @@ func (r *categoryResolver) ID(ctx context.Context, obj *model.Category) (string,
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, category model.CreateCategoryInput) (model.CreateCategoryPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	param := db.CreateShopCategoryParams{
+	param := db.CreateCategoryParams{
 		Title:       category.Title,
 		Description: pgtype.Text{String: category.Description, Valid: true},
 		Slug:        slug.MakeLang(category.Title, "en"),
@@ -34,24 +33,23 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 	}
 	param.CategoryAttributes = []byte("{}")
 	if category.ParentID != nil {
-		_, id, err := DecodeRelayID(*category.ParentID)
+		_, catID, err := DecodeRelayID(*category.ParentID)
 		if err != nil {
 			return nil, errors.New("could not find parent category")
 		}
-		parent, err := r.Repository.GetShopCategory(ctx, *id)
+		parent, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
 		if err != nil {
 			return nil, errors.New("could not find parent category")
 		}
 		param.ParentID = parent.ParentID
 		param.CategoryAttributes = parent.CategoryAttributes
 	}
-	cat, err := r.Repository.CreateShopCategory(ctx, param)
+	cat, err := r.Repository.CreateCategory(ctx, param)
 	if err != nil {
 		return nil, err
 	}
 	return &model.CreateCategorySuccess{
 		Category: &model.Category{
-			ID:                strconv.FormatInt(cat.CategoryID, 10),
 			Slug:              cat.Slug,
 			Title:             cat.Title,
 			Description:       cat.Description.String,
@@ -71,7 +69,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
-	params := db.UpdateShopCategoryParams{
+	params := db.UpdateCategoryParams{
 		CategoryID:  *catId,
 		Title:       pgTextFromStringPointer(category.Title),
 		Description: pgTextFromStringPointer(category.Description),
@@ -85,7 +83,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 		params.ParentID = pgtype.Int8{Int64: *id, Valid: true}
 	}
 
-	dbCat, err := r.Repository.UpdateShopCategory(ctx, params)
+	dbCat, err := r.Repository.UpdateCategory(ctx, params)
 	if err != nil {
 		return nil, errors.New("could not update category")
 	}
@@ -95,7 +93,6 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 	}
 	return &model.UpdateCategorySuccess{
 		Category: &model.Category{
-			ID:                strconv.FormatInt(dbCat.CategoryID, 10),
 			Slug:              dbCat.Slug,
 			Title:             dbCat.Title,
 			Description:       dbCat.Description.String,
@@ -175,29 +172,20 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 
 // Categories is the resolver for the categories field.
 func (r *queryResolver) Categories(ctx context.Context) ([]model.Category, error) {
-	categoriesDB, err := r.Repository.GetShopCategories(ctx)
+	categoriesDB, err := r.Repository.GetCategories(ctx, db.GetCategoriesParams{})
 	if err != nil {
 		return nil, errors.New("could not fetch categories")
 	}
 
 	categories := make([]model.Category, 0, len(categoriesDB))
 	for _, cat := range categoriesDB {
-		attributes, err := unmarshalCategoryAttributes(cat.CategoryAttributes)
-		if err != nil {
-			return nil, errors.New("could not understand category")
-		}
+		// attributes, err := unmarshalCategoryAttributes(cat.CategoryAttributes)
 		categories = append(categories, model.Category{
-			ID:                strconv.FormatInt(cat.CategoryID, 10),
-			Slug:              cat.Slug,
-			Title:             cat.Title,
-			Description:       cat.Description.String,
-			Parent:            &model.Category{},
-			Children:          []model.Category{},
-			Products:          nil,
-			Images:            nil,
-			AllowedAttributes: attributes,
-			CreatedAt:         cat.CreatedAt.Time,
-			UpdatedAt:         cat.UpdatedAt.Time,
+			Slug:        cat.Slug,
+			Title:       cat.Title,
+			Description: cat.Description.String,
+			CreatedAt:   cat.CreatedAt.Time,
+			UpdatedAt:   cat.UpdatedAt.Time,
 		})
 	}
 	return categories, nil
@@ -205,11 +193,12 @@ func (r *queryResolver) Categories(ctx context.Context) ([]model.Category, error
 
 // Category is the resolver for the category field.
 func (r *queryResolver) Category(ctx context.Context, id string) (*model.Category, error) {
-	_, catId, err := DecodeRelayID(id)
+	shopID := ctx.Value("shop_id").(int64)
+	_, catID, err := DecodeRelayID(id)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
-	cat, err := r.Repository.GetShopCategory(ctx, *catId)
+	cat, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
 	if err != nil {
 		return nil, errors.New("could not find category")
 	}
@@ -218,14 +207,9 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 		return nil, errors.New("could not understand category")
 	}
 	return &model.Category{
-		ID:                strconv.FormatInt(cat.CategoryID, 10),
 		Slug:              cat.Slug,
 		Title:             cat.Title,
 		Description:       cat.Description.String,
-		Parent:            &model.Category{},
-		Children:          []model.Category{},
-		Products:          nil,
-		Images:            nil,
 		AllowedAttributes: attributes,
 		CreatedAt:         cat.CreatedAt.Time,
 		UpdatedAt:         cat.UpdatedAt.Time,

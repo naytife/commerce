@@ -47,16 +47,17 @@ WHERE domain = $1;
 SELECT shop_id FROM shops
 WHERE domain = $1;
 
--- name: CreateShopCategory :one
+-- name: CreateCategory :one
 INSERT INTO categories (slug, title, description, parent_id, shop_id, category_attributes)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
--- name: GetShopCategory :one
-SELECT * FROM categories
-WHERE category_id = $1;
+-- name: GetCategory :one
+SELECT category_id, slug, title, description, created_at, updated_at, parent_id, category_attributes
+FROM categories
+WHERE shop_id = $1 AND category_id = $2;
 
--- name: UpdateShopCategory :one
+-- name: UpdateCategory :one
 UPDATE categories
 SET 
     title = COALESCE(sqlc.narg('title'), title),
@@ -65,8 +66,11 @@ SET
 WHERE category_id = sqlc.arg('category_id')
 RETURNING *;
 
--- name: GetShopCategories :many
-SELECT * FROM categories;
+-- name: GetCategories :many
+SELECT category_id, slug, title, description, created_at, updated_at
+FROM categories
+WHERE shop_id = sqlc.arg('shop_id') AND category_id > sqlc.arg('after')
+LIMIT sqlc.arg('limit');
 
 -- name: CreateCategoryAttribute :one
 UPDATE categories

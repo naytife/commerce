@@ -1,6 +1,6 @@
 # ======== PRODUCT ========
 extend type Query {
-  products: [Product!]!
+  products(first: Int = 20, after: ID): ProductConnection!
   product(id: ID!): Product
 }
 
@@ -31,9 +31,10 @@ enum ProductStatus {
 type ProductConnection {
   edges: [ProductEdge!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 type ProductEdge {
-  cursor: String!
+  cursor: ID!
   node: Product!
 }
 

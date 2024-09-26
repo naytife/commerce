@@ -39,10 +39,6 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 		return nil, err
 	}
 	return &model.CreateShopSuccess{Shop: &model.Shop{
-		ID: strconv.FormatInt(
-			dbShop.ShopID,
-			10,
-		),
 		CurrencyCode:  dbShop.CurrencyCode,
 		Status:        model.ShopStatus(dbShop.Status),
 		Title:         dbShop.Title,
@@ -74,7 +70,6 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		return nil, err
 	}
 	return &model.UpdateShopSuccess{Shop: &model.Shop{
-		ID:             strconv.FormatInt(dbShop.ShopID, 10),
 		CurrencyCode:   dbShop.CurrencyCode,
 		Status:         model.ShopStatus(dbShop.Status),
 		Title:          dbShop.Title,
@@ -101,16 +96,12 @@ func (r *mutationResolver) UpdateWhatsApp(ctx context.Context, input model.Updat
 
 // Shop is the resolver for the shop field.
 func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
-	host, ok := ctx.Value("shopHost").(string)
-	if !ok {
-		return nil, errors.New("host not found")
-	}
-	shop, err := r.Repository.GetShopByDomain(ctx, host)
+	shopID := ctx.Value("shop_id").(int64)
+	shop, err := r.Repository.GetShop(ctx, shopID)
 	if err != nil {
 		return nil, err
 	}
 	return &model.Shop{
-		ID:             strconv.FormatInt(shop.ShopID, 10),
 		Title:          shop.Title,
 		DefaultDomain:  shop.Domain,
 		CurrencyCode:   shop.CurrencyCode,
@@ -136,7 +127,7 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
 	}
 	shopList := make([]model.Shop, len(shops))
 	for i, shop := range shops {
-		shopList[i] = model.Shop{ID: strconv.FormatInt(shop.ShopID, 10), Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.Domain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
+		shopList[i] = model.Shop{Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.Domain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
 	}
 	return shopList, nil
 }
@@ -145,6 +136,65 @@ func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
 func (r *shopResolver) ID(ctx context.Context, obj *model.Shop) (string, error) {
 	// Return the base64-encoded ID
 	return EncodeRelayID("Category", obj.ID), nil
+}
+
+// Categories is the resolver for the categories field.
+func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *int, after *string) (*model.CategoryConnection, error) {
+	shopID := ctx.Value("shop_id").(int64)
+	limit := 20
+	if first != nil {
+		limit = *first
+	}
+	afterID := int64(0)
+	if after != nil {
+		decodedType, id, err := DecodeRelayID(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid after cursor: %w", err)
+		}
+		if decodedType != "Category" {
+			return nil, fmt.Errorf("expected after cursor type 'Category', got '%s'", decodedType)
+		}
+		if id != nil {
+			afterID = *id // The actual ID is retrieved here
+		}
+	}
+	categoriesDB, err := r.Repository.GetCategories(ctx, db.GetCategoriesParams{ShopID: shopID, After: afterID, Limit: int32(limit) + 1})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch categories: %w", err)
+	}
+	hasNextPage := len(categoriesDB) > limit
+	if hasNextPage {
+		categoriesDB = categoriesDB[:limit] // Trim the extra item
+	}
+	edges := make([]model.CategoryEdge, len(categoriesDB))
+	for i, cat := range categoriesDB {
+		relayID := EncodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
+		edges[i] = model.CategoryEdge{Cursor: relayID, Node: &model.Category{
+			Slug:        cat.Slug,
+			Title:       cat.Title,
+			Description: cat.Description.String,
+			CreatedAt:   cat.CreatedAt.Time,
+			UpdatedAt:   cat.UpdatedAt.Time,
+		}}
+	}
+	var startCursor, endCursor *string
+	if len(categoriesDB) > 0 {
+		firstCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[0].CategoryID, 10))
+		lastCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[len(categoriesDB)-1].CategoryID, 10))
+		startCursor, endCursor = &firstCursor, &lastCursor
+	}
+
+	pageInfo := &model.PageInfo{
+		HasNextPage: hasNextPage,
+		StartCursor: *startCursor,
+		EndCursor:   *endCursor,
+	}
+
+	// Return the CategoryConnection result
+	return &model.CategoryConnection{
+		Edges:    edges,
+		PageInfo: pageInfo,
+	}, nil
 }
 
 // Shop returns generated.ShopResolver implementation.
