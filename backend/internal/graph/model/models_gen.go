@@ -223,10 +223,10 @@ type Mutation struct {
 }
 
 type PageInfo struct {
-	EndCursor       *string `json:"endCursor,omitempty"`
-	HasNextPage     bool    `json:"hasNextPage"`
-	HasPreviousPage bool    `json:"hasPreviousPage"`
-	StartCursor     *string `json:"startCursor,omitempty"`
+	StartCursor     string `json:"startCursor"`
+	EndCursor       string `json:"endCursor"`
+	HasNextPage     bool   `json:"hasNextPage"`
+	HasPreviousPage bool   `json:"hasPreviousPage"`
 }
 
 type PhoneNumber struct {
@@ -265,8 +265,9 @@ type ProductAttributeValue struct {
 }
 
 type ProductConnection struct {
-	Edges    []ProductEdge `json:"edges"`
-	PageInfo *PageInfo     `json:"pageInfo"`
+	Edges      []ProductEdge `json:"edges"`
+	PageInfo   *PageInfo     `json:"pageInfo"`
+	TotalCount int           `json:"totalCount"`
 }
 
 type ProductEdge struct {

@@ -22,7 +22,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
-	cat, err := r.Repository.GetShopCategory(ctx, *catID)
+	cat, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
 	if err != nil {
 		return &model.CategoryNotFoundError{Message: "category not found", Code: model.ErrorCodeNotFoundCategory}, nil
 	}
@@ -55,30 +55,31 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 }
 
 // Products is the resolver for the products field.
-func (r *queryResolver) Products(ctx context.Context) ([]model.Product, error) {
-	productsDB, err := r.Repository.GetProducts(ctx)
-	if err != nil {
-		log.Println(err)
-		return nil, errors.New("server error")
-	}
-	products := make([]model.Product, 0, len(productsDB))
-	for _, productDB := range productsDB {
-		attributes, err := unmarshalAllowedProductAttributes(productDB.AllowedAttributes)
-		if err != nil {
-			return nil, errors.New("could not understand category")
-		}
-		products = append(products, model.Product{
-			ID:                strconv.FormatInt(productDB.ProductID, 10),
-			Title:             productDB.Title,
-			Description:       productDB.Description,
-			AllowedAttributes: attributes,
-			Status:            (*model.ProductStatus)(&productDB.Status),
-			CreatedAt:         productDB.CreatedAt.Time,
-			UpdatedAt:         productDB.UpdatedAt.Time,
-		})
-	}
+func (r *queryResolver) Products(ctx context.Context, first *int, after *string) (*model.ProductConnection, error) {
+	// productsDB, err := r.Repository.GetProducts(ctx)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return nil, errors.New("server error")
+	// }
+	// products := make([]model.Product, 0, len(productsDB))
+	// for _, productDB := range productsDB {
+	// 	attributes, err := unmarshalAllowedProductAttributes(productDB.AllowedAttributes)
+	// 	if err != nil {
+	// 		return nil, errors.New("could not understand category")
+	// 	}
+	// 	products = append(products, model.Product{
+	// 		ID:                strconv.FormatInt(productDB.ProductID, 10),
+	// 		Title:             productDB.Title,
+	// 		Description:       productDB.Description,
+	// 		AllowedAttributes: attributes,
+	// 		Status:            (*model.ProductStatus)(&productDB.Status),
+	// 		CreatedAt:         productDB.CreatedAt.Time,
+	// 		UpdatedAt:         productDB.UpdatedAt.Time,
+	// 	})
+	// }
 
-	return products, nil
+	// return products, nil
+	panic(fmt.Errorf("not implemented: Product - product"))
 }
 
 // Product is the resolver for the product field.

@@ -42,15 +42,16 @@ type Repository interface {
 	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
+	GetShop(ctx context.Context, shopID int64) (Shop, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
 	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
 	// CATEGORY
-	CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error)
-	GetShopCategory(ctx context.Context, categoryID int64) (Category, error)
-	UpdateShopCategory(ctx context.Context, arg UpdateShopCategoryParams) (Category, error)
-	GetShopCategories(ctx context.Context) ([]Category, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
+	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	GetCategories(ctx context.Context, arg GetCategoriesParams) ([]GetCategoriesRow, error)
 	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
 	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
 	// PRODUCT
@@ -116,13 +117,13 @@ func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 	return shop, err
 }
 
-func (r *repoSvc) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
+func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	category := Category{}
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error
-		category, err = q.CreateShopCategory(ctx, arg)
+		category, err = q.CreateCategory(ctx, arg)
 		return err
 	})
 	return category, err

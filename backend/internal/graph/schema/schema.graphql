@@ -24,10 +24,10 @@ type Mutation {
   signInUser(input: SignInInput!): SignInUserPayload!
 }
 type PageInfo {
-  endCursor: String
+  startCursor: ID!
+  endCursor: ID!
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
-  startCursor: String
 }
 interface UserError {
   message: String!
