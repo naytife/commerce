@@ -1,9 +1,9 @@
-name: Deploy Backend
+name: Build and Railway Deploy
 
 on:
   push:
     branches:
-      - main # Or your main branch
+      - stage # Or your main branch
 
 jobs:
   build:

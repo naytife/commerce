@@ -67,3 +67,24 @@ func unmarshalCategoryAttributes(attributesDB []byte) ([]model.AllowedCategoryAt
 
 	return attributes, nil
 }
+
+func unmarshalAllowedProductAttributes(attributesDB []byte) ([]model.AllowedProductAttributes, error) {
+	// Unmarshal JSONB ([]byte) into a Go map
+	var attributesMap map[string]interface{}
+	if err := json.Unmarshal(attributesDB, &attributesMap); err != nil {
+		return nil, err
+	}
+
+	// Create a list to hold the allowed category attributes
+	attributes := make([]model.AllowedProductAttributes, 0, len(attributesMap))
+
+	// Iterate over the map and populate the attribute list
+	for title, dataType := range attributesMap {
+		attributes = append(attributes, model.AllowedProductAttributes{
+			Title:    title,                                             // The map key is the title (string)
+			DataType: model.ProductAttributeDataType(dataType.(string)), // The map value is the data type
+		})
+	}
+
+	return attributes, nil
+}

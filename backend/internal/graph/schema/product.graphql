@@ -1,4 +1,24 @@
 # ======== PRODUCT ========
+extend type Query {
+  products: [Product!]!
+  product(id: ID!): Product
+}
+
+extend type Mutation {
+  createProduct(product: CreateProductInput!): CreateProductPayload
+  # updateProduct(
+  #   productID: ID!
+  #   product: UpdateProductInput!
+  # ): UpdateProductPayload
+  # createProductAttribute(
+  #   productID: ID!
+  #   attribute: CreateProductAttributeInput!
+  # ): CreateProductAttributePayload
+  # deleteProductAttribute(
+  #   productID: ID!
+  #   attribute: String!
+  # ): DeleteCategoryAttributePayload
+}
 enum ProductAttributeDataType {
   STRING
   INTEGER
@@ -17,32 +37,36 @@ type ProductEdge {
   node: Product!
 }
 
+input CreateProductInput {
+  categoryID: ID!
+  title: String!
+  description: String!
+}
+
+union CreateProductPayload = CreateProductSuccess | CategoryNotFoundError
+type CreateProductSuccess {
+  product: Product!
+}
 type Product implements Node {
   id: ID!
-  slug: String!
   title: String!
-  price: Float!
   description: String!
   category: Category!
   defaultVariant: ProductVariant!
   variants: [ProductVariant!]!
   allowedAttributes: [AllowedProductAttributes!]!
-  images: [ProductImage!]!
+  images: [Image!]!
   status: ProductStatus
   updatedAt: DateTime!
   createdAt: DateTime!
 }
 type AllowedProductAttributes {
-  key: String!
+  title: String!
   dataType: ProductAttributeDataType!
-  options: [ProductAttributeValue!]!
 }
 type ProductAttributeValue {
   intValue: Int
   stringValue: String
-}
-type ProductImage {
-  imageUrl: String!
 }
 
 # ======== ProductVariant ========
@@ -54,12 +78,12 @@ enum ProductStockStatus {
 type ProductVariant implements Node {
   id: ID!
   slug: String!
-  title: String
-  price: Float
-  quantity: Int
-  description: String
+  title: String!
+  price: Float!
+  availableQuantity: Int!
+  description: String!
   attributes: [ProductAttribute!]!
-  stockStatus: ProductStockStatus
+  stockStatus: ProductStockStatus!
   updatedAt: DateTime!
   createdAt: DateTime!
 }
