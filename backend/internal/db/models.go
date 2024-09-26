@@ -21,11 +21,23 @@ type Category struct {
 	CategoryAttributes []byte
 }
 
+type Product struct {
+	ProductID         int64
+	Title             string
+	Description       string
+	AllowedAttributes []byte
+	CreatedAt         pgtype.Timestamptz
+	UpdatedAt         pgtype.Timestamptz
+	Status            string
+	CategoryID        int64
+	ShopID            int64
+}
+
 type Shop struct {
 	ShopID         int64
 	OwnerID        uuid.UUID
 	Title          string
-	DefaultDomain  string
+	Domain         string
 	FaviconUrl     pgtype.Text
 	LogoUrl        pgtype.Text
 	Email          string

@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +22,7 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
 	q := New(tx)
 	err = txFn(q)
 	if err != nil {
@@ -36,6 +36,7 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 }
 
 type Repository interface {
+	SetShopIDInSession(ctx context.Context, shopID int64) error
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
 	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
@@ -44,13 +45,17 @@ type Repository interface {
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
+	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
 	// CATEGORY
 	CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error)
 	GetShopCategory(ctx context.Context, categoryID int64) (Category, error)
 	UpdateShopCategory(ctx context.Context, arg UpdateShopCategoryParams) (Category, error)
-	GetShopCategories(ctx context.Context, shopID int64) ([]Category, error)
+	GetShopCategories(ctx context.Context) ([]Category, error)
 	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
 	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
+	// PRODUCT
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	GetProducts(ctx context.Context) ([]Product, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -75,6 +80,16 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
+func (r *repoSvc) SetShopIDInSession(ctx context.Context, shopID int64) error {
+	// Assuming you want to execute a SQL command to set shop_id for the current session
+	query := fmt.Sprintf("SET commerce.current_shop_id = %d", shopID)
+	_, err := r.db.Exec(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to set shop_id in session: %w", err)
+	}
+	return nil
+}
+
 func (r *repoSvc) CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
@@ -96,16 +111,12 @@ func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 	err := r.withTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.UpdateShop(ctx, arg)
-		if err != nil {
-			log.Println(err)
-		}
 		return err
 	})
 	return shop, err
 }
 
 func (r *repoSvc) CreateShopCategory(ctx context.Context, arg CreateShopCategoryParams) (Category, error) {
-
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	category := Category{}

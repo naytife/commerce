@@ -36,16 +36,55 @@ func (q *Queries) CreateCategoryAttribute(ctx context.Context, arg CreateCategor
 	return category_attributes, err
 }
 
+const createProduct = `-- name: CreateProduct :one
+INSERT INTO products ( title, description, category_id, shop_id, allowed_attributes, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING product_id, title, description, allowed_attributes, created_at, updated_at, status, category_id, shop_id
+`
+
+type CreateProductParams struct {
+	Title             string
+	Description       string
+	CategoryID        int64
+	ShopID            int64
+	AllowedAttributes []byte
+	Status            string
+}
+
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, createProduct,
+		arg.Title,
+		arg.Description,
+		arg.CategoryID,
+		arg.ShopID,
+		arg.AllowedAttributes,
+		arg.Status,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.AllowedAttributes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.CategoryID,
+		&i.ShopID,
+	)
+	return i, err
+}
+
 const createShop = `-- name: CreateShop :one
-INSERT INTO shops (owner_id, title, default_domain, favicon_url,logo_url,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
+INSERT INTO shops (owner_id, title, domain, favicon_url,logo_url,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-RETURNING shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
+RETURNING shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type CreateShopParams struct {
 	OwnerID        uuid.UUID
 	Title          string
-	DefaultDomain  string
+	Domain         string
 	FaviconUrl     pgtype.Text
 	LogoUrl        pgtype.Text
 	Email          string
@@ -63,7 +102,7 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	row := q.db.QueryRow(ctx, createShop,
 		arg.OwnerID,
 		arg.Title,
-		arg.DefaultDomain,
+		arg.Domain,
 		arg.FaviconUrl,
 		arg.LogoUrl,
 		arg.Email,
@@ -81,7 +120,7 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.DefaultDomain,
+		&i.Domain,
 		&i.FaviconUrl,
 		&i.LogoUrl,
 		&i.Email,
@@ -157,8 +196,42 @@ func (q *Queries) DeleteCategoryAttribute(ctx context.Context, arg DeleteCategor
 	return category_attributes, err
 }
 
+const getProducts = `-- name: GetProducts :many
+SELECT product_id, title, description, allowed_attributes, created_at, updated_at, status, category_id, shop_id FROM products
+`
+
+func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Title,
+			&i.Description,
+			&i.AllowedAttributes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Status,
+			&i.CategoryID,
+			&i.ShopID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getShop = `-- name: GetShop :one
-SELECT shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE shop_id = $1
 `
 
@@ -169,7 +242,7 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.DefaultDomain,
+		&i.Domain,
 		&i.FaviconUrl,
 		&i.LogoUrl,
 		&i.Email,
@@ -188,18 +261,18 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 }
 
 const getShopByDomain = `-- name: GetShopByDomain :one
-SELECT shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
-WHERE default_domain = $1
+SELECT shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+WHERE domain = $1
 `
 
-func (q *Queries) GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error) {
-	row := q.db.QueryRow(ctx, getShopByDomain, defaultDomain)
+func (q *Queries) GetShopByDomain(ctx context.Context, domain string) (Shop, error) {
+	row := q.db.QueryRow(ctx, getShopByDomain, domain)
 	var i Shop
 	err := row.Scan(
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.DefaultDomain,
+		&i.Domain,
 		&i.FaviconUrl,
 		&i.LogoUrl,
 		&i.Email,
@@ -219,11 +292,10 @@ func (q *Queries) GetShopByDomain(ctx context.Context, defaultDomain string) (Sh
 
 const getShopCategories = `-- name: GetShopCategories :many
 SELECT category_id, slug, title, description, parent_id, created_at, updated_at, shop_id, category_attributes FROM categories
-WHERE shop_id = $1
 `
 
-func (q *Queries) GetShopCategories(ctx context.Context, shopID int64) ([]Category, error) {
-	rows, err := q.db.Query(ctx, getShopCategories, shopID)
+func (q *Queries) GetShopCategories(ctx context.Context) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getShopCategories)
 	if err != nil {
 		return nil, err
 	}
@@ -274,8 +346,20 @@ func (q *Queries) GetShopCategory(ctx context.Context, categoryID int64) (Catego
 	return i, err
 }
 
+const getShopIDByDomain = `-- name: GetShopIDByDomain :one
+SELECT shop_id FROM shops
+WHERE domain = $1
+`
+
+func (q *Queries) GetShopIDByDomain(ctx context.Context, domain string) (int64, error) {
+	row := q.db.QueryRow(ctx, getShopIDByDomain, domain)
+	var shop_id int64
+	err := row.Scan(&shop_id)
+	return shop_id, err
+}
+
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE owner_id = $1
 `
 
@@ -292,7 +376,7 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.ShopID,
 			&i.OwnerID,
 			&i.Title,
-			&i.DefaultDomain,
+			&i.Domain,
 			&i.FaviconUrl,
 			&i.LogoUrl,
 			&i.Email,
@@ -351,8 +435,8 @@ SET
     seo_title = COALESCE($9, seo_title),
     address = COALESCE($10, address),
     email = COALESCE($11, email)
-WHERE default_domain = $12
-RETURNING shop_id, owner_id, title, default_domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
+WHERE domain = $12
+RETURNING shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type UpdateShopParams struct {
@@ -367,7 +451,7 @@ type UpdateShopParams struct {
 	SeoTitle       pgtype.Text
 	Address        pgtype.Text
 	Email          pgtype.Text
-	DefaultDomain  string
+	Domain         string
 }
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
@@ -383,14 +467,14 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		arg.SeoTitle,
 		arg.Address,
 		arg.Email,
-		arg.DefaultDomain,
+		arg.Domain,
 	)
 	var i Shop
 	err := row.Scan(
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.DefaultDomain,
+		&i.Domain,
 		&i.FaviconUrl,
 		&i.LogoUrl,
 		&i.Email,

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kratos
+  namespace: ory
+spec:
+  selector:
+    app: kratos
+  ports:
+    - protocol: TCP
+      port: 4433 # Public API
+      targetPort: 4433
+    - protocol: TCP
+      port: 4434 # Admin API
+      targetPort: 4434

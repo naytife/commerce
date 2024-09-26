@@ -3,36 +3,62 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/petrejonn/naytife/config"
-	auth "github.com/petrejonn/naytife/internal"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph"
+	"github.com/petrejonn/naytife/internal/middleware"
 )
 
 func main() {
+	// Load environment configuration
 	env, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
+	// Initialize database connection
 	dbase, err := db.InitDB(env.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer dbase.Close()
-	// initialize the repository
+
+	// Initialize repository
 	repo := db.NewRepository(dbase)
-	// configure the server
-	mux := http.NewServeMux()
-	mux.Handle("/", graph.NewPlaygroundHandler("/query"))
-	mux.Handle("/query", auth.JWTMiddleware()(graph.NewHandler(repo)))
 
-	// run the server
-	address := "0.0.0.0:" + env.PORT
-	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://%s\n", address)
-	fmt.Fprintln(os.Stderr, http.ListenAndServe(address, mux))
+	// Set up Fiber app
+	app := fiber.New()
 
+	// Add some middlewares (CORS, logger)
+	app.Use(cors.New())
+	app.Use(logger.New())
+
+	// JWT and ShopID middlewares
+	api := app.Group("/api", middleware.ShopIDMiddlewareFiber(repo))
+
+	// GraphQL handlers (using the same resolver logic)
+	api.All("/query", graph.NewHandler(repo))
+
+	// Playground for testing
+	app.Get("/", graph.NewPlaygroundHandler("/api/query"))
+
+	// REST endpoint: Add a store
+	api.Post("/store", func(c *fiber.Ctx) error {
+		// Your logic to add a store
+		return c.JSON(fiber.Map{
+			"message": "Store added successfully",
+		})
+	})
+
+	// Start the server
+	address := ":" + env.PORT
+	fmt.Fprintf(os.Stdout, "🚀 Server ready at port %s\n", address)
+	if err := app.Listen(address); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 }
