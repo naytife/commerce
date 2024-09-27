@@ -315,7 +315,6 @@ type Shop struct {
 	SeoTitle             *string             `json:"seoTitle,omitempty"`
 	UpdatedAt            time.Time           `json:"updatedAt"`
 	CreatedAt            time.Time           `json:"createdAt"`
-	Owner                *User               `json:"owner"`
 }
 
 func (Shop) IsNode()            {}

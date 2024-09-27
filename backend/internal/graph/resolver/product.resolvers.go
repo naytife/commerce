@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
 )
 
@@ -54,6 +55,11 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 	}}, nil
 }
 
+// ID is the resolver for the id field.
+func (r *productResolver) ID(ctx context.Context, obj *model.Product) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context, first *int, after *string) (*model.ProductConnection, error) {
 	// productsDB, err := r.Repository.GetProducts(ctx)
@@ -63,18 +69,15 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 	// }
 	// products := make([]model.Product, 0, len(productsDB))
 	// for _, productDB := range productsDB {
-	// 	attributes, err := unmarshalAllowedProductAttributes(productDB.AllowedAttributes)
 	// 	if err != nil {
 	// 		return nil, errors.New("could not understand category")
 	// 	}
 	// 	products = append(products, model.Product{
-	// 		ID:                strconv.FormatInt(productDB.ProductID, 10),
-	// 		Title:             productDB.Title,
-	// 		Description:       productDB.Description,
-	// 		AllowedAttributes: attributes,
-	// 		Status:            (*model.ProductStatus)(&productDB.Status),
-	// 		CreatedAt:         productDB.CreatedAt.Time,
-	// 		UpdatedAt:         productDB.UpdatedAt.Time,
+	// 		Title:       productDB.Title,
+	// 		Description: productDB.Description,
+	// 		Status:      (*model.ProductStatus)(&productDB.Status),
+	// 		CreatedAt:   productDB.CreatedAt.Time,
+	// 		UpdatedAt:   productDB.UpdatedAt.Time,
 	// 	})
 	// }
 
@@ -86,3 +89,8 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
 	panic(fmt.Errorf("not implemented: Product - product"))
 }
+
+// Product returns generated.ProductResolver implementation.
+func (r *Resolver) Product() generated.ProductResolver { return &productResolver{r} }
+
+type productResolver struct{ *Resolver }

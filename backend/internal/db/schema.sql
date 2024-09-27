@@ -20,7 +20,7 @@ CREATE TABLE shops (
     status VARCHAR(10) NOT NULL,
     about TEXT,
     address TEXT,
-    phone_number VARCHAR(15),
+    phone_number VARCHAR(16),
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
@@ -31,7 +31,7 @@ CREATE TABLE shops (
 
 CREATE TABLE whatsapps (
     whatsapp_id BIGSERIAL PRIMARY KEY,
-    phone_number VARCHAR(15) NOT NULL,
+    phone_number VARCHAR(16) NOT NULL,
     country_code VARCHAR(5) NOT NULL,
     url TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,

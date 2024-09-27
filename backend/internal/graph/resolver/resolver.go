@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -87,4 +88,9 @@ func unmarshalAllowedProductAttributes(attributesDB []byte) ([]model.AllowedProd
 	}
 
 	return attributes, nil
+}
+
+func IsValidE164(phoneNumber string) bool {
+	e164Regex := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
+	return e164Regex.MatchString(phoneNumber)
 }
