@@ -48,13 +48,12 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 
 // UpdateShop is the resolver for the updateShop field.
 func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShopInput) (model.UpdateShopPayload, error) {
-	// TODO: Check if user has update permission
-	host, ok := ctx.Value("shopHost").(string)
-	if !ok {
-		return nil, errors.New("host not found")
+	shopID := ctx.Value("shop_id").(int64)
+	if shop.ContactPhone != nil && !IsValidE164(shop.ContactPhone.E164) {
+		return nil, fmt.Errorf("invalid E164 phone number")
 	}
 	params := db.UpdateShopParams{
-		Domain:         host,
+		ShopID:         shopID,
 		Title:          pgTextFromStringPointer(shop.Title),        // Pass the pointer, no need to dereference here
 		CurrencyCode:   pgTextFromStringPointer(shop.CurrencyCode), // Pass the pointer
 		About:          pgTextFromStringPointer(shop.About),
@@ -62,6 +61,7 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		SeoDescription: pgTextFromStringPointer(shop.SeoDescription),
 		Email:          pgTextFromStringPointer(shop.ContactEmail),
 		PhoneNumber:    pgTextFromStringPointer(&shop.ContactPhone.E164),
+		Address:        pgTextFromStringPointer(&shop.Address.Address),
 	}
 
 	dbShop, err := r.Repository.UpdateShop(ctx, params)
@@ -80,6 +80,9 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		ContactEmail:   &dbShop.Email,
 		ContactPhone: &model.PhoneNumber{
 			E164: dbShop.PhoneNumber.String,
+		},
+		Address: &model.ShopAddress{
+			Address: dbShop.Address.String,
 		},
 	}}, nil
 }
@@ -111,31 +114,25 @@ func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
 		SeoTitle:       &shop.SeoTitle.String,
 		UpdatedAt:      shop.UpdatedAt.Time,
 		CreatedAt:      shop.CreatedAt.Time,
+		ContactEmail:   &shop.Email,
+		ContactPhone: &model.PhoneNumber{
+			E164: shop.PhoneNumber.String,
+		},
+		Address: &model.ShopAddress{
+			Address: shop.Address.String,
+		},
 	}, nil
-}
-
-// MyShops is the resolver for the myShops field.
-func (r *queryResolver) MyShops(ctx context.Context) ([]model.Shop, error) {
-	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
-	owner, err := r.Repository.GetUser(ctx, pgtype.Text{String: fakeAuthSub, Valid: true})
-	if err != nil {
-		return nil, err
-	}
-	shops, err := r.Repository.GetShopsByOwner(ctx, owner.UserID)
-	if err != nil {
-		return nil, err
-	}
-	shopList := make([]model.Shop, len(shops))
-	for i, shop := range shops {
-		shopList[i] = model.Shop{Title: shop.Title, Status: model.ShopStatus(shop.Status), DefaultDomain: shop.Domain, CurrencyCode: shop.CurrencyCode, About: &shop.About.String}
-	}
-	return shopList, nil
 }
 
 // ID is the resolver for the id field.
 func (r *shopResolver) ID(ctx context.Context, obj *model.Shop) (string, error) {
 	// Return the base64-encoded ID
 	return EncodeRelayID("Category", obj.ID), nil
+}
+
+// Products is the resolver for the products field.
+func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int, after *string) (*model.ProductConnection, error) {
+	panic(fmt.Errorf("not implemented: Products - products"))
 }
 
 // Categories is the resolver for the categories field.
@@ -170,6 +167,7 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 	for i, cat := range categoriesDB {
 		relayID := EncodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
 		edges[i] = model.CategoryEdge{Cursor: relayID, Node: &model.Category{
+			ID:          relayID,
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description.String,

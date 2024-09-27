@@ -94,9 +94,17 @@ models:
     fields:
       id:
         resolver: true
+      categories:
+        resolver: true
+  Product:
+    fields:
+      id:
+        resolver: true
   Shop:
     fields:
       id:
         resolver: true
       categories:
+        resolver: true
+      products:
         resolver: true

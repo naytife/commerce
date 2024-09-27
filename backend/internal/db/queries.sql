@@ -36,7 +36,7 @@ SET
     seo_title = COALESCE(sqlc.narg('seo_title'), seo_title),
     address = COALESCE(sqlc.narg('address'), address),
     email = COALESCE(sqlc.narg('email'), email)
-WHERE domain = sqlc.arg('domain')
+WHERE shop_id = sqlc.arg('shop_id')
 RETURNING *;
 
 -- name: GetShopByDomain :one

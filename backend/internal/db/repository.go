@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/sirupsen/logrus"
 )
 
 type repoSvc struct {
@@ -67,17 +69,47 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
+	// Initialize a new logger (using Logrus)
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel) // Set log level to Debug for detailed SQL logging
+
+	// Wrap the Logrus logger in a TraceLog object
+	traceLogger := &tracelog.TraceLog{
+		Logger: tracelog.LoggerFunc(func(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]interface{}) {
+			switch level {
+			case tracelog.LogLevelError:
+				logger.WithFields(logrus.Fields(data)).Error(msg)
+			case tracelog.LogLevelWarn:
+				logger.WithFields(logrus.Fields(data)).Warn(msg)
+			case tracelog.LogLevelInfo:
+				logger.WithFields(logrus.Fields(data)).Info(msg)
+			case tracelog.LogLevelDebug:
+				logger.WithFields(logrus.Fields(data)).Debug(msg)
+			}
+		}),
+		LogLevel: tracelog.LogLevelDebug, // Set log level to Debug
+	}
+
+	// Parse the pool config from the data source name
 	config, err := pgxpool.ParseConfig(dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Attach the tracer to the config
+	config.ConnConfig.Tracer = traceLogger
+
+	// Set pool settings
 	config.MaxConns = 50
 	config.MinConns = 5
 	config.MaxConnIdleTime = 5 * time.Minute
+
+	// Create the connection pool
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return nil, err
 	}
-	pool, err := pgxpool.New(context.Background(), config.ConnString())
-	if err != nil {
-		return nil, err
-	}
+
 	return pool, nil
 }
 

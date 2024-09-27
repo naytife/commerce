@@ -1,7 +1,5 @@
-# ======== SHOP ========
 extend type Query {
   shop: Shop!
-  myShops: [Shop!]!
 }
 extend type Mutation {
   createShop(shop: CreateShopInput!): CreateShopPayload
@@ -63,7 +61,7 @@ input UpdateShopInput {
   seoKeywords: [String!]
   seoTitle: String
 }
-union UpdateShopPayload = UpdateShopSuccess | ShopNotFoundError
+union UpdateShopPayload = UpdateShopSuccess
 type UpdateShopSuccess {
   shop: Shop
 }
@@ -108,7 +106,6 @@ type Shop implements Node {
   seoTitle: String
   updatedAt: DateTime!
   createdAt: DateTime!
-  owner: User!
 }
 type ShopImages {
   siteLogo: Image

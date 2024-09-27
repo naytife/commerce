@@ -505,7 +505,7 @@ SET
     seo_title = COALESCE($9, seo_title),
     address = COALESCE($10, address),
     email = COALESCE($11, email)
-WHERE domain = $12
+WHERE shop_id = $12
 RETURNING shop_id, owner_id, title, domain, favicon_url, logo_url, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
@@ -521,7 +521,7 @@ type UpdateShopParams struct {
 	SeoTitle       pgtype.Text
 	Address        pgtype.Text
 	Email          pgtype.Text
-	Domain         string
+	ShopID         int64
 }
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
@@ -537,7 +537,7 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		arg.SeoTitle,
 		arg.Address,
 		arg.Email,
-		arg.Domain,
+		arg.ShopID,
 	)
 	var i Shop
 	err := row.Scan(
