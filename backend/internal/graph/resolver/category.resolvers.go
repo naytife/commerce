@@ -54,7 +54,7 @@ func (r *categoryResolver) Children(ctx context.Context, obj *model.Category) ([
 func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error) {
 	catID, err := strconv.Atoi(obj.ID)
 	if err != nil {
-		return nil, errors.New("invalid category id")
+		return nil, fmt.Errorf("invalid category id %v", obj.ID)
 	}
 	limit := 20
 	if first != nil {
@@ -107,14 +107,27 @@ func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, fi
 	}
 
 	return &model.ProductConnection{
-		Edges:    edges,
-		PageInfo: pageInfo,
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: len(productsDB),
 	}, nil
 }
 
 // AllowedAttributes is the resolver for the allowedAttributes field.
 func (r *categoryResolver) AllowedAttributes(ctx context.Context, obj *model.Category) ([]model.AllowedCategoryAttributes, error) {
-	panic(fmt.Errorf("not implemented: AllowedAttributes - allowedAttributes"))
+	catID, err := strconv.Atoi(obj.ID)
+	if err != nil {
+		return nil, errors.New("invalid category id")
+	}
+	attributesDB, err := r.Repository.GetCategoryAttributes(ctx, int64(catID))
+	if err != nil {
+		return nil, errors.New("could not fetch category attribute")
+	}
+	attributes, err := unmarshalCategoryAttributes(attributesDB)
+	if err != nil {
+		return nil, errors.New("failed to get attributes")
+	}
+	return attributes, nil
 }
 
 // Images is the resolver for the images field.
@@ -313,8 +326,9 @@ func (r *queryResolver) Categories(ctx context.Context, first *int, after *strin
 
 	// Return the CategoryConnection result
 	return &model.CategoryConnection{
-		Edges:    edges,
-		PageInfo: pageInfo,
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: len(categoriesDB),
 	}, nil
 }
 
@@ -329,18 +343,13 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 	if err != nil {
 		return nil, errors.New("could not find category")
 	}
-	attributes, err := unmarshalCategoryAttributes(cat.CategoryAttributes)
-	if err != nil {
-		return nil, errors.New("could not understand category")
-	}
 	return &model.Category{
-		ID:                strconv.FormatInt(cat.CategoryID, 10),
-		Slug:              cat.Slug,
-		Title:             cat.Title,
-		Description:       cat.Description.String,
-		AllowedAttributes: attributes,
-		CreatedAt:         cat.CreatedAt.Time,
-		UpdatedAt:         cat.UpdatedAt.Time,
+		ID:          strconv.FormatInt(cat.CategoryID, 10),
+		Slug:        cat.Slug,
+		Title:       cat.Title,
+		Description: cat.Description.String,
+		CreatedAt:   cat.CreatedAt.Time,
+		UpdatedAt:   cat.UpdatedAt.Time,
 	}, nil
 }
 

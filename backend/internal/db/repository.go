@@ -62,11 +62,13 @@ type Repository interface {
 	GetCategories(ctx context.Context, arg GetCategoriesParams) ([]GetCategoriesRow, error)
 	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
 	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
+	GetCategoryAttributes(ctx context.Context, categoryID int64) ([]byte, error)
 	// PRODUCT
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
+	GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
