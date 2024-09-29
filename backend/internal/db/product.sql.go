@@ -86,6 +86,19 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 	return i, err
 }
 
+const getProductAllowedAttributes = `-- name: GetProductAllowedAttributes :one
+SELECT allowed_attributes
+FROM products
+WHERE product_id = $1
+`
+
+func (q *Queries) GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getProductAllowedAttributes, productID)
+	var allowed_attributes []byte
+	err := row.Scan(&allowed_attributes)
+	return allowed_attributes, err
+}
+
 const getProducts = `-- name: GetProducts :many
 SELECT product_id, title, description, created_at, updated_at, status, category_id
 FROM products

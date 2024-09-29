@@ -43,3 +43,8 @@ UPDATE categories
 SET category_attributes = category_attributes - sqlc.arg('attribute')::text
 WHERE category_id = sqlc.arg('category_id')
 RETURNING category_attributes;
+
+-- name: GetCategoryAttributes :one
+SELECT category_attributes
+FROM categories
+WHERE category_id = sqlc.arg('category_id');

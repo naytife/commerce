@@ -200,7 +200,7 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	for i, prod := range productsDB {
 		relayID := EncodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
 		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
-			ID:          relayID,
+			ID:          strconv.FormatInt(prod.ProductID, 10),
 			Title:       prod.Title,
 			Description: prod.Description,
 			CreatedAt:   prod.CreatedAt.Time,
@@ -222,8 +222,9 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	}
 
 	return &model.ProductConnection{
-		Edges:    edges,
-		PageInfo: pageInfo,
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: len(productsDB),
 	}, nil
 }
 
@@ -259,7 +260,7 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 	for i, cat := range categoriesDB {
 		relayID := EncodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
 		edges[i] = model.CategoryEdge{Cursor: relayID, Node: &model.Category{
-			ID:          relayID,
+			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description.String,
@@ -282,8 +283,9 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 
 	// Return the CategoryConnection result
 	return &model.CategoryConnection{
-		Edges:    edges,
-		PageInfo: pageInfo,
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: len(categoriesDB),
 	}, nil
 }
 

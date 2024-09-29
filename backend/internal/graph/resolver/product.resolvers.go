@@ -87,7 +87,19 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 
 // AllowedAttributes is the resolver for the allowedAttributes field.
 func (r *productResolver) AllowedAttributes(ctx context.Context, obj *model.Product) ([]model.AllowedProductAttributes, error) {
-	panic(fmt.Errorf("not implemented: AllowedAttributes - allowedAttributes"))
+	objID, err := strconv.Atoi(obj.ID)
+	if err != nil {
+		return nil, errors.New("invalid product id")
+	}
+	attributesDB, err := r.Repository.GetProductAllowedAttributes(ctx, int64(objID))
+	if err != nil {
+		return nil, errors.New("could not fetch product attribute")
+	}
+	attributes, err := unmarshalAllowedProductAttributes(attributesDB)
+	if err != nil {
+		return nil, errors.New("failed to get attributes")
+	}
+	return attributes, nil
 }
 
 // Images is the resolver for the images field.
@@ -97,32 +109,83 @@ func (r *productResolver) Images(ctx context.Context, obj *model.Product) ([]mod
 
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context, first *int, after *string) (*model.ProductConnection, error) {
-	// productsDB, err := r.Repository.GetProducts(ctx)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return nil, errors.New("server error")
-	// }
-	// products := make([]model.Product, 0, len(productsDB))
-	// for _, productDB := range productsDB {
-	// 	if err != nil {
-	// 		return nil, errors.New("could not understand category")
-	// 	}
-	// 	products = append(products, model.Product{
-	// 		Title:       productDB.Title,
-	// 		Description: productDB.Description,
-	// 		Status:      (*model.ProductStatus)(&productDB.Status),
-	// 		CreatedAt:   productDB.CreatedAt.Time,
-	// 		UpdatedAt:   productDB.UpdatedAt.Time,
-	// 	})
-	// }
+	shopID := ctx.Value("shop_id").(int64)
+	limit := 20
+	if first != nil {
+		limit = *first
+	}
+	afterID := int64(0)
+	if after != nil {
+		decodedType, id, err := DecodeRelayID(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid after cursor: %w", err)
+		}
+		if decodedType != "Product" {
+			return nil, fmt.Errorf("expected after cursor type 'Product', got '%s'", decodedType)
+		}
+		if id != nil {
+			afterID = *id
+		}
+	}
+	objsDB, err := r.Repository.GetProducts(ctx, db.GetProductsParams{ShopID: shopID, After: afterID, Limit: int32(limit) + 1})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch products: %w", err)
+	}
+	hasNextPage := len(objsDB) > limit
+	if hasNextPage {
+		objsDB = objsDB[:limit]
+	}
+	edges := make([]model.ProductEdge, len(objsDB))
+	for i, prod := range objsDB {
+		relayID := EncodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
+		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
+			ID:          strconv.FormatInt(prod.ProductID, 10),
+			Title:       prod.Title,
+			Description: prod.Description,
+			CreatedAt:   prod.CreatedAt.Time,
+			UpdatedAt:   prod.UpdatedAt.Time,
+			Status:      (*model.ProductStatus)(&prod.Status),
+		}}
+	}
+	var startCursor, endCursor *string
+	if len(objsDB) > 0 {
+		firstCursor := EncodeRelayID("Product", strconv.FormatInt(objsDB[0].ProductID, 10))
+		lastCursor := EncodeRelayID("Product", strconv.FormatInt(objsDB[len(objsDB)-1].ProductID, 10))
+		startCursor, endCursor = &firstCursor, &lastCursor
+	}
 
-	// return products, nil
-	panic(fmt.Errorf("not implemented: Product - product"))
+	pageInfo := &model.PageInfo{
+		HasNextPage: hasNextPage,
+		StartCursor: safeStringDereference(startCursor),
+		EndCursor:   safeStringDereference(endCursor),
+	}
+
+	return &model.ProductConnection{
+		Edges:      edges,
+		PageInfo:   pageInfo,
+		TotalCount: len(objsDB),
+	}, nil
 }
 
 // Product is the resolver for the product field.
 func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: Product - product"))
+	shopID := ctx.Value("shop_id").(int64)
+	_, objID, err := DecodeRelayID(id)
+	if err != nil {
+		return nil, errors.New("invalid category ID")
+	}
+	objDB, err := r.Repository.GetProduct(ctx, db.GetProductParams{ShopID: shopID, ProductID: *objID})
+	if err != nil {
+		return nil, errors.New("could not find category")
+	}
+	return &model.Product{
+		ID:          strconv.FormatInt(objDB.ProductID, 10),
+		Title:       objDB.Title,
+		Description: objDB.Description,
+		Status:      (*model.ProductStatus)(&objDB.Status),
+		CreatedAt:   objDB.CreatedAt.Time,
+		UpdatedAt:   objDB.UpdatedAt.Time,
+	}, nil
 }
 
 // Product returns generated.ProductResolver implementation.

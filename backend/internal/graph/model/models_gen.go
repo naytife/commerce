@@ -109,8 +109,9 @@ func (Category) IsNode()            {}
 func (this Category) GetID() string { return this.ID }
 
 type CategoryConnection struct {
-	Edges    []CategoryEdge `json:"edges"`
-	PageInfo *PageInfo      `json:"pageInfo"`
+	Edges      []CategoryEdge `json:"edges"`
+	PageInfo   *PageInfo      `json:"pageInfo"`
+	TotalCount int            `json:"totalCount"`
 }
 
 type CategoryEdge struct {

@@ -23,6 +23,7 @@ extend type Mutation {
 type CategoryConnection {
   edges: [CategoryEdge!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 type CategoryEdge {
   cursor: String!

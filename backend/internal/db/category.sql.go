@@ -180,6 +180,19 @@ func (q *Queries) GetCategory(ctx context.Context, arg GetCategoryParams) (GetCa
 	return i, err
 }
 
+const getCategoryAttributes = `-- name: GetCategoryAttributes :one
+SELECT category_attributes
+FROM categories
+WHERE category_id = $1
+`
+
+func (q *Queries) GetCategoryAttributes(ctx context.Context, categoryID int64) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getCategoryAttributes, categoryID)
+	var category_attributes []byte
+	err := row.Scan(&category_attributes)
+	return category_attributes, err
+}
+
 const getCategoryChildren = `-- name: GetCategoryChildren :many
 SELECT category_id, slug, title, description, created_at, updated_at
 FROM categories
