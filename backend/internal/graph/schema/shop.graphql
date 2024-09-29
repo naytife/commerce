@@ -4,8 +4,13 @@ extend type Query {
 extend type Mutation {
   createShop(shop: CreateShopInput!): CreateShopPayload
   updateShop(shop: UpdateShopInput!): UpdateShopPayload
-  createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
-  updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
+  updateShopImages(input: UpdateShopImagesInput!): UpdateShopImagesPayload
+  updateShopWhatsApp(
+    input: UpdateShopWhatsAppInput!
+  ): UpdateShopWhatsAppPayload!
+  updateShopFacebook(
+    input: UpdateShopFacebookInput!
+  ): UpdateShopFacebookPayload!
 }
 enum ShopStatus {
   DRAFT
@@ -31,16 +36,16 @@ interface SocialMediaContact {
   url: String
 }
 type WhatsApp implements SocialMediaContact {
-  url: String!
-  phoneNumber: PhoneNumber!
+  url: String
+  phoneNumber: PhoneNumber
 }
 type Facebook implements SocialMediaContact {
-  url: String!
-  handle: String!
+  url: String
+  handle: String
 }
 type Instagram implements SocialMediaContact {
-  url: String!
-  handle: String!
+  url: String
+  handle: String
 }
 input CreateShopInput {
   title: String!
@@ -65,21 +70,21 @@ union UpdateShopPayload = UpdateShopSuccess
 type UpdateShopSuccess {
   shop: Shop
 }
-union CreateWhatsAppPayload = CreateWhatsAppSuccess | ShopNotFoundError
-type CreateWhatsAppSuccess {
-  whatsApp: WhatsApp
-}
-input CreateWhatsAppInput {
-  url: String!
-  phoneNumber: PhoneNumberInput!
-}
-union UpdateWhatsAppPayload = UpdateWhatsAppSuccess | ShopNotFoundError
-type UpdateWhatsAppSuccess {
+union UpdateShopWhatsAppPayload = UpdateShopWhatsAppSuccess
+type UpdateShopWhatsAppSuccess {
   whatsApp: WhatsApp!
 }
-input UpdateWhatsAppInput {
+input UpdateShopWhatsAppInput {
   url: String
   phoneNumber: PhoneNumberInput
+}
+union UpdateShopFacebookPayload = UpdateShopFacebookSuccess
+type UpdateShopFacebookSuccess {
+  facebook: Facebook!
+}
+input UpdateShopFacebookInput {
+  url: String
+  handle: String
 }
 input PhoneNumberInput {
   e164: String!
@@ -90,12 +95,12 @@ type Shop implements Node {
   defaultDomain: String!
   contactPhone: PhoneNumber
   contactEmail: String
-  address: ShopAddress
+  address: ShopAddress!
   products(first: Int = 20, after: ID): ProductConnection
   categories(first: Int = 20, after: ID): CategoryConnection
-  whatsApp: WhatsApp
-  facebook: Facebook
-  images: ShopImages
+  whatsApp: WhatsApp!
+  facebook: Facebook!
+  images: ShopImages!
   currencyCode: String!
   status: ShopStatus!
   about: String
@@ -112,4 +117,16 @@ type ShopImages {
   favicon: Image
   banner: Image
   coverImage: Image
+}
+
+input UpdateShopImagesInput {
+  siteLogo: ImageInput
+  favicon: ImageInput
+  banner: ImageInput
+  coverImage: ImageInput
+}
+
+union UpdateShopImagesPayload = UpdateShopImagesSuccess
+type UpdateShopImagesSuccess {
+  images: ShopImages!
 }

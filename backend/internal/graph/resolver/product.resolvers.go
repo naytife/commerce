@@ -19,7 +19,7 @@ import (
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, product model.CreateProductInput) (model.CreateProductPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	_, catID, err := DecodeRelayID(*&product.CategoryID)
+	_, catID, err := DecodeRelayID(product.CategoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
@@ -55,9 +55,44 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 	}}, nil
 }
 
+// UpdateProduct is the resolver for the updateProduct field.
+func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, product model.UpdateProductInput) (model.UpdateProductPayload, error) {
+	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+}
+
+// CreateProductAttribute is the resolver for the createProductAttribute field.
+func (r *mutationResolver) CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error) {
+	panic(fmt.Errorf("not implemented: CreateProductAttribute - createProductAttribute"))
+}
+
+// DeleteProductAttribute is the resolver for the deleteProductAttribute field.
+func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteCategoryAttributePayload, error) {
+	panic(fmt.Errorf("not implemented: DeleteProductAttribute - deleteProductAttribute"))
+}
+
 // ID is the resolver for the id field.
 func (r *productResolver) ID(ctx context.Context, obj *model.Product) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	return EncodeRelayID("Product", obj.ID), nil
+}
+
+// DefaultVariant is the resolver for the defaultVariant field.
+func (r *productResolver) DefaultVariant(ctx context.Context, obj *model.Product) (*model.ProductVariant, error) {
+	panic(fmt.Errorf("not implemented: DefaultVariant - defaultVariant"))
+}
+
+// Variants is the resolver for the variants field.
+func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]model.ProductVariant, error) {
+	panic(fmt.Errorf("not implemented: Variants - variants"))
+}
+
+// AllowedAttributes is the resolver for the allowedAttributes field.
+func (r *productResolver) AllowedAttributes(ctx context.Context, obj *model.Product) ([]model.AllowedProductAttributes, error) {
+	panic(fmt.Errorf("not implemented: AllowedAttributes - allowedAttributes"))
+}
+
+// Images is the resolver for the images field.
+func (r *productResolver) Images(ctx context.Context, obj *model.Product) ([]model.Image, error) {
+	panic(fmt.Errorf("not implemented: Images - images"))
 }
 
 // Products is the resolver for the products field.

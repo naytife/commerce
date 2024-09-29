@@ -17,6 +17,10 @@ type CreateCategoryPayload interface {
 	IsCreateCategoryPayload()
 }
 
+type CreateProductAttributePayload interface {
+	IsCreateProductAttributePayload()
+}
+
 type CreateProductPayload interface {
 	IsCreateProductPayload()
 }
@@ -25,12 +29,12 @@ type CreateShopPayload interface {
 	IsCreateShopPayload()
 }
 
-type CreateWhatsAppPayload interface {
-	IsCreateWhatsAppPayload()
-}
-
 type DeleteCategoryAttributePayload interface {
 	IsDeleteCategoryAttributePayload()
+}
+
+type DeleteProductAttributePayload interface {
+	IsDeleteProductAttributePayload()
 }
 
 type Node interface {
@@ -51,12 +55,24 @@ type UpdateCategoryPayload interface {
 	IsUpdateCategoryPayload()
 }
 
+type UpdateProductPayload interface {
+	IsUpdateProductPayload()
+}
+
+type UpdateShopFacebookPayload interface {
+	IsUpdateShopFacebookPayload()
+}
+
+type UpdateShopImagesPayload interface {
+	IsUpdateShopImagesPayload()
+}
+
 type UpdateShopPayload interface {
 	IsUpdateShopPayload()
 }
 
-type UpdateWhatsAppPayload interface {
-	IsUpdateWhatsAppPayload()
+type UpdateShopWhatsAppPayload interface {
+	IsUpdateShopWhatsAppPayload()
 }
 
 type UserError interface {
@@ -81,7 +97,6 @@ type Category struct {
 	Slug              string                      `json:"slug"`
 	Title             string                      `json:"title"`
 	Description       string                      `json:"description"`
-	Parent            *Category                   `json:"parent,omitempty"`
 	Children          []Category                  `json:"children,omitempty"`
 	Products          *ProductConnection          `json:"products,omitempty"`
 	AllowedAttributes []AllowedCategoryAttributes `json:"allowedAttributes"`
@@ -158,6 +173,17 @@ type CreateCategorySuccess struct {
 
 func (CreateCategorySuccess) IsCreateCategoryPayload() {}
 
+type CreateProductAttributeInput struct {
+	Title    string                   `json:"title"`
+	DataType ProductAttributeDataType `json:"dataType"`
+}
+
+type CreateProductAttributeSuccess struct {
+	Attributes []AllowedProductAttributes `json:"attributes"`
+}
+
+func (CreateProductAttributeSuccess) IsCreateProductAttributePayload() {}
+
 type CreateProductInput struct {
 	CategoryID  string `json:"categoryID"`
 	Title       string `json:"title"`
@@ -181,43 +207,43 @@ type CreateShopSuccess struct {
 
 func (CreateShopSuccess) IsCreateShopPayload() {}
 
-type CreateWhatsAppInput struct {
-	URL         string            `json:"url"`
-	PhoneNumber *PhoneNumberInput `json:"phoneNumber"`
-}
-
-type CreateWhatsAppSuccess struct {
-	WhatsApp *WhatsApp `json:"whatsApp,omitempty"`
-}
-
-func (CreateWhatsAppSuccess) IsCreateWhatsAppPayload() {}
-
 type DeleteCategoryAttributeSuccess struct {
 	Attributes []AllowedCategoryAttributes `json:"attributes"`
 }
 
 func (DeleteCategoryAttributeSuccess) IsDeleteCategoryAttributePayload() {}
 
+type DeleteProductAttributeSuccess struct {
+	Attributes []AllowedProductAttributes `json:"attributes"`
+}
+
+func (DeleteProductAttributeSuccess) IsDeleteProductAttributePayload() {}
+
 type Facebook struct {
-	URL    string `json:"url"`
-	Handle string `json:"handle"`
+	URL    *string `json:"url,omitempty"`
+	Handle *string `json:"handle,omitempty"`
 }
 
 func (Facebook) IsSocialMediaContact() {}
-func (this Facebook) GetURL() *string  { return &this.URL }
+func (this Facebook) GetURL() *string  { return this.URL }
 
 type Image struct {
 	URL     string  `json:"url"`
 	AltText *string `json:"altText,omitempty"`
 }
 
+type ImageInput struct {
+	URL     string  `json:"url"`
+	AltText *string `json:"altText,omitempty"`
+}
+
 type Instagram struct {
-	URL    string `json:"url"`
-	Handle string `json:"handle"`
+	URL    *string `json:"url,omitempty"`
+	Handle *string `json:"handle,omitempty"`
 }
 
 func (Instagram) IsSocialMediaContact() {}
-func (this Instagram) GetURL() *string  { return &this.URL }
+func (this Instagram) GetURL() *string  { return this.URL }
 
 type Mutation struct {
 }
@@ -241,7 +267,6 @@ type Product struct {
 	ID                string                     `json:"id"`
 	Title             string                     `json:"title"`
 	Description       string                     `json:"description"`
-	Category          *Category                  `json:"category"`
 	DefaultVariant    *ProductVariant            `json:"defaultVariant"`
 	Variants          []ProductVariant           `json:"variants"`
 	AllowedAttributes []AllowedProductAttributes `json:"allowedAttributes"`
@@ -275,6 +300,32 @@ type ProductEdge struct {
 	Node   *Product `json:"node"`
 }
 
+type ProductNotFoundError struct {
+	Message string    `json:"message"`
+	Code    ErrorCode `json:"code"`
+	Path    []string  `json:"path"`
+}
+
+func (ProductNotFoundError) IsUpdateProductPayload() {}
+
+func (ProductNotFoundError) IsUserError()            {}
+func (this ProductNotFoundError) GetMessage() string { return this.Message }
+func (this ProductNotFoundError) GetCode() ErrorCode { return this.Code }
+func (this ProductNotFoundError) GetPath() []string {
+	if this.Path == nil {
+		return nil
+	}
+	interfaceSlice := make([]string, 0, len(this.Path))
+	for _, concrete := range this.Path {
+		interfaceSlice = append(interfaceSlice, concrete)
+	}
+	return interfaceSlice
+}
+
+func (ProductNotFoundError) IsCreateProductAttributePayload() {}
+
+func (ProductNotFoundError) IsDeleteProductAttributePayload() {}
+
 type ProductVariant struct {
 	ID                string             `json:"id"`
 	Slug              string             `json:"slug"`
@@ -300,12 +351,12 @@ type Shop struct {
 	DefaultDomain        string              `json:"defaultDomain"`
 	ContactPhone         *PhoneNumber        `json:"contactPhone,omitempty"`
 	ContactEmail         *string             `json:"contactEmail,omitempty"`
-	Address              *ShopAddress        `json:"address,omitempty"`
+	Address              *ShopAddress        `json:"address"`
 	Products             *ProductConnection  `json:"products,omitempty"`
 	Categories           *CategoryConnection `json:"categories,omitempty"`
-	WhatsApp             *WhatsApp           `json:"whatsApp,omitempty"`
-	Facebook             *Facebook           `json:"facebook,omitempty"`
-	Images               *ShopImages         `json:"images,omitempty"`
+	WhatsApp             *WhatsApp           `json:"whatsApp"`
+	Facebook             *Facebook           `json:"facebook"`
+	Images               *ShopImages         `json:"images"`
 	CurrencyCode         string              `json:"currencyCode"`
 	Status               ShopStatus          `json:"status"`
 	About                *string             `json:"about,omitempty"`
@@ -355,12 +406,6 @@ func (this ShopNotFoundError) GetPath() []string {
 	return interfaceSlice
 }
 
-func (ShopNotFoundError) IsUpdateShopPayload() {}
-
-func (ShopNotFoundError) IsCreateWhatsAppPayload() {}
-
-func (ShopNotFoundError) IsUpdateWhatsAppPayload() {}
-
 type SignInInput struct {
 	Username *string `json:"username,omitempty"`
 }
@@ -383,6 +428,42 @@ type UpdateCategorySuccess struct {
 
 func (UpdateCategorySuccess) IsUpdateCategoryPayload() {}
 
+type UpdateProductInput struct {
+	Title       *string `json:"title,omitempty"`
+	Description *string `json:"description,omitempty"`
+	CategoryID  *string `json:"categoryID,omitempty"`
+}
+
+type UpdateProductSuccess struct {
+	Product *Product `json:"product"`
+}
+
+func (UpdateProductSuccess) IsUpdateProductPayload() {}
+
+type UpdateShopFacebookInput struct {
+	URL    *string `json:"url,omitempty"`
+	Handle *string `json:"handle,omitempty"`
+}
+
+type UpdateShopFacebookSuccess struct {
+	Facebook *Facebook `json:"facebook"`
+}
+
+func (UpdateShopFacebookSuccess) IsUpdateShopFacebookPayload() {}
+
+type UpdateShopImagesInput struct {
+	SiteLogo   *ImageInput `json:"siteLogo,omitempty"`
+	Favicon    *ImageInput `json:"favicon,omitempty"`
+	Banner     *ImageInput `json:"banner,omitempty"`
+	CoverImage *ImageInput `json:"coverImage,omitempty"`
+}
+
+type UpdateShopImagesSuccess struct {
+	Images *ShopImages `json:"images"`
+}
+
+func (UpdateShopImagesSuccess) IsUpdateShopImagesPayload() {}
+
 type UpdateShopInput struct {
 	Title          *string           `json:"title,omitempty"`
 	ContactEmail   *string           `json:"contactEmail,omitempty"`
@@ -401,16 +482,16 @@ type UpdateShopSuccess struct {
 
 func (UpdateShopSuccess) IsUpdateShopPayload() {}
 
-type UpdateWhatsAppInput struct {
+type UpdateShopWhatsAppInput struct {
 	URL         *string           `json:"url,omitempty"`
 	PhoneNumber *PhoneNumberInput `json:"phoneNumber,omitempty"`
 }
 
-type UpdateWhatsAppSuccess struct {
+type UpdateShopWhatsAppSuccess struct {
 	WhatsApp *WhatsApp `json:"whatsApp"`
 }
 
-func (UpdateWhatsAppSuccess) IsUpdateWhatsAppPayload() {}
+func (UpdateShopWhatsAppSuccess) IsUpdateShopWhatsAppPayload() {}
 
 type User struct {
 	ID                string  `json:"id"`
@@ -425,12 +506,12 @@ func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
 
 type WhatsApp struct {
-	URL         string       `json:"url"`
-	PhoneNumber *PhoneNumber `json:"phoneNumber"`
+	URL         *string      `json:"url,omitempty"`
+	PhoneNumber *PhoneNumber `json:"phoneNumber,omitempty"`
 }
 
 func (WhatsApp) IsSocialMediaContact() {}
-func (this WhatsApp) GetURL() *string  { return &this.URL }
+func (this WhatsApp) GetURL() *string  { return this.URL }
 
 type ErrorCode string
 

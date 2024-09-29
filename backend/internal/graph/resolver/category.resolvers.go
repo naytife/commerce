@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -20,6 +22,104 @@ import (
 func (r *categoryResolver) ID(ctx context.Context, obj *model.Category) (string, error) {
 	// Return the base64-encoded ID
 	return EncodeRelayID("Category", obj.ID), nil
+}
+
+// Children is the resolver for the children field.
+func (r *categoryResolver) Children(ctx context.Context, obj *model.Category) ([]model.Category, error) {
+	shopID := ctx.Value("shop_id").(int64)
+	catID, err := strconv.Atoi(obj.ID)
+	if err != nil {
+		return nil, errors.New("invalid category")
+	}
+	categoriesDB, err := r.Repository.GetCategoryChildren(ctx, db.GetCategoryChildrenParams{ShopID: shopID, ParentID: pgtype.Int8{Int64: int64(catID), Valid: true}})
+	if err != nil {
+		return nil, errors.New("could not fetch categories")
+	}
+	categories := make([]model.Category, 0, len(categoriesDB))
+	for _, cat := range categoriesDB {
+		// attributes, err := unmarshalCategoryAttributes(cat.CategoryAttributes)
+		categories = append(categories, model.Category{
+			ID:          strconv.FormatInt(cat.CategoryID, 10),
+			Slug:        cat.Slug,
+			Title:       cat.Title,
+			Description: cat.Description.String,
+			CreatedAt:   cat.CreatedAt.Time,
+			UpdatedAt:   cat.UpdatedAt.Time,
+		})
+	}
+	return categories, nil
+}
+
+// Products is the resolver for the products field.
+func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error) {
+	catID, err := strconv.Atoi(obj.ID)
+	if err != nil {
+		return nil, errors.New("invalid category id")
+	}
+	limit := 20
+	if first != nil {
+		limit = *first
+	}
+	afterID := int64(0)
+	if after != nil {
+		decodedType, id, err := DecodeRelayID(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid after cursor: %w", err)
+		}
+		if decodedType != "Product" {
+			return nil, fmt.Errorf("expected after cursor type 'Product', got '%s'", decodedType)
+		}
+		if id != nil {
+			afterID = *id
+		}
+	}
+	productsDB, err := r.Repository.GetProductsByCategory(ctx, db.GetProductsByCategoryParams{CategoryID: int64(catID), After: afterID, Limit: int32(limit) + 1})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch products: %w", err)
+	}
+	hasNextPage := len(productsDB) > limit
+	if hasNextPage {
+		productsDB = productsDB[:limit]
+	}
+	edges := make([]model.ProductEdge, len(productsDB))
+	for i, prod := range productsDB {
+		relayID := EncodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
+		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
+			ID:          strconv.FormatInt(prod.ProductID, 10),
+			Title:       prod.Title,
+			Description: prod.Description,
+			CreatedAt:   prod.CreatedAt.Time,
+			UpdatedAt:   prod.UpdatedAt.Time,
+			Status:      (*model.ProductStatus)(&prod.Status),
+		}}
+	}
+	var startCursor, endCursor *string
+	if len(productsDB) > 0 {
+		firstCursor := EncodeRelayID("Product", strconv.FormatInt(productsDB[0].ProductID, 10))
+		lastCursor := EncodeRelayID("Product", strconv.FormatInt(productsDB[len(productsDB)-1].ProductID, 10))
+		startCursor, endCursor = &firstCursor, &lastCursor
+	}
+
+	pageInfo := &model.PageInfo{
+		HasNextPage: hasNextPage,
+		StartCursor: safeStringDereference(startCursor),
+		EndCursor:   safeStringDereference(endCursor),
+	}
+
+	return &model.ProductConnection{
+		Edges:    edges,
+		PageInfo: pageInfo,
+	}, nil
+}
+
+// AllowedAttributes is the resolver for the allowedAttributes field.
+func (r *categoryResolver) AllowedAttributes(ctx context.Context, obj *model.Category) ([]model.AllowedCategoryAttributes, error) {
+	panic(fmt.Errorf("not implemented: AllowedAttributes - allowedAttributes"))
+}
+
+// Images is the resolver for the images field.
+func (r *categoryResolver) Images(ctx context.Context, obj *model.Category) (*model.CategoryImages, error) {
+	panic(fmt.Errorf("not implemented: Images - images"))
 }
 
 // CreateCategory is the resolver for the createCategory field.
@@ -50,16 +150,12 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 	}
 	return &model.CreateCategorySuccess{
 		Category: &model.Category{
-			Slug:              cat.Slug,
-			Title:             cat.Title,
-			Description:       cat.Description.String,
-			Parent:            &model.Category{},
-			Children:          []model.Category{},
-			Products:          nil,
-			Images:            nil,
-			AllowedAttributes: nil,
-			CreatedAt:         cat.CreatedAt.Time,
-			UpdatedAt:         cat.UpdatedAt.Time,
+			ID:          strconv.FormatInt(cat.CategoryID, 10),
+			Slug:        cat.Slug,
+			Title:       cat.Title,
+			Description: cat.Description.String,
+			CreatedAt:   cat.CreatedAt.Time,
+			UpdatedAt:   cat.UpdatedAt.Time,
 		}}, nil
 }
 
@@ -87,22 +183,14 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 	if err != nil {
 		return nil, errors.New("could not update category")
 	}
-	attributes, err := unmarshalCategoryAttributes(dbCat.CategoryAttributes)
-	if err != nil {
-		return nil, errors.New("could not unmarshal category attributes")
-	}
 	return &model.UpdateCategorySuccess{
 		Category: &model.Category{
-			Slug:              dbCat.Slug,
-			Title:             dbCat.Title,
-			Description:       dbCat.Description.String,
-			Parent:            &model.Category{},
-			Children:          []model.Category{},
-			Products:          nil,
-			Images:            nil,
-			AllowedAttributes: attributes,
-			CreatedAt:         dbCat.CreatedAt.Time,
-			UpdatedAt:         dbCat.UpdatedAt.Time,
+			ID:          strconv.FormatInt(dbCat.CategoryID, 10),
+			Slug:        dbCat.Slug,
+			Title:       dbCat.Title,
+			Description: dbCat.Description.String,
+			CreatedAt:   dbCat.CreatedAt.Time,
+			UpdatedAt:   dbCat.UpdatedAt.Time,
 		}}, nil
 }
 
@@ -171,24 +259,63 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 }
 
 // Categories is the resolver for the categories field.
-func (r *queryResolver) Categories(ctx context.Context) ([]model.Category, error) {
-	categoriesDB, err := r.Repository.GetCategories(ctx, db.GetCategoriesParams{})
-	if err != nil {
-		return nil, errors.New("could not fetch categories")
+func (r *queryResolver) Categories(ctx context.Context, first *int, after *string) (*model.CategoryConnection, error) {
+	shopID := ctx.Value("shop_id").(int64)
+	limit := 20
+	if first != nil {
+		limit = *first
 	}
-
-	categories := make([]model.Category, 0, len(categoriesDB))
-	for _, cat := range categoriesDB {
-		// attributes, err := unmarshalCategoryAttributes(cat.CategoryAttributes)
-		categories = append(categories, model.Category{
+	afterID := int64(0)
+	if after != nil {
+		decodedType, id, err := DecodeRelayID(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid after cursor: %w", err)
+		}
+		if decodedType != "Category" {
+			return nil, fmt.Errorf("expected after cursor type 'Category', got '%s'", decodedType)
+		}
+		if id != nil {
+			afterID = *id
+		}
+	}
+	categoriesDB, err := r.Repository.GetCategories(ctx, db.GetCategoriesParams{ShopID: shopID, After: afterID, Limit: int32(limit) + 1})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch categories: %w", err)
+	}
+	hasNextPage := len(categoriesDB) > limit
+	if hasNextPage {
+		categoriesDB = categoriesDB[:limit]
+	}
+	edges := make([]model.CategoryEdge, len(categoriesDB))
+	for i, cat := range categoriesDB {
+		relayID := EncodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
+		edges[i] = model.CategoryEdge{Cursor: relayID, Node: &model.Category{
+			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description.String,
 			CreatedAt:   cat.CreatedAt.Time,
 			UpdatedAt:   cat.UpdatedAt.Time,
-		})
+		}}
 	}
-	return categories, nil
+	var startCursor, endCursor *string
+	if len(categoriesDB) > 0 {
+		firstCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[0].CategoryID, 10))
+		lastCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[len(categoriesDB)-1].CategoryID, 10))
+		startCursor, endCursor = &firstCursor, &lastCursor
+	}
+
+	pageInfo := &model.PageInfo{
+		HasNextPage: hasNextPage,
+		StartCursor: safeStringDereference(startCursor),
+		EndCursor:   safeStringDereference(endCursor),
+	}
+
+	// Return the CategoryConnection result
+	return &model.CategoryConnection{
+		Edges:    edges,
+		PageInfo: pageInfo,
+	}, nil
 }
 
 // Category is the resolver for the category field.
@@ -207,6 +334,7 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 		return nil, errors.New("could not understand category")
 	}
 	return &model.Category{
+		ID:                strconv.FormatInt(cat.CategoryID, 10),
 		Slug:              cat.Slug,
 		Title:             cat.Title,
 		Description:       cat.Description.String,
