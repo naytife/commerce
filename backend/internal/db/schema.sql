@@ -13,8 +13,6 @@ CREATE TABLE shops (
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
     domain VARCHAR(50) UNIQUE NOT NULL CHECK (domain LIKE '%.%'),
-    favicon_url TEXT,
-    logo_url TEXT,
     email VARCHAR(50) NOT NULL,
     currency_code VARCHAR(3) NOT NULL,
     status VARCHAR(10) NOT NULL,
@@ -29,13 +27,28 @@ CREATE TABLE shops (
     CONSTRAINT fk_owner FOREIGN KEY (owner_id) REFERENCES users(user_id) 
 );
 
+CREATE TABLE shop_images (
+    shop_image_id BIGSERIAL PRIMARY KEY,
+    favicon_url TEXT,
+    logo_url TEXT,
+    banner_url TEXT,
+    cover_image_url TEXT,
+    shop_id BIGINT NOT NULL UNIQUE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
 CREATE TABLE whatsapps (
     whatsapp_id BIGSERIAL PRIMARY KEY,
     phone_number VARCHAR(16) NOT NULL,
-    country_code VARCHAR(5) NOT NULL,
     url TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    shop_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL UNIQUE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+CREATE TABLE facebooks(
+    facebook_id BIGSERIAL PRIMARY KEY,
+    handle VARCHAR(50) NOT NULL,
+    url TEXT NOT NULL,
+    shop_id BIGINT NOT NULL UNIQUE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
@@ -95,3 +108,13 @@ CREATE TABLE products(
 -- CREATE POLICY shop_policy_update ON products
 -- FOR UPDATE
 -- USING (shop_id = current_setting('commerce.current_shop_id')::int);
+
+CREATE TABLE product_images(
+    product_image_id BIGSERIAL PRIMARY KEY,
+    url TEXT NOT NULL,
+    alt VARCHAR(255) NOT NULL,
+    product_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);

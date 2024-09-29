@@ -6,18 +6,18 @@ extend type Query {
 
 extend type Mutation {
   createProduct(product: CreateProductInput!): CreateProductPayload
-  # updateProduct(
-  #   productID: ID!
-  #   product: UpdateProductInput!
-  # ): UpdateProductPayload
-  # createProductAttribute(
-  #   productID: ID!
-  #   attribute: CreateProductAttributeInput!
-  # ): CreateProductAttributePayload
-  # deleteProductAttribute(
-  #   productID: ID!
-  #   attribute: String!
-  # ): DeleteCategoryAttributePayload
+  updateProduct(
+    productID: ID!
+    product: UpdateProductInput!
+  ): UpdateProductPayload
+  createProductAttribute(
+    productID: ID!
+    attribute: CreateProductAttributeInput!
+  ): CreateProductAttributePayload
+  deleteProductAttribute(
+    productID: ID!
+    attribute: String!
+  ): DeleteCategoryAttributePayload
 }
 enum ProductAttributeDataType {
   STRING
@@ -48,11 +48,40 @@ union CreateProductPayload = CreateProductSuccess | CategoryNotFoundError
 type CreateProductSuccess {
   product: Product!
 }
+input UpdateProductInput {
+  title: String
+  description: String
+  categoryID: ID
+}
+union UpdateProductPayload = UpdateProductSuccess | ProductNotFoundError
+type UpdateProductSuccess {
+  product: Product!
+}
+type ProductNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
+input CreateProductAttributeInput {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+union CreateProductAttributePayload =
+    CreateProductAttributeSuccess
+  | ProductNotFoundError
+type CreateProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
+}
+union DeleteProductAttributePayload =
+    DeleteProductAttributeSuccess
+  | ProductNotFoundError
+type DeleteProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
+}
 type Product implements Node {
   id: ID!
   title: String!
   description: String!
-  category: Category!
   defaultVariant: ProductVariant!
   variants: [ProductVariant!]!
   allowedAttributes: [AllowedProductAttributes!]!

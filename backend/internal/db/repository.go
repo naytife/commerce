@@ -49,16 +49,24 @@ type Repository interface {
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
 	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
+	GetShopImages(ctx context.Context, shopID int64) (ShopImage, error)
+	GetShopWhatsApp(ctx context.Context, shopID int64) (Whatsapp, error)
+	GetShopFacebook(ctx context.Context, shopID int64) (Facebook, error)
+	UpsertShopWhatsapp(ctx context.Context, arg UpsertShopWhatsappParams) (Whatsapp, error)
+	UpsertShopFacebook(ctx context.Context, arg UpsertShopFacebookParams) (Facebook, error)
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	GetCategoryChildren(ctx context.Context, arg GetCategoryChildrenParams) ([]GetCategoryChildrenRow, error)
 	GetCategories(ctx context.Context, arg GetCategoriesParams) ([]GetCategoriesRow, error)
 	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
 	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
 	// PRODUCT
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
-	GetProducts(ctx context.Context) ([]Product, error)
+	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
+	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
+	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -100,8 +108,8 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	config.ConnConfig.Tracer = traceLogger
 
 	// Set pool settings
-	config.MaxConns = 50
-	config.MinConns = 5
+	config.MaxConns = 1
+	config.MinConns = 1
 	config.MaxConnIdleTime = 5 * time.Minute
 
 	// Create the connection pool

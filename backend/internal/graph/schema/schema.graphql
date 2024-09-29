@@ -16,6 +16,10 @@ type Image {
   url: String!
   altText: String
 }
+input ImageInput {
+  url: String!
+  altText: String
+}
 
 type Query {
   node(id: ID!): Node

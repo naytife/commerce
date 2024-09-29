@@ -21,6 +21,13 @@ type Category struct {
 	CategoryAttributes []byte
 }
 
+type Facebook struct {
+	FacebookID int64
+	Handle     string
+	Url        string
+	ShopID     int64
+}
+
 type Product struct {
 	ProductID         int64
 	Title             string
@@ -33,13 +40,19 @@ type Product struct {
 	ShopID            int64
 }
 
+type ProductImage struct {
+	ProductImageID int64
+	Url            string
+	Alt            string
+	ProductID      int64
+	ShopID         int64
+}
+
 type Shop struct {
 	ShopID         int64
 	OwnerID        uuid.UUID
 	Title          string
 	Domain         string
-	FaviconUrl     pgtype.Text
-	LogoUrl        pgtype.Text
 	Email          string
 	CurrencyCode   string
 	Status         string
@@ -51,6 +64,15 @@ type Shop struct {
 	SeoTitle       pgtype.Text
 	UpdatedAt      pgtype.Timestamptz
 	CreatedAt      pgtype.Timestamptz
+}
+
+type ShopImage struct {
+	ShopImageID   int64
+	FaviconUrl    pgtype.Text
+	LogoUrl       pgtype.Text
+	BannerUrl     pgtype.Text
+	CoverImageUrl pgtype.Text
+	ShopID        int64
 }
 
 type User struct {
@@ -66,8 +88,6 @@ type User struct {
 type Whatsapp struct {
 	WhatsappID  int64
 	PhoneNumber string
-	CountryCode string
 	Url         string
-	CreatedAt   pgtype.Timestamptz
 	ShopID      int64
 }

@@ -1,6 +1,6 @@
 # ========= CATEGORY ========
 extend type Query {
-  categories: [Category!]!
+  categories(first: Int = 20, after: ID): CategoryConnection
   category(id: ID!): Category
 }
 
@@ -73,9 +73,8 @@ type Category implements Node {
   slug: String!
   title: String!
   description: String!
-  parent: Category
   children: [Category!]
-  products: ProductConnection
+  products(first: Int = 20, after: ID): ProductConnection
   allowedAttributes: [AllowedCategoryAttributes!]!
   images: CategoryImages
   updatedAt: DateTime!
