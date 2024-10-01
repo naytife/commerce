@@ -67,19 +67,6 @@ CREATE TABLE categories (
     CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES categories(category_id),
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
--- ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
-
--- CREATE POLICY shop_policy ON categories
--- FOR SELECT
--- USING (shop_id = current_setting('commerce.current_shop_id')::int);
-
--- CREATE POLICY shop_policy_insert ON categories
--- FOR INSERT
--- WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
-
--- CREATE POLICY shop_policy_update ON categories
--- FOR UPDATE
--- USING (shop_id = current_setting('commerce.current_shop_id')::int);
 
 CREATE TABLE products(
     product_id BIGSERIAL PRIMARY KEY,
@@ -95,19 +82,6 @@ CREATE TABLE products(
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
--- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-
--- CREATE POLICY shop_policy ON products
--- FOR SELECT
--- USING (shop_id = current_setting('commerce.current_shop_id')::int);
-
--- CREATE POLICY shop_policy_insert ON products
--- FOR INSERT
--- WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
-
--- CREATE POLICY shop_policy_update ON products
--- FOR UPDATE
--- USING (shop_id = current_setting('commerce.current_shop_id')::int);
 
 CREATE TABLE product_images(
     product_image_id BIGSERIAL PRIMARY KEY,
@@ -117,4 +91,22 @@ CREATE TABLE product_images(
     shop_id BIGINT NOT NULL,
     CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
+CREATE TABLE product_variations(
+    product_variation_id BIGSERIAL PRIMARY KEY,
+    slug VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    available_quantity BIGINT NOT NULL,
+    attributes JSONB DEFAULT '{}' NOT NULL,
+    seo_description TEXT,
+    seo_keywords TEXT[],
+    seo_title VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    product_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE 
 );
