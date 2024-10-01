@@ -6,7 +6,6 @@ package resolver
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -221,19 +220,9 @@ func (r *mutationResolver) CreateCategoryAttribute(ctx context.Context, category
 	if err != nil {
 		return nil, errors.New("could not create category attribute")
 	}
-	// Unmarshal JSONB ([]byte) into a Go map
-	var attributesMap map[string]interface{}
-	if err := json.Unmarshal(attributesDB, &attributesMap); err != nil {
-		return nil, errors.New("could not create category attribute")
-	}
-	attributes := make([]model.AllowedCategoryAttributes, 0, len(attributesMap))
-
-	// Iterate over the map and populate the attribute list
-	for title, dataType := range attributesMap {
-		attributes = append(attributes, model.AllowedCategoryAttributes{
-			Title:    title,                                             // The map key is the title (string)
-			DataType: model.ProductAttributeDataType(dataType.(string)), // The map value is the data type
-		})
+	attributes, err := unmarshalCategoryAttributes(attributesDB)
+	if err != nil {
+		return nil, errors.New("failed to fetch attributes")
 	}
 	return &model.CreateCategoryAttributeSuccess{
 		Attributes: attributes,
@@ -252,19 +241,9 @@ func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, category
 	if err != nil {
 		return nil, errors.New("could not fetch category attribute")
 	}
-	// Unmarshal JSONB ([]byte) into a Go map
-	var attributesMap map[string]interface{}
-	if err := json.Unmarshal(attributesDB, &attributesMap); err != nil {
-		return nil, errors.New("could not fetch category attribute")
-	}
-	attributes := make([]model.AllowedCategoryAttributes, 0, len(attributesMap))
-
-	// Iterate over the map and populate the attribute list
-	for title, dataType := range attributesMap {
-		attributes = append(attributes, model.AllowedCategoryAttributes{
-			Title:    title,                                             // The map key is the title (string)
-			DataType: model.ProductAttributeDataType(dataType.(string)), // The map value is the data type
-		})
+	attributes, err := unmarshalCategoryAttributes(attributesDB)
+	if err != nil {
+		return nil, errors.New("failed to fetch attributes")
 	}
 	return &model.DeleteCategoryAttributeSuccess{
 		Attributes: attributes,

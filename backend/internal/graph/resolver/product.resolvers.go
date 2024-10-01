@@ -40,34 +40,83 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 		log.Println(err)
 		return nil, errors.New("server error")
 	}
-	attributes, err := unmarshalAllowedProductAttributes(dbProduct.AllowedAttributes)
-	if err != nil {
-		return nil, errors.New("could not understand category")
-	}
 	return model.CreateProductSuccess{Product: &model.Product{
-		ID:                strconv.FormatInt(dbProduct.ProductID, 10),
-		Title:             dbProduct.Title,
-		Description:       dbProduct.Description,
-		AllowedAttributes: attributes,
-		Status:            (*model.ProductStatus)(&dbProduct.Status),
-		CreatedAt:         dbProduct.CreatedAt.Time,
-		UpdatedAt:         dbProduct.UpdatedAt.Time,
+		ID:          strconv.FormatInt(dbProduct.ProductID, 10),
+		Title:       dbProduct.Title,
+		Description: dbProduct.Description,
+		Status:      (*model.ProductStatus)(&dbProduct.Status),
+		CreatedAt:   dbProduct.CreatedAt.Time,
+		UpdatedAt:   dbProduct.UpdatedAt.Time,
 	}}, nil
 }
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, product model.UpdateProductInput) (model.UpdateProductPayload, error) {
-	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+	_, objID, err := DecodeRelayID(productID)
+	if err != nil {
+		return nil, errors.New("invalid object ID")
+	}
+	params := db.UpdateProductParams{
+		ProductID:   *objID,
+		Title:       pgTextFromStringPointer(product.Title),
+		Description: pgTextFromStringPointer(product.Description),
+	}
+	objDB, err := r.Repository.UpdateProduct(ctx, params)
+	if err != nil {
+		return nil, errors.New("could not update object")
+	}
+	return &model.UpdateProductSuccess{
+		Product: &model.Product{
+			ID:          strconv.FormatInt(objDB.ProductID, 10),
+			Title:       objDB.Title,
+			Description: objDB.Description,
+			CreatedAt:   objDB.CreatedAt.Time,
+			UpdatedAt:   objDB.UpdatedAt.Time,
+		}}, nil
 }
 
 // CreateProductAttribute is the resolver for the createProductAttribute field.
 func (r *mutationResolver) CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error) {
-	panic(fmt.Errorf("not implemented: CreateProductAttribute - createProductAttribute"))
+	_, objID, err := DecodeRelayID(productID)
+	if err != nil {
+		return nil, errors.New("invalid object ID")
+	}
+	objsDB, err := r.Repository.CreateProductAllowedAttribute(ctx, db.CreateProductAllowedAttributeParams{
+		ProductID: *objID,
+		Title:     attribute.Title,
+		DataType:  attribute.DataType.String(),
+	})
+	if err != nil {
+		return nil, errors.New("could not create object attribute")
+	}
+	objs, err := unmarshalAllowedProductAttributes(objsDB)
+	if err != nil {
+		return nil, errors.New("failed to serialize attributes")
+	}
+	return &model.CreateProductAttributeSuccess{
+		Attributes: objs,
+	}, nil
 }
 
 // DeleteProductAttribute is the resolver for the deleteProductAttribute field.
-func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteCategoryAttributePayload, error) {
-	panic(fmt.Errorf("not implemented: DeleteProductAttribute - deleteProductAttribute"))
+func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteProductAttributePayload, error) {
+	_, objID, err := DecodeRelayID(productID)
+	if err != nil {
+		return nil, errors.New("invalid object ID")
+	}
+	objsDB, err := r.Repository.DeleteProductAllowedAttribute(ctx, db.DeleteProductAllowedAttributeParams{
+		ProductID: *objID, Attribute: attribute,
+	})
+	if err != nil {
+		return nil, errors.New("could not fetch object attribute")
+	}
+	objs, err := unmarshalAllowedProductAttributes(objsDB)
+	if err != nil {
+		return nil, errors.New("failed to fetch attributes")
+	}
+	return &model.DeleteProductAttributeSuccess{
+		Attributes: objs,
+	}, nil
 }
 
 // ID is the resolver for the id field.
@@ -97,7 +146,7 @@ func (r *productResolver) AllowedAttributes(ctx context.Context, obj *model.Prod
 	}
 	attributes, err := unmarshalAllowedProductAttributes(attributesDB)
 	if err != nil {
-		return nil, errors.New("failed to get attributes")
+		return nil, errors.New("failed to serialize attributes")
 	}
 	return attributes, nil
 }

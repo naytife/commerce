@@ -50,6 +50,49 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	return i, err
 }
 
+const createProductAllowedAttribute = `-- name: CreateProductAllowedAttribute :one
+UPDATE products
+SET allowed_attributes = jsonb_set(
+    COALESCE(allowed_attributes, '{}'), 
+    ARRAY[UPPER($1)::text], 
+    to_jsonb($2::text)
+)
+WHERE product_id = $3
+RETURNING allowed_attributes
+`
+
+type CreateProductAllowedAttributeParams struct {
+	Title     interface{}
+	DataType  string
+	ProductID int64
+}
+
+func (q *Queries) CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, createProductAllowedAttribute, arg.Title, arg.DataType, arg.ProductID)
+	var allowed_attributes []byte
+	err := row.Scan(&allowed_attributes)
+	return allowed_attributes, err
+}
+
+const deleteProductAllowedAttribute = `-- name: DeleteProductAllowedAttribute :one
+UPDATE products
+SET allowed_attributes = allowed_attributes - UPPER($1::text)
+WHERE product_id = $2
+RETURNING allowed_attributes
+`
+
+type DeleteProductAllowedAttributeParams struct {
+	Attribute string
+	ProductID int64
+}
+
+func (q *Queries) DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, deleteProductAllowedAttribute, arg.Attribute, arg.ProductID)
+	var allowed_attributes []byte
+	err := row.Scan(&allowed_attributes)
+	return allowed_attributes, err
+}
+
 const getProduct = `-- name: GetProduct :one
 SELECT product_id, title, description, created_at, updated_at, status, category_id
 FROM products
@@ -199,4 +242,36 @@ func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCa
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateProduct = `-- name: UpdateProduct :one
+UPDATE products
+SET 
+    title = COALESCE($1, title),
+    description = COALESCE($2, description)
+WHERE product_id = $3
+RETURNING product_id, title, description, allowed_attributes, created_at, updated_at, status, category_id, shop_id
+`
+
+type UpdateProductParams struct {
+	Title       pgtype.Text
+	Description pgtype.Text
+	ProductID   int64
+}
+
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, updateProduct, arg.Title, arg.Description, arg.ProductID)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.AllowedAttributes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.CategoryID,
+		&i.ShopID,
+	)
+	return i, err
 }

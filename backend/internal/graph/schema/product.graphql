@@ -17,7 +17,7 @@ extend type Mutation {
   deleteProductAttribute(
     productID: ID!
     attribute: String!
-  ): DeleteCategoryAttributePayload
+  ): DeleteProductAttributePayload
 }
 enum ProductAttributeDataType {
   STRING
@@ -51,7 +51,6 @@ type CreateProductSuccess {
 input UpdateProductInput {
   title: String
   description: String
-  categoryID: ID
 }
 union UpdateProductPayload = UpdateProductSuccess | ProductNotFoundError
 type UpdateProductSuccess {
