@@ -327,7 +327,7 @@ type MutationResolver interface {
 	CreateProduct(ctx context.Context, product model.CreateProductInput) (model.CreateProductPayload, error)
 	UpdateProduct(ctx context.Context, productID string, product model.UpdateProductInput) (model.UpdateProductPayload, error)
 	CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error)
-	DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteCategoryAttributePayload, error)
+	DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteProductAttributePayload, error)
 	CreateShop(ctx context.Context, shop model.CreateShopInput) (model.CreateShopPayload, error)
 	UpdateShop(ctx context.Context, shop model.UpdateShopInput) (model.UpdateShopPayload, error)
 	UpdateShopImages(ctx context.Context, input model.UpdateShopImagesInput) (model.UpdateShopImagesPayload, error)
@@ -1672,7 +1672,7 @@ extend type Mutation {
   deleteProductAttribute(
     productID: ID!
     attribute: String!
-  ): DeleteCategoryAttributePayload
+  ): DeleteProductAttributePayload
 }
 enum ProductAttributeDataType {
   STRING
@@ -1706,7 +1706,6 @@ type CreateProductSuccess {
 input UpdateProductInput {
   title: String
   description: String
-  categoryID: ID
 }
 union UpdateProductPayload = UpdateProductSuccess | ProductNotFoundError
 type UpdateProductSuccess {
@@ -5281,9 +5280,9 @@ func (ec *executionContext) _Mutation_deleteProductAttribute(ctx context.Context
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.DeleteCategoryAttributePayload)
+	res := resTmp.(model.DeleteProductAttributePayload)
 	fc.Result = res
-	return ec.marshalODeleteCategoryAttributePayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐDeleteCategoryAttributePayload(ctx, field.Selections, res)
+	return ec.marshalODeleteProductAttributePayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐDeleteProductAttributePayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_deleteProductAttribute(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5293,7 +5292,7 @@ func (ec *executionContext) fieldContext_Mutation_deleteProductAttribute(ctx con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DeleteCategoryAttributePayload does not have child fields")
+			return nil, errors.New("field of type DeleteProductAttributePayload does not have child fields")
 		},
 	}
 	defer func() {
@@ -12006,7 +12005,7 @@ func (ec *executionContext) unmarshalInputUpdateProductInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "description", "categoryID"}
+	fieldsInOrder := [...]string{"title", "description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -12027,13 +12026,6 @@ func (ec *executionContext) unmarshalInputUpdateProductInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
-		case "categoryID":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryID"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CategoryID = data
 		}
 	}
 
@@ -16642,6 +16634,13 @@ func (ec *executionContext) marshalODeleteCategoryAttributePayload2githubᚗcom�
 		return graphql.Null
 	}
 	return ec._DeleteCategoryAttributePayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalODeleteProductAttributePayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐDeleteProductAttributePayload(ctx context.Context, sel ast.SelectionSet, v model.DeleteProductAttributePayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DeleteProductAttributePayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

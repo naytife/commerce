@@ -69,6 +69,9 @@ type Repository interface {
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
 	GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
+	DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {

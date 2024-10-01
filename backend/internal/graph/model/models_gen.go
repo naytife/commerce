@@ -432,7 +432,6 @@ func (UpdateCategorySuccess) IsUpdateCategoryPayload() {}
 type UpdateProductInput struct {
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
-	CategoryID  *string `json:"categoryID,omitempty"`
 }
 
 type UpdateProductSuccess struct {

@@ -40,7 +40,7 @@ RETURNING category_attributes;
 
 -- name: DeleteCategoryAttribute :one
 UPDATE categories
-SET category_attributes = category_attributes - sqlc.arg('attribute')::text
+SET category_attributes = category_attributes - UPPER(sqlc.arg('attribute')::text)
 WHERE category_id = sqlc.arg('category_id')
 RETURNING category_attributes;
 
