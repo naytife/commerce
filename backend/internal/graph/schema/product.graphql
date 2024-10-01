@@ -107,7 +107,6 @@ enum ProductStockStatus {
 type ProductVariant implements Node {
   id: ID!
   slug: String!
-  title: String!
   price: Float!
   availableQuantity: Int!
   description: String!
