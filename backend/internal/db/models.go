@@ -48,6 +48,22 @@ type ProductImage struct {
 	ShopID         int64
 }
 
+type ProductVariation struct {
+	ProductVariationID int64
+	Slug               string
+	Description        string
+	Price              pgtype.Numeric
+	AvailableQuantity  int64
+	Attributes         []byte
+	SeoDescription     pgtype.Text
+	SeoKeywords        []string
+	SeoTitle           pgtype.Text
+	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
+	ProductID          int64
+	ShopID             int64
+}
+
 type Shop struct {
 	ShopID         int64
 	OwnerID        uuid.UUID

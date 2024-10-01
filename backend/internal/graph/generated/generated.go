@@ -110,6 +110,10 @@ type ComplexityRoot struct {
 		Product func(childComplexity int) int
 	}
 
+	CreateProductVariantSuccess struct {
+		Variants func(childComplexity int) int
+	}
+
 	CreateShopSuccess struct {
 		Shop func(childComplexity int) int
 	}
@@ -142,6 +146,7 @@ type ComplexityRoot struct {
 		CreateCategoryAttribute func(childComplexity int, categoryID string, attribute model.CreateCategoryAttributeInput) int
 		CreateProduct           func(childComplexity int, product model.CreateProductInput) int
 		CreateProductAttribute  func(childComplexity int, productID string, attribute model.CreateProductAttributeInput) int
+		CreateProductVariant    func(childComplexity int, productID string, variants []model.CreateProductVariantInput) int
 		CreateShop              func(childComplexity int, shop model.CreateShopInput) int
 		DeleteCategoryAttribute func(childComplexity int, categoryID string, attribute string) int
 		DeleteProductAttribute  func(childComplexity int, productID string, attribute string) int
@@ -214,7 +219,6 @@ type ComplexityRoot struct {
 		Price             func(childComplexity int) int
 		Slug              func(childComplexity int) int
 		StockStatus       func(childComplexity int) int
-		Title             func(childComplexity int) int
 		UpdatedAt         func(childComplexity int) int
 	}
 
@@ -328,6 +332,7 @@ type MutationResolver interface {
 	UpdateProduct(ctx context.Context, productID string, product model.UpdateProductInput) (model.UpdateProductPayload, error)
 	CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error)
 	DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteProductAttributePayload, error)
+	CreateProductVariant(ctx context.Context, productID string, variants []model.CreateProductVariantInput) (model.CreateProductVariantPayload, error)
 	CreateShop(ctx context.Context, shop model.CreateShopInput) (model.CreateShopPayload, error)
 	UpdateShop(ctx context.Context, shop model.UpdateShopInput) (model.UpdateShopPayload, error)
 	UpdateShopImages(ctx context.Context, input model.UpdateShopImagesInput) (model.UpdateShopImagesPayload, error)
@@ -573,6 +578,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CreateProductSuccess.Product(childComplexity), true
 
+	case "CreateProductVariantSuccess.variants":
+		if e.complexity.CreateProductVariantSuccess.Variants == nil {
+			break
+		}
+
+		return e.complexity.CreateProductVariantSuccess.Variants(childComplexity), true
+
 	case "CreateShopSuccess.shop":
 		if e.complexity.CreateShopSuccess.Shop == nil {
 			break
@@ -683,6 +695,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateProductAttribute(childComplexity, args["productID"].(string), args["attribute"].(model.CreateProductAttributeInput)), true
+
+	case "Mutation.createProductVariant":
+		if e.complexity.Mutation.CreateProductVariant == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createProductVariant_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateProductVariant(childComplexity, args["productID"].(string), args["variants"].([]model.CreateProductVariantInput)), true
 
 	case "Mutation.createShop":
 		if e.complexity.Mutation.CreateShop == nil {
@@ -1048,13 +1072,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProductVariant.StockStatus(childComplexity), true
-
-	case "ProductVariant.title":
-		if e.complexity.ProductVariant.Title == nil {
-			break
-		}
-
-		return e.complexity.ProductVariant.Title(childComplexity), true
 
 	case "ProductVariant.updatedAt":
 		if e.complexity.ProductVariant.UpdatedAt == nil {
@@ -1453,9 +1470,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateCategoryInput,
 		ec.unmarshalInputCreateProductAttributeInput,
 		ec.unmarshalInputCreateProductInput,
+		ec.unmarshalInputCreateProductVariantInput,
 		ec.unmarshalInputCreateShopInput,
 		ec.unmarshalInputImageInput,
 		ec.unmarshalInputPhoneNumberInput,
+		ec.unmarshalInputProductAttributeValueInput,
 		ec.unmarshalInputShopAddressInput,
 		ec.unmarshalInputSignInInput,
 		ec.unmarshalInputUpdateCategoryInput,
@@ -1660,6 +1679,8 @@ extend type Query {
 }
 
 extend type Mutation {
+  # TODO: Product publish
+  # TODO: Product archive
   createProduct(product: CreateProductInput!): CreateProductPayload
   updateProduct(
     productID: ID!
@@ -1673,6 +1694,11 @@ extend type Mutation {
     productID: ID!
     attribute: String!
   ): DeleteProductAttributePayload
+
+  createProductVariant(
+    productID: ID!
+    variants: [CreateProductVariantInput!]!
+  ): CreateProductVariantPayload
 }
 enum ProductAttributeDataType {
   STRING
@@ -1762,7 +1788,6 @@ enum ProductStockStatus {
 type ProductVariant implements Node {
   id: ID!
   slug: String!
-  title: String!
   price: Float!
   availableQuantity: Int!
   description: String!
@@ -1774,6 +1799,22 @@ type ProductVariant implements Node {
 type ProductAttribute {
   key: String!
   value: String
+}
+input CreateProductVariantInput {
+  price: Float!
+  availableQuantity: Int!
+  attributes: [ProductAttributeValueInput!]
+  stockStatus: ProductStockStatus!
+}
+union CreateProductVariantPayload =
+    CreateProductVariantSuccess
+  | ProductNotFoundError
+type CreateProductVariantSuccess {
+  variants: [ProductVariant!]!
+}
+input ProductAttributeValueInput {
+  key: String!
+  value: String!
 }
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphql", Input: `scalar DateTime
@@ -2180,6 +2221,65 @@ func (ec *executionContext) field_Mutation_createProductAttribute_argsAttribute(
 	}
 
 	var zeroVal model.CreateProductAttributeInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createProductVariant_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Mutation_createProductVariant_argsProductID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["productID"] = arg0
+	arg1, err := ec.field_Mutation_createProductVariant_argsVariants(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["variants"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createProductVariant_argsProductID(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["productID"]
+	if !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("productID"))
+	if tmp, ok := rawArgs["productID"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createProductVariant_argsVariants(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) ([]model.CreateProductVariantInput, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["variants"]
+	if !ok {
+		var zeroVal []model.CreateProductVariantInput
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("variants"))
+	if tmp, ok := rawArgs["variants"]; ok {
+		return ec.unmarshalNCreateProductVariantInput2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantInputᚄ(ctx, tmp)
+	}
+
+	var zeroVal []model.CreateProductVariantInput
 	return zeroVal, nil
 }
 
@@ -4406,6 +4506,70 @@ func (ec *executionContext) fieldContext_CreateProductSuccess_product(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _CreateProductVariantSuccess_variants(ctx context.Context, field graphql.CollectedField, obj *model.CreateProductVariantSuccess) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateProductVariantSuccess_variants(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Variants, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.ProductVariant)
+	fc.Result = res
+	return ec.marshalNProductVariant2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductVariantᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateProductVariantSuccess_variants(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateProductVariantSuccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProductVariant_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_ProductVariant_slug(ctx, field)
+			case "price":
+				return ec.fieldContext_ProductVariant_price(ctx, field)
+			case "availableQuantity":
+				return ec.fieldContext_ProductVariant_availableQuantity(ctx, field)
+			case "description":
+				return ec.fieldContext_ProductVariant_description(ctx, field)
+			case "attributes":
+				return ec.fieldContext_ProductVariant_attributes(ctx, field)
+			case "stockStatus":
+				return ec.fieldContext_ProductVariant_stockStatus(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ProductVariant_updatedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ProductVariant_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProductVariant", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CreateShopSuccess_shop(ctx context.Context, field graphql.CollectedField, obj *model.CreateShopSuccess) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_CreateShopSuccess_shop(ctx, field)
 	if err != nil {
@@ -5309,6 +5473,58 @@ func (ec *executionContext) fieldContext_Mutation_deleteProductAttribute(ctx con
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createProductVariant(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createProductVariant(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateProductVariant(rctx, fc.Args["productID"].(string), fc.Args["variants"].([]model.CreateProductVariantInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.CreateProductVariantPayload)
+	fc.Result = res
+	return ec.marshalOCreateProductVariantPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantPayload(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createProductVariant(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CreateProductVariantPayload does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createProductVariant_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createShop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createShop(ctx, field)
 	if err != nil {
@@ -5970,8 +6186,6 @@ func (ec *executionContext) fieldContext_Product_defaultVariant(_ context.Contex
 				return ec.fieldContext_ProductVariant_id(ctx, field)
 			case "slug":
 				return ec.fieldContext_ProductVariant_slug(ctx, field)
-			case "title":
-				return ec.fieldContext_ProductVariant_title(ctx, field)
 			case "price":
 				return ec.fieldContext_ProductVariant_price(ctx, field)
 			case "availableQuantity":
@@ -6036,8 +6250,6 @@ func (ec *executionContext) fieldContext_Product_variants(_ context.Context, fie
 				return ec.fieldContext_ProductVariant_id(ctx, field)
 			case "slug":
 				return ec.fieldContext_ProductVariant_slug(ctx, field)
-			case "title":
-				return ec.fieldContext_ProductVariant_title(ctx, field)
 			case "price":
 				return ec.fieldContext_ProductVariant_price(ctx, field)
 			case "availableQuantity":
@@ -6921,50 +7133,6 @@ func (ec *executionContext) _ProductVariant_slug(ctx context.Context, field grap
 }
 
 func (ec *executionContext) fieldContext_ProductVariant_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProductVariant",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProductVariant_title(ctx context.Context, field graphql.CollectedField, obj *model.ProductVariant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductVariant_title(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProductVariant_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProductVariant",
 		Field:      field,
@@ -11808,6 +11976,54 @@ func (ec *executionContext) unmarshalInputCreateProductInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateProductVariantInput(ctx context.Context, obj interface{}) (model.CreateProductVariantInput, error) {
+	var it model.CreateProductVariantInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"price", "availableQuantity", "attributes", "stockStatus"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "price":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("price"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Price = data
+		case "availableQuantity":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("availableQuantity"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AvailableQuantity = data
+		case "attributes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attributes"))
+			data, err := ec.unmarshalOProductAttributeValueInput2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Attributes = data
+		case "stockStatus":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stockStatus"))
+			data, err := ec.unmarshalNProductStockStatus2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductStockStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StockStatus = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, obj interface{}) (model.CreateShopInput, error) {
 	var it model.CreateShopInput
 	asMap := map[string]interface{}{}
@@ -11897,6 +12113,40 @@ func (ec *executionContext) unmarshalInputPhoneNumberInput(ctx context.Context, 
 				return it, err
 			}
 			it.E164 = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputProductAttributeValueInput(ctx context.Context, obj interface{}) (model.ProductAttributeValueInput, error) {
+	var it model.ProductAttributeValueInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"key", "value"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "key":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Key = data
+		case "value":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Value = data
 		}
 	}
 
@@ -12315,6 +12565,29 @@ func (ec *executionContext) _CreateProductPayload(ctx context.Context, sel ast.S
 			return graphql.Null
 		}
 		return ec._CreateProductSuccess(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _CreateProductVariantPayload(ctx context.Context, sel ast.SelectionSet, obj model.CreateProductVariantPayload) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.ProductNotFoundError:
+		return ec._ProductNotFoundError(ctx, sel, &obj)
+	case *model.ProductNotFoundError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProductNotFoundError(ctx, sel, obj)
+	case model.CreateProductVariantSuccess:
+		return ec._CreateProductVariantSuccess(ctx, sel, &obj)
+	case *model.CreateProductVariantSuccess:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CreateProductVariantSuccess(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -13268,6 +13541,45 @@ func (ec *executionContext) _CreateProductSuccess(ctx context.Context, sel ast.S
 	return out
 }
 
+var createProductVariantSuccessImplementors = []string{"CreateProductVariantSuccess", "CreateProductVariantPayload"}
+
+func (ec *executionContext) _CreateProductVariantSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.CreateProductVariantSuccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createProductVariantSuccessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateProductVariantSuccess")
+		case "variants":
+			out.Values[i] = ec._CreateProductVariantSuccess_variants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var createShopSuccessImplementors = []string{"CreateShopSuccess", "CreateShopPayload"}
 
 func (ec *executionContext) _CreateShopSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.CreateShopSuccess) graphql.Marshaler {
@@ -13556,6 +13868,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteProductAttribute":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteProductAttribute(ctx, field)
+			})
+		case "createProductVariant":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createProductVariant(ctx, field)
 			})
 		case "createShop":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -14107,7 +14423,7 @@ func (ec *executionContext) _ProductEdge(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var productNotFoundErrorImplementors = []string{"ProductNotFoundError", "UpdateProductPayload", "UserError", "CreateProductAttributePayload", "DeleteProductAttributePayload"}
+var productNotFoundErrorImplementors = []string{"ProductNotFoundError", "UpdateProductPayload", "UserError", "CreateProductAttributePayload", "DeleteProductAttributePayload", "CreateProductVariantPayload"}
 
 func (ec *executionContext) _ProductNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *model.ProductNotFoundError) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, productNotFoundErrorImplementors)
@@ -14174,11 +14490,6 @@ func (ec *executionContext) _ProductVariant(ctx context.Context, sel ast.Selecti
 			}
 		case "slug":
 			out.Values[i] = ec._ProductVariant_slug(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "title":
-			out.Values[i] = ec._ProductVariant_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -15718,6 +16029,28 @@ func (ec *executionContext) unmarshalNCreateProductInput2githubᚗcomᚋpetrejon
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateProductVariantInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantInput(ctx context.Context, v interface{}) (model.CreateProductVariantInput, error) {
+	res, err := ec.unmarshalInputCreateProductVariantInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateProductVariantInput2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantInputᚄ(ctx context.Context, v interface{}) ([]model.CreateProductVariantInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.CreateProductVariantInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNCreateProductVariantInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalNCreateShopInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopInput(ctx context.Context, v interface{}) (model.CreateShopInput, error) {
 	res, err := ec.unmarshalInputCreateShopInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -15941,6 +16274,11 @@ func (ec *executionContext) unmarshalNProductAttributeDataType2githubᚗcomᚋpe
 
 func (ec *executionContext) marshalNProductAttributeDataType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeDataType(ctx context.Context, sel ast.SelectionSet, v model.ProductAttributeDataType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNProductAttributeValueInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueInput(ctx context.Context, v interface{}) (model.ProductAttributeValueInput, error) {
+	res, err := ec.unmarshalInputProductAttributeValueInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNProductConnection2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx context.Context, sel ast.SelectionSet, v model.ProductConnection) graphql.Marshaler {
@@ -16622,6 +16960,13 @@ func (ec *executionContext) marshalOCreateProductPayload2githubᚗcomᚋpetrejon
 	return ec._CreateProductPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOCreateProductVariantPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateProductVariantPayload(ctx context.Context, sel ast.SelectionSet, v model.CreateProductVariantPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CreateProductVariantPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOCreateShopPayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateShopPayload(ctx context.Context, sel ast.SelectionSet, v model.CreateShopPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -16717,6 +17062,26 @@ func (ec *executionContext) marshalOProduct2ᚖgithubᚗcomᚋpetrejonnᚋnaytif
 		return graphql.Null
 	}
 	return ec._Product(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOProductAttributeValueInput2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueInputᚄ(ctx context.Context, v interface{}) ([]model.ProductAttributeValueInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]model.ProductAttributeValueInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNProductAttributeValueInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductAttributeValueInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx context.Context, sel ast.SelectionSet, v *model.ProductConnection) graphql.Marshaler {

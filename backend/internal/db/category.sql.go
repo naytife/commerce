@@ -76,7 +76,7 @@ func (q *Queries) CreateCategoryAttribute(ctx context.Context, arg CreateCategor
 
 const deleteCategoryAttribute = `-- name: DeleteCategoryAttribute :one
 UPDATE categories
-SET category_attributes = category_attributes - $1::text
+SET category_attributes = category_attributes - UPPER($1::text)
 WHERE category_id = $2
 RETURNING category_attributes
 `

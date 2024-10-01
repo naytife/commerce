@@ -107,6 +107,7 @@ CREATE TABLE product_variations(
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     product_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    UNIQUE (slug, shop_id),
     CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE 
 );

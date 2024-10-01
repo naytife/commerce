@@ -142,6 +142,51 @@ func (q *Queries) GetProductAllowedAttributes(ctx context.Context, productID int
 	return allowed_attributes, err
 }
 
+const getProductVariations = `-- name: GetProductVariations :many
+SELECT product_variation_id, slug, description, price, available_quantity, attributes, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
+WHERE shop_id = $1 AND product_id = $2
+ORDER BY product_variation_id
+`
+
+type GetProductVariationsParams struct {
+	ShopID    int64
+	ProductID int64
+}
+
+func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error) {
+	rows, err := q.db.Query(ctx, getProductVariations, arg.ShopID, arg.ProductID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductVariation
+	for rows.Next() {
+		var i ProductVariation
+		if err := rows.Scan(
+			&i.ProductVariationID,
+			&i.Slug,
+			&i.Description,
+			&i.Price,
+			&i.AvailableQuantity,
+			&i.Attributes,
+			&i.SeoDescription,
+			&i.SeoKeywords,
+			&i.SeoTitle,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ProductID,
+			&i.ShopID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProducts = `-- name: GetProducts :many
 SELECT product_id, title, description, created_at, updated_at, status, category_id
 FROM products

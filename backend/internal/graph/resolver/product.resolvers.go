@@ -6,11 +6,15 @@ package resolver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 
+	"github.com/gosimple/slug"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
@@ -19,7 +23,7 @@ import (
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, product model.CreateProductInput) (model.CreateProductPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	_, catID, err := DecodeRelayID(product.CategoryID)
+	_, catID, err := decodeRelayID(product.CategoryID)
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
@@ -52,7 +56,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, product model.UpdateProductInput) (model.UpdateProductPayload, error) {
-	_, objID, err := DecodeRelayID(productID)
+	_, objID, err := decodeRelayID(productID)
 	if err != nil {
 		return nil, errors.New("invalid object ID")
 	}
@@ -77,7 +81,7 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, 
 
 // CreateProductAttribute is the resolver for the createProductAttribute field.
 func (r *mutationResolver) CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error) {
-	_, objID, err := DecodeRelayID(productID)
+	_, objID, err := decodeRelayID(productID)
 	if err != nil {
 		return nil, errors.New("invalid object ID")
 	}
@@ -100,7 +104,7 @@ func (r *mutationResolver) CreateProductAttribute(ctx context.Context, productID
 
 // DeleteProductAttribute is the resolver for the deleteProductAttribute field.
 func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteProductAttributePayload, error) {
-	_, objID, err := DecodeRelayID(productID)
+	_, objID, err := decodeRelayID(productID)
 	if err != nil {
 		return nil, errors.New("invalid object ID")
 	}
@@ -119,9 +123,70 @@ func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID
 	}, nil
 }
 
+// CreateProductVariant is the resolver for the createProductVariant field.
+func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID string, variants []model.CreateProductVariantInput) (model.CreateProductVariantPayload, error) {
+	shopID := ctx.Value("shop_id").(int64)
+	_, objID, err := decodeRelayID(productID)
+	if err != nil {
+		return nil, errors.New("invalid product ID")
+	}
+	attributesDB, err := r.Repository.GetProductAllowedAttributes(ctx, *objID)
+	if err != nil {
+		return nil, errors.New("could not fetch product attribute")
+	}
+	// Unmarshal JSONB ([]byte) into a Go map
+	var attributesDBMap map[string]interface{}
+	if err := json.Unmarshal(attributesDB, &attributesDBMap); err != nil {
+		return nil, err
+	}
+	params := []db.UpsertProductVariationParams{}
+	for _, variant := range variants {
+		if err := validateProductVariantInput(variant, attributesDBMap); err != nil {
+			return nil, fmt.Errorf("validation error: %v", err)
+		}
+		attributesJSON, err := json.Marshal(variant.Attributes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize attributes: %v", err)
+		}
+		attributesString := formatAttributes(variant.Attributes)
+		params = append(params, db.UpsertProductVariationParams{
+			Slug:              slug.MakeLang(attributesString, "en"),
+			Description:       attributesString,
+			Price:             pgtype.Numeric{Int: big.NewInt(int64(variant.Price)), Valid: true},
+			AvailableQuantity: int64(variant.AvailableQuantity),
+			Attributes:        attributesJSON,
+			ProductID:         *objID,
+			ShopID:            shopID,
+		})
+	}
+	objsDB, err := r.Repository.UpsertProductVariations(ctx, shopID, *objID, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create variabtions: %v", err)
+	}
+	objs := make([]model.ProductVariant, 0, len(objsDB))
+	for _, objDB := range objsDB {
+		priceFloat64, err := objDB.Price.Float64Value()
+		if err != nil {
+			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
+		}
+		objs = append(objs, model.ProductVariant{
+			ID:                strconv.FormatInt(objDB.ProductVariationID, 10),
+			Slug:              objDB.Slug,
+			Description:       objDB.Description,
+			Price:             priceFloat64.Float64,
+			AvailableQuantity: int(objDB.AvailableQuantity),
+			UpdatedAt:         objDB.UpdatedAt.Time,
+			CreatedAt:         objDB.CreatedAt.Time,
+		})
+	}
+	return model.CreateProductVariantSuccess{
+		Variants: objs,
+	}, nil
+}
+
 // ID is the resolver for the id field.
 func (r *productResolver) ID(ctx context.Context, obj *model.Product) (string, error) {
-	return EncodeRelayID("Product", obj.ID), nil
+	return encodeRelayID("Product", obj.ID), nil
 }
 
 // DefaultVariant is the resolver for the defaultVariant field.
@@ -131,7 +196,32 @@ func (r *productResolver) DefaultVariant(ctx context.Context, obj *model.Product
 
 // Variants is the resolver for the variants field.
 func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]model.ProductVariant, error) {
-	panic(fmt.Errorf("not implemented: Variants - variants"))
+	shopID := ctx.Value("shop_id").(int64)
+	objID, err := strconv.Atoi(obj.ID)
+	if err != nil {
+		return nil, errors.New("invalid product id")
+	}
+	objsDB, err := r.Repository.GetProductVariations(ctx, db.GetProductVariationsParams{ShopID: shopID, ProductID: int64(objID)})
+	if err != nil {
+		return nil, errors.New("could not fetch objects")
+	}
+	objs := make([]model.ProductVariant, 0, len(objsDB))
+	for _, objDB := range objsDB {
+		priceFloat64, err := objDB.Price.Float64Value()
+		if err != nil {
+			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
+		}
+		objs = append(objs, model.ProductVariant{
+			ID:                strconv.FormatInt(objDB.ProductVariationID, 10),
+			Slug:              objDB.Slug,
+			Description:       objDB.Description,
+			Price:             priceFloat64.Float64,
+			AvailableQuantity: int(objDB.AvailableQuantity),
+			UpdatedAt:         objDB.UpdatedAt.Time,
+			CreatedAt:         objDB.CreatedAt.Time,
+		})
+	}
+	return objs, nil
 }
 
 // AllowedAttributes is the resolver for the allowedAttributes field.
@@ -165,7 +255,7 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 	}
 	afterID := int64(0)
 	if after != nil {
-		decodedType, id, err := DecodeRelayID(*after)
+		decodedType, id, err := decodeRelayID(*after)
 		if err != nil {
 			return nil, fmt.Errorf("invalid after cursor: %w", err)
 		}
@@ -186,7 +276,7 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 	}
 	edges := make([]model.ProductEdge, len(objsDB))
 	for i, prod := range objsDB {
-		relayID := EncodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
+		relayID := encodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
 		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
 			ID:          strconv.FormatInt(prod.ProductID, 10),
 			Title:       prod.Title,
@@ -198,8 +288,8 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 	}
 	var startCursor, endCursor *string
 	if len(objsDB) > 0 {
-		firstCursor := EncodeRelayID("Product", strconv.FormatInt(objsDB[0].ProductID, 10))
-		lastCursor := EncodeRelayID("Product", strconv.FormatInt(objsDB[len(objsDB)-1].ProductID, 10))
+		firstCursor := encodeRelayID("Product", strconv.FormatInt(objsDB[0].ProductID, 10))
+		lastCursor := encodeRelayID("Product", strconv.FormatInt(objsDB[len(objsDB)-1].ProductID, 10))
 		startCursor, endCursor = &firstCursor, &lastCursor
 	}
 
@@ -219,13 +309,13 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 // Product is the resolver for the product field.
 func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	_, objID, err := DecodeRelayID(id)
+	_, objID, err := decodeRelayID(id)
 	if err != nil {
-		return nil, errors.New("invalid category ID")
+		return nil, errors.New("invalid projec ID")
 	}
 	objDB, err := r.Repository.GetProduct(ctx, db.GetProductParams{ShopID: shopID, ProductID: *objID})
 	if err != nil {
-		return nil, errors.New("could not find category")
+		return nil, errors.New("could not find object")
 	}
 	return &model.Product{
 		ID:          strconv.FormatInt(objDB.ProductID, 10),
