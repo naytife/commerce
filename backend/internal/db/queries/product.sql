@@ -49,3 +49,28 @@ UPDATE products
 SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
 WHERE product_id = sqlc.arg('product_id')
 RETURNING allowed_attributes;
+
+-- name: UpsertProductVariation :batchmany
+INSERT INTO product_variations (slug, description, price, available_quantity, attributes, seo_description, seo_keywords, seo_title, product_id, shop_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+ON CONFLICT (slug, shop_id)
+DO UPDATE SET
+    description = EXCLUDED.description,
+    price = EXCLUDED.price,
+    available_quantity = EXCLUDED.available_quantity,
+    attributes = EXCLUDED.attributes,
+    seo_description = EXCLUDED.seo_description,
+    seo_keywords = EXCLUDED.seo_keywords,
+    seo_title = EXCLUDED.seo_title
+RETURNING *;
+
+
+-- name: DeleteProductVariations :batchexec
+DELETE FROM product_variations
+WHERE shop_id = $1 AND product_id = $2
+AND product_variation_id != ALL(sqlc.arg('product_variation_ids')::bigint[]);
+
+-- name: GetProductVariations :many
+SELECT * FROM product_variations
+WHERE shop_id = $1 AND product_id = $2
+ORDER BY product_variation_id;

@@ -49,7 +49,7 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 // UpdateShop is the resolver for the updateShop field.
 func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShopInput) (model.UpdateShopPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	if shop.ContactPhone != nil && !IsValidE164(shop.ContactPhone.E164) {
+	if shop.ContactPhone != nil && !isValidE164(shop.ContactPhone.E164) {
 		return nil, fmt.Errorf("invalid E164 phone number")
 	}
 	params := db.UpdateShopParams{
@@ -95,7 +95,7 @@ func (r *mutationResolver) UpdateShopImages(ctx context.Context, input model.Upd
 // UpdateShopWhatsApp is the resolver for the updateShopWhatsApp field.
 func (r *mutationResolver) UpdateShopWhatsApp(ctx context.Context, input model.UpdateShopWhatsAppInput) (model.UpdateShopWhatsAppPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	if input.PhoneNumber != nil && !IsValidE164(input.PhoneNumber.E164) {
+	if input.PhoneNumber != nil && !isValidE164(input.PhoneNumber.E164) {
 		return nil, fmt.Errorf("invalid E164 phone number")
 	}
 	params := db.UpsertShopWhatsappParams{
@@ -165,7 +165,7 @@ func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
 // ID is the resolver for the id field.
 func (r *shopResolver) ID(ctx context.Context, obj *model.Shop) (string, error) {
 	// Return the base64-encoded ID
-	return EncodeRelayID("Category", obj.ID), nil
+	return encodeRelayID("Category", obj.ID), nil
 }
 
 // Products is the resolver for the products field.
@@ -177,7 +177,7 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	}
 	afterID := int64(0)
 	if after != nil {
-		decodedType, id, err := DecodeRelayID(*after)
+		decodedType, id, err := decodeRelayID(*after)
 		if err != nil {
 			return nil, fmt.Errorf("invalid after cursor: %w", err)
 		}
@@ -198,7 +198,7 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	}
 	edges := make([]model.ProductEdge, len(productsDB))
 	for i, prod := range productsDB {
-		relayID := EncodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
+		relayID := encodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
 		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
 			ID:          strconv.FormatInt(prod.ProductID, 10),
 			Title:       prod.Title,
@@ -210,8 +210,8 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	}
 	var startCursor, endCursor *string
 	if len(productsDB) > 0 {
-		firstCursor := EncodeRelayID("Product", strconv.FormatInt(productsDB[0].ProductID, 10))
-		lastCursor := EncodeRelayID("Product", strconv.FormatInt(productsDB[len(productsDB)-1].ProductID, 10))
+		firstCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[0].ProductID, 10))
+		lastCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[len(productsDB)-1].ProductID, 10))
 		startCursor, endCursor = &firstCursor, &lastCursor
 	}
 
@@ -237,7 +237,7 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 	}
 	afterID := int64(0)
 	if after != nil {
-		decodedType, id, err := DecodeRelayID(*after)
+		decodedType, id, err := decodeRelayID(*after)
 		if err != nil {
 			return nil, fmt.Errorf("invalid after cursor: %w", err)
 		}
@@ -258,7 +258,7 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 	}
 	edges := make([]model.CategoryEdge, len(categoriesDB))
 	for i, cat := range categoriesDB {
-		relayID := EncodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
+		relayID := encodeRelayID("Category", strconv.FormatInt(cat.CategoryID, 10))
 		edges[i] = model.CategoryEdge{Cursor: relayID, Node: &model.Category{
 			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
@@ -270,8 +270,8 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 	}
 	var startCursor, endCursor *string
 	if len(categoriesDB) > 0 {
-		firstCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[0].CategoryID, 10))
-		lastCursor := EncodeRelayID("Category", strconv.FormatInt(categoriesDB[len(categoriesDB)-1].CategoryID, 10))
+		firstCursor := encodeRelayID("Category", strconv.FormatInt(categoriesDB[0].CategoryID, 10))
+		lastCursor := encodeRelayID("Category", strconv.FormatInt(categoriesDB[len(categoriesDB)-1].CategoryID, 10))
 		startCursor, endCursor = &firstCursor, &lastCursor
 	}
 

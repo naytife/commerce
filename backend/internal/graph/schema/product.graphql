@@ -5,6 +5,8 @@ extend type Query {
 }
 
 extend type Mutation {
+  # TODO: Product publish
+  # TODO: Product archive
   createProduct(product: CreateProductInput!): CreateProductPayload
   updateProduct(
     productID: ID!
@@ -18,6 +20,11 @@ extend type Mutation {
     productID: ID!
     attribute: String!
   ): DeleteProductAttributePayload
+
+  createProductVariant(
+    productID: ID!
+    variants: [CreateProductVariantInput!]!
+  ): CreateProductVariantPayload
 }
 enum ProductAttributeDataType {
   STRING
@@ -118,4 +125,20 @@ type ProductVariant implements Node {
 type ProductAttribute {
   key: String!
   value: String
+}
+input CreateProductVariantInput {
+  price: Float!
+  availableQuantity: Int!
+  attributes: [ProductAttributeValueInput!]
+  stockStatus: ProductStockStatus!
+}
+union CreateProductVariantPayload =
+    CreateProductVariantSuccess
+  | ProductNotFoundError
+type CreateProductVariantSuccess {
+  variants: [ProductVariant!]!
+}
+input ProductAttributeValueInput {
+  key: String!
+  value: String!
 }

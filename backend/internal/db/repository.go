@@ -72,6 +72,8 @@ type Repository interface {
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
 	DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
+	UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error)
+	GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -172,4 +174,48 @@ func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		return err
 	})
 	return category, err
+}
+
+func (r *repoSvc) UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	objsDB := []ProductVariation{}
+	objsID := []int64{}
+
+	err := r.withTx(ctx, func(q *Queries) error {
+		// Batch upsert product variations
+		batch := q.UpsertProductVariation(ctx, variations)
+
+		// Process upserts
+		batch.Query(func(i int, result []ProductVariation, err error) {
+			if err != nil {
+				fmt.Errorf("failed to upsert product variation: %w", err)
+				return
+			}
+
+			for _, objDB := range result {
+				objsID = append(objsID, objDB.ProductVariationID)
+				objsDB = append(objsDB, objDB)
+			}
+		})
+
+		if err := batch.Close(); err != nil {
+			return fmt.Errorf("batch execution failed: %w", err)
+		}
+
+		// Batch delete the old variations with batchexec
+		deleteBatch := q.DeleteProductVariations(ctx, []DeleteProductVariationsParams{
+			{ShopID: shopID, ProductID: productID, ProductVariationIds: objsID},
+		})
+
+		// No need to process results here since :batchexec doesn’t return rows
+		if err := deleteBatch.Close(); err != nil {
+			return fmt.Errorf("batch delete failed: %w", err)
+		}
+
+		return nil
+	})
+
+	return objsDB, err
 }
