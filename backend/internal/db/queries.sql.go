@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUser = `-- name: GetUser :one
@@ -17,7 +16,7 @@ SELECT user_id, auth0_sub, email, name, profile_picture_url, created_at, last_lo
 WHERE auth0_sub = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, auth0Sub *string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, auth0Sub)
 	var i User
 	err := row.Scan(
@@ -41,18 +40,18 @@ RETURNING user_id, auth0_sub, email, name, profile_picture_url
 `
 
 type UpsertUserParams struct {
-	Auth0Sub          pgtype.Text
-	Email             string
-	Name              pgtype.Text
-	ProfilePictureUrl pgtype.Text
+	Auth0Sub          *string `json:"auth0_sub"`
+	Email             string  `json:"email"`
+	Name              *string `json:"name"`
+	ProfilePictureUrl *string `json:"profile_picture_url"`
 }
 
 type UpsertUserRow struct {
-	UserID            uuid.UUID
-	Auth0Sub          pgtype.Text
-	Email             string
-	Name              pgtype.Text
-	ProfilePictureUrl pgtype.Text
+	UserID            uuid.UUID `json:"user_id"`
+	Auth0Sub          *string   `json:"auth0_sub"`
+	Email             string    `json:"email"`
+	Name              *string   `json:"name"`
+	ProfilePictureUrl *string   `json:"profile_picture_url"`
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error) {

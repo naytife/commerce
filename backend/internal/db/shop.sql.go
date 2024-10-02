@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createShop = `-- name: CreateShop :one
@@ -19,18 +18,18 @@ RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about,
 `
 
 type CreateShopParams struct {
-	OwnerID        uuid.UUID
-	Title          string
-	Domain         string
-	Email          string
-	CurrencyCode   string
-	About          pgtype.Text
-	Status         string
-	Address        pgtype.Text
-	PhoneNumber    pgtype.Text
-	SeoDescription pgtype.Text
-	SeoKeywords    []string
-	SeoTitle       pgtype.Text
+	OwnerID        uuid.UUID `json:"owner_id"`
+	Title          string    `json:"title"`
+	Domain         string    `json:"domain"`
+	Email          string    `json:"email"`
+	CurrencyCode   string    `json:"currency_code"`
+	About          *string   `json:"about"`
+	Status         string    `json:"status"`
+	Address        *string   `json:"address"`
+	PhoneNumber    *string   `json:"phone_number"`
+	SeoDescription *string   `json:"seo_description"`
+	SeoKeywords    []string  `json:"seo_keywords"`
+	SeoTitle       *string   `json:"seo_title"`
 }
 
 func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error) {
@@ -249,17 +248,17 @@ RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about,
 `
 
 type UpdateShopParams struct {
-	Title          pgtype.Text
-	CurrencyCode   pgtype.Text
-	About          pgtype.Text
-	Status         pgtype.Text
-	PhoneNumber    pgtype.Text
-	SeoDescription pgtype.Text
-	SeoKeywords    []string
-	SeoTitle       pgtype.Text
-	Address        pgtype.Text
-	Email          pgtype.Text
-	ShopID         int64
+	Title          *string  `json:"title"`
+	CurrencyCode   *string  `json:"currency_code"`
+	About          *string  `json:"about"`
+	Status         *string  `json:"status"`
+	PhoneNumber    *string  `json:"phone_number"`
+	SeoDescription *string  `json:"seo_description"`
+	SeoKeywords    []string `json:"seo_keywords"`
+	SeoTitle       *string  `json:"seo_title"`
+	Address        *string  `json:"address"`
+	Email          *string  `json:"email"`
+	ShopID         int64    `json:"shop_id"`
 }
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
@@ -306,9 +305,9 @@ RETURNING facebook_id, handle, url, shop_id
 `
 
 type UpsertShopFacebookParams struct {
-	ShopID int64
-	Url    string
-	Handle string
+	ShopID int64  `json:"shop_id"`
+	Url    string `json:"url"`
+	Handle string `json:"handle"`
 }
 
 func (q *Queries) UpsertShopFacebook(ctx context.Context, arg UpsertShopFacebookParams) (Facebook, error) {
@@ -332,9 +331,9 @@ RETURNING whatsapp_id, phone_number, url, shop_id
 `
 
 type UpsertShopWhatsappParams struct {
-	ShopID      int64
-	Url         string
-	PhoneNumber string
+	ShopID      int64  `json:"shop_id"`
+	Url         string `json:"url"`
+	PhoneNumber string `json:"phone_number"`
 }
 
 func (q *Queries) UpsertShopWhatsapp(ctx context.Context, arg UpsertShopWhatsappParams) (Whatsapp, error) {

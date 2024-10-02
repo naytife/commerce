@@ -30,9 +30,9 @@ type DeleteProductVariationsBatchResults struct {
 }
 
 type DeleteProductVariationsParams struct {
-	ShopID              int64
-	ProductID           int64
-	ProductVariationIds []int64
+	ShopID              int64   `json:"shop_id"`
+	ProductID           int64   `json:"product_id"`
+	ProductVariationIds []int64 `json:"product_variation_ids"`
 }
 
 func (q *Queries) DeleteProductVariations(ctx context.Context, arg []DeleteProductVariationsParams) *DeleteProductVariationsBatchResults {
@@ -92,16 +92,16 @@ type UpsertProductVariationBatchResults struct {
 }
 
 type UpsertProductVariationParams struct {
-	Slug              string
-	Description       string
-	Price             pgtype.Numeric
-	AvailableQuantity int64
-	Attributes        []byte
-	SeoDescription    pgtype.Text
-	SeoKeywords       []string
-	SeoTitle          pgtype.Text
-	ProductID         int64
-	ShopID            int64
+	Slug              string         `json:"slug"`
+	Description       string         `json:"description"`
+	Price             pgtype.Numeric `json:"price"`
+	AvailableQuantity int64          `json:"available_quantity"`
+	Attributes        []byte         `json:"attributes"`
+	SeoDescription    *string        `json:"seo_description"`
+	SeoKeywords       []string       `json:"seo_keywords"`
+	SeoTitle          *string        `json:"seo_title"`
+	ProductID         int64          `json:"product_id"`
+	ShopID            int64          `json:"shop_id"`
 }
 
 func (q *Queries) UpsertProductVariation(ctx context.Context, arg []UpsertProductVariationParams) *UpsertProductVariationBatchResults {

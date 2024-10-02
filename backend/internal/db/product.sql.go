@@ -18,12 +18,12 @@ RETURNING product_id, title, description, allowed_attributes, created_at, update
 `
 
 type CreateProductParams struct {
-	Title             string
-	Description       string
-	CategoryID        int64
-	ShopID            int64
-	AllowedAttributes []byte
-	Status            string
+	Title             string `json:"title"`
+	Description       string `json:"description"`
+	CategoryID        int64  `json:"category_id"`
+	ShopID            int64  `json:"shop_id"`
+	AllowedAttributes []byte `json:"allowed_attributes"`
+	Status            string `json:"status"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -62,9 +62,9 @@ RETURNING allowed_attributes
 `
 
 type CreateProductAllowedAttributeParams struct {
-	Title     interface{}
-	DataType  string
-	ProductID int64
+	Title     interface{} `json:"title"`
+	DataType  string      `json:"data_type"`
+	ProductID int64       `json:"product_id"`
 }
 
 func (q *Queries) CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error) {
@@ -82,8 +82,8 @@ RETURNING allowed_attributes
 `
 
 type DeleteProductAllowedAttributeParams struct {
-	Attribute string
-	ProductID int64
+	Attribute string `json:"attribute"`
+	ProductID int64  `json:"product_id"`
 }
 
 func (q *Queries) DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error) {
@@ -100,18 +100,18 @@ WHERE shop_id = $1 AND product_id = $2
 `
 
 type GetProductParams struct {
-	ShopID    int64
-	ProductID int64
+	ShopID    int64 `json:"shop_id"`
+	ProductID int64 `json:"product_id"`
 }
 
 type GetProductRow struct {
-	ProductID   int64
-	Title       string
-	Description string
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
-	Status      string
-	CategoryID  int64
+	ProductID   int64              `json:"product_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Status      string             `json:"status"`
+	CategoryID  int64              `json:"category_id"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -149,8 +149,8 @@ ORDER BY product_variation_id
 `
 
 type GetProductVariationsParams struct {
-	ShopID    int64
-	ProductID int64
+	ShopID    int64 `json:"shop_id"`
+	ProductID int64 `json:"product_id"`
 }
 
 func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error) {
@@ -195,19 +195,19 @@ LIMIT $3
 `
 
 type GetProductsParams struct {
-	ShopID int64
-	After  int64
-	Limit  int32
+	ShopID int64 `json:"shop_id"`
+	After  int64 `json:"after"`
+	Limit  int32 `json:"limit"`
 }
 
 type GetProductsRow struct {
-	ProductID   int64
-	Title       string
-	Description string
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
-	Status      string
-	CategoryID  int64
+	ProductID   int64              `json:"product_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Status      string             `json:"status"`
+	CategoryID  int64              `json:"category_id"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -246,19 +246,19 @@ LIMIT $3
 `
 
 type GetProductsByCategoryParams struct {
-	CategoryID int64
-	After      int64
-	Limit      int32
+	CategoryID int64 `json:"category_id"`
+	After      int64 `json:"after"`
+	Limit      int32 `json:"limit"`
 }
 
 type GetProductsByCategoryRow struct {
-	ProductID   int64
-	Title       string
-	Description string
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
-	Status      string
-	CategoryID  int64
+	ProductID   int64              `json:"product_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Status      string             `json:"status"`
+	CategoryID  int64              `json:"category_id"`
 }
 
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {
@@ -299,9 +299,9 @@ RETURNING product_id, title, description, allowed_attributes, created_at, update
 `
 
 type UpdateProductParams struct {
-	Title       pgtype.Text
-	Description pgtype.Text
-	ProductID   int64
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	ProductID   int64   `json:"product_id"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {

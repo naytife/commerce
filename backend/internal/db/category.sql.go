@@ -18,12 +18,12 @@ RETURNING category_id, slug, title, description, parent_id, created_at, updated_
 `
 
 type CreateCategoryParams struct {
-	Slug               string
-	Title              string
-	Description        pgtype.Text
-	ParentID           pgtype.Int8
-	ShopID             int64
-	CategoryAttributes []byte
+	Slug               string  `json:"slug"`
+	Title              string  `json:"title"`
+	Description        *string `json:"description"`
+	ParentID           *int64  `json:"parent_id"`
+	ShopID             int64   `json:"shop_id"`
+	CategoryAttributes []byte  `json:"category_attributes"`
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
@@ -62,9 +62,9 @@ RETURNING category_attributes
 `
 
 type CreateCategoryAttributeParams struct {
-	Title      interface{}
-	DataType   string
-	CategoryID int64
+	Title      interface{} `json:"title"`
+	DataType   string      `json:"data_type"`
+	CategoryID int64       `json:"category_id"`
 }
 
 func (q *Queries) CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error) {
@@ -82,8 +82,8 @@ RETURNING category_attributes
 `
 
 type DeleteCategoryAttributeParams struct {
-	Attribute  string
-	CategoryID int64
+	Attribute  string `json:"attribute"`
+	CategoryID int64  `json:"category_id"`
 }
 
 func (q *Queries) DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error) {
@@ -101,18 +101,18 @@ LIMIT $3
 `
 
 type GetCategoriesParams struct {
-	ShopID int64
-	After  int64
-	Limit  int32
+	ShopID int64 `json:"shop_id"`
+	After  int64 `json:"after"`
+	Limit  int32 `json:"limit"`
 }
 
 type GetCategoriesRow struct {
-	CategoryID  int64
-	Slug        string
-	Title       string
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CategoryID  int64              `json:"category_id"`
+	Slug        string             `json:"slug"`
+	Title       string             `json:"title"`
+	Description *string            `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) GetCategories(ctx context.Context, arg GetCategoriesParams) ([]GetCategoriesRow, error) {
@@ -149,19 +149,19 @@ WHERE shop_id = $1 AND category_id = $2
 `
 
 type GetCategoryParams struct {
-	ShopID     int64
-	CategoryID int64
+	ShopID     int64 `json:"shop_id"`
+	CategoryID int64 `json:"category_id"`
 }
 
 type GetCategoryRow struct {
-	CategoryID         int64
-	Slug               string
-	Title              string
-	Description        pgtype.Text
-	CreatedAt          pgtype.Timestamptz
-	UpdatedAt          pgtype.Timestamptz
-	ParentID           pgtype.Int8
-	CategoryAttributes []byte
+	CategoryID         int64              `json:"category_id"`
+	Slug               string             `json:"slug"`
+	Title              string             `json:"title"`
+	Description        *string            `json:"description"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ParentID           *int64             `json:"parent_id"`
+	CategoryAttributes []byte             `json:"category_attributes"`
 }
 
 func (q *Queries) GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error) {
@@ -200,17 +200,17 @@ WHERE shop_id = $1 AND parent_id = $2
 `
 
 type GetCategoryChildrenParams struct {
-	ShopID   int64
-	ParentID pgtype.Int8
+	ShopID   int64  `json:"shop_id"`
+	ParentID *int64 `json:"parent_id"`
 }
 
 type GetCategoryChildrenRow struct {
-	CategoryID  int64
-	Slug        string
-	Title       string
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	CategoryID  int64              `json:"category_id"`
+	Slug        string             `json:"slug"`
+	Title       string             `json:"title"`
+	Description *string            `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) GetCategoryChildren(ctx context.Context, arg GetCategoryChildrenParams) ([]GetCategoryChildrenRow, error) {
@@ -251,10 +251,10 @@ RETURNING category_id, slug, title, description, parent_id, created_at, updated_
 `
 
 type UpdateCategoryParams struct {
-	Title       pgtype.Text
-	Description pgtype.Text
-	ParentID    pgtype.Int8
-	CategoryID  int64
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	ParentID    *int64  `json:"parent_id"`
+	CategoryID  int64   `json:"category_id"`
 }
 
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {

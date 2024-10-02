@@ -62,8 +62,8 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, 
 	}
 	params := db.UpdateProductParams{
 		ProductID:   *objID,
-		Title:       pgTextFromStringPointer(product.Title),
-		Description: pgTextFromStringPointer(product.Description),
+		Title:       product.Title,
+		Description: product.Description,
 	}
 	objDB, err := r.Repository.UpdateProduct(ctx, params)
 	if err != nil {
@@ -211,12 +211,17 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 		if err != nil {
 			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
 		}
+		attributes, err := unmarshalProductAttributes(objDB.Attributes)
+		if err != nil {
+			log.Fatalf("Failed to unmarshal product attributes: %v", err)
+		}
 		objs = append(objs, model.ProductVariant{
 			ID:                strconv.FormatInt(objDB.ProductVariationID, 10),
 			Slug:              objDB.Slug,
 			Description:       objDB.Description,
 			Price:             priceFloat64.Float64,
 			AvailableQuantity: int(objDB.AvailableQuantity),
+			Attributes:        attributes,
 			UpdatedAt:         objDB.UpdatedAt.Time,
 			CreatedAt:         objDB.CreatedAt.Time,
 		})

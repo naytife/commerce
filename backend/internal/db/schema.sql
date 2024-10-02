@@ -12,7 +12,7 @@ CREATE TABLE shops (
     shop_id BIGSERIAL PRIMARY KEY,
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
-    domain VARCHAR(50) UNIQUE NOT NULL CHECK (domain LIKE '%.%'),
+    domain VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(50) NOT NULL,
     currency_code VARCHAR(3) NOT NULL,
     status VARCHAR(10) NOT NULL,

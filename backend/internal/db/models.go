@@ -10,100 +10,100 @@ import (
 )
 
 type Category struct {
-	CategoryID         int64
-	Slug               string
-	Title              string
-	Description        pgtype.Text
-	ParentID           pgtype.Int8
-	CreatedAt          pgtype.Timestamptz
-	UpdatedAt          pgtype.Timestamptz
-	ShopID             int64
-	CategoryAttributes []byte
+	CategoryID         int64              `json:"category_id"`
+	Slug               string             `json:"slug"`
+	Title              string             `json:"title"`
+	Description        *string            `json:"description"`
+	ParentID           *int64             `json:"parent_id"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ShopID             int64              `json:"shop_id"`
+	CategoryAttributes []byte             `json:"category_attributes"`
 }
 
 type Facebook struct {
-	FacebookID int64
-	Handle     string
-	Url        string
-	ShopID     int64
+	FacebookID int64  `json:"facebook_id"`
+	Handle     string `json:"handle"`
+	Url        string `json:"url"`
+	ShopID     int64  `json:"shop_id"`
 }
 
 type Product struct {
-	ProductID         int64
-	Title             string
-	Description       string
-	AllowedAttributes []byte
-	CreatedAt         pgtype.Timestamptz
-	UpdatedAt         pgtype.Timestamptz
-	Status            string
-	CategoryID        int64
-	ShopID            int64
+	ProductID         int64              `json:"product_id"`
+	Title             string             `json:"title"`
+	Description       string             `json:"description"`
+	AllowedAttributes []byte             `json:"allowed_attributes"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Status            string             `json:"status"`
+	CategoryID        int64              `json:"category_id"`
+	ShopID            int64              `json:"shop_id"`
 }
 
 type ProductImage struct {
-	ProductImageID int64
-	Url            string
-	Alt            string
-	ProductID      int64
-	ShopID         int64
+	ProductImageID int64  `json:"product_image_id"`
+	Url            string `json:"url"`
+	Alt            string `json:"alt"`
+	ProductID      int64  `json:"product_id"`
+	ShopID         int64  `json:"shop_id"`
 }
 
 type ProductVariation struct {
-	ProductVariationID int64
-	Slug               string
-	Description        string
-	Price              pgtype.Numeric
-	AvailableQuantity  int64
-	Attributes         []byte
-	SeoDescription     pgtype.Text
-	SeoKeywords        []string
-	SeoTitle           pgtype.Text
-	CreatedAt          pgtype.Timestamptz
-	UpdatedAt          pgtype.Timestamptz
-	ProductID          int64
-	ShopID             int64
+	ProductVariationID int64              `json:"product_variation_id"`
+	Slug               string             `json:"slug"`
+	Description        string             `json:"description"`
+	Price              pgtype.Numeric     `json:"price"`
+	AvailableQuantity  int64              `json:"available_quantity"`
+	Attributes         []byte             `json:"attributes"`
+	SeoDescription     *string            `json:"seo_description"`
+	SeoKeywords        []string           `json:"seo_keywords"`
+	SeoTitle           *string            `json:"seo_title"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ProductID          int64              `json:"product_id"`
+	ShopID             int64              `json:"shop_id"`
 }
 
 type Shop struct {
-	ShopID         int64
-	OwnerID        uuid.UUID
-	Title          string
-	Domain         string
-	Email          string
-	CurrencyCode   string
-	Status         string
-	About          pgtype.Text
-	Address        pgtype.Text
-	PhoneNumber    pgtype.Text
-	SeoDescription pgtype.Text
-	SeoKeywords    []string
-	SeoTitle       pgtype.Text
-	UpdatedAt      pgtype.Timestamptz
-	CreatedAt      pgtype.Timestamptz
+	ShopID         int64              `json:"shop_id"`
+	OwnerID        uuid.UUID          `json:"owner_id"`
+	Title          string             `json:"title"`
+	Domain         string             `json:"domain"`
+	Email          string             `json:"email"`
+	CurrencyCode   string             `json:"currency_code"`
+	Status         string             `json:"status"`
+	About          *string            `json:"about"`
+	Address        *string            `json:"address"`
+	PhoneNumber    *string            `json:"phone_number"`
+	SeoDescription *string            `json:"seo_description"`
+	SeoKeywords    []string           `json:"seo_keywords"`
+	SeoTitle       *string            `json:"seo_title"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
 type ShopImage struct {
-	ShopImageID   int64
-	FaviconUrl    pgtype.Text
-	LogoUrl       pgtype.Text
-	BannerUrl     pgtype.Text
-	CoverImageUrl pgtype.Text
-	ShopID        int64
+	ShopImageID   int64   `json:"shop_image_id"`
+	FaviconUrl    *string `json:"favicon_url"`
+	LogoUrl       *string `json:"logo_url"`
+	BannerUrl     *string `json:"banner_url"`
+	CoverImageUrl *string `json:"cover_image_url"`
+	ShopID        int64   `json:"shop_id"`
 }
 
 type User struct {
-	UserID            uuid.UUID
-	Auth0Sub          pgtype.Text
-	Email             string
-	Name              pgtype.Text
-	ProfilePictureUrl pgtype.Text
-	CreatedAt         pgtype.Timestamp
-	LastLogin         pgtype.Timestamp
+	UserID            uuid.UUID        `json:"user_id"`
+	Auth0Sub          *string          `json:"auth0_sub"`
+	Email             string           `json:"email"`
+	Name              *string          `json:"name"`
+	ProfilePictureUrl *string          `json:"profile_picture_url"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	LastLogin         pgtype.Timestamp `json:"last_login"`
 }
 
 type Whatsapp struct {
-	WhatsappID  int64
-	PhoneNumber string
-	Url         string
-	ShopID      int64
+	WhatsappID  int64  `json:"whatsapp_id"`
+	PhoneNumber string `json:"phone_number"`
+	Url         string `json:"url"`
+	ShopID      int64  `json:"shop_id"`
 }
