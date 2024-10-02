@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/sirupsen/logrus"
@@ -41,7 +40,7 @@ type Repository interface {
 	SetShopIDInSession(ctx context.Context, shopID int64) error
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
-	GetUser(ctx context.Context, auth0Sub pgtype.Text) (User, error)
+	GetUser(ctx context.Context, auth0Sub *string) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)

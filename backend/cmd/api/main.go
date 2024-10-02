@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/petrejonn/naytife/config"
+	"github.com/petrejonn/naytife/internal/api/routes"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph"
 	"github.com/petrejonn/naytife/internal/middleware"
@@ -38,22 +39,19 @@ func main() {
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	// JWT and ShopID middlewares
-	api := app.Group("/api", middleware.ShopIDMiddlewareFiber(repo))
+	// Middleware
+	api := app.Group("/api")
 
 	// GraphQL handlers (using the same resolver logic)
-	api.All("/query", graph.NewHandler(repo))
+	graphql := api.Group("/query", middleware.ShopIDMiddlewareFiber(repo))
+	graphql.All("/", graph.NewHandler(repo))
 
-	// Playground for testing
+	// REST endpoints with versioning (e.g., /api/v1/shops)
+	rest := api.Group("/v1")
+	routes.ShopRouter(rest, repo)
+
+	// Playground for testing GraphQL queries
 	app.Get("/", graph.NewPlaygroundHandler("/api/query"))
-
-	// REST endpoint: Add a store
-	api.Post("/store", func(c *fiber.Ctx) error {
-		// Your logic to add a store
-		return c.JSON(fiber.Map{
-			"message": "Store added successfully",
-		})
-	})
 
 	// Start the server
 	address := ":" + env.PORT

@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"github.com/gosimple/slug"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
@@ -26,11 +25,11 @@ func (r *categoryResolver) ID(ctx context.Context, obj *model.Category) (string,
 // Children is the resolver for the children field.
 func (r *categoryResolver) Children(ctx context.Context, obj *model.Category) ([]model.Category, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	catID, err := strconv.Atoi(obj.ID)
+	catID, err := strconv.ParseInt(obj.ID, 10, 64)
 	if err != nil {
 		return nil, errors.New("invalid category")
 	}
-	categoriesDB, err := r.Repository.GetCategoryChildren(ctx, db.GetCategoryChildrenParams{ShopID: shopID, ParentID: pgtype.Int8{Int64: int64(catID), Valid: true}})
+	categoriesDB, err := r.Repository.GetCategoryChildren(ctx, db.GetCategoryChildrenParams{ShopID: shopID, ParentID: &catID})
 	if err != nil {
 		return nil, errors.New("could not fetch categories")
 	}
@@ -41,7 +40,7 @@ func (r *categoryResolver) Children(ctx context.Context, obj *model.Category) ([
 			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
-			Description: cat.Description.String,
+			Description: cat.Description,
 			CreatedAt:   cat.CreatedAt.Time,
 			UpdatedAt:   cat.UpdatedAt.Time,
 		})
@@ -139,7 +138,7 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 	shopID := ctx.Value("shop_id").(int64)
 	param := db.CreateCategoryParams{
 		Title:       category.Title,
-		Description: pgtype.Text{String: category.Description, Valid: true},
+		Description: category.Description,
 		Slug:        slug.MakeLang(category.Title, "en"),
 		ShopID:      shopID,
 	}
@@ -165,7 +164,7 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
-			Description: cat.Description.String,
+			Description: cat.Description,
 			CreatedAt:   cat.CreatedAt.Time,
 			UpdatedAt:   cat.UpdatedAt.Time,
 		}}, nil
@@ -179,8 +178,8 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 	}
 	params := db.UpdateCategoryParams{
 		CategoryID:  *catId,
-		Title:       pgTextFromStringPointer(category.Title),
-		Description: pgTextFromStringPointer(category.Description),
+		Title:       category.Title,
+		Description: category.Description,
 	}
 
 	if category.ParentID != nil {
@@ -188,7 +187,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 		if err != nil {
 			return nil, errors.New("could not find parent category")
 		}
-		params.ParentID = pgtype.Int8{Int64: *id, Valid: true}
+		params.ParentID = id
 	}
 
 	dbCat, err := r.Repository.UpdateCategory(ctx, params)
@@ -200,7 +199,7 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 			ID:          strconv.FormatInt(dbCat.CategoryID, 10),
 			Slug:        dbCat.Slug,
 			Title:       dbCat.Title,
-			Description: dbCat.Description.String,
+			Description: dbCat.Description,
 			CreatedAt:   dbCat.CreatedAt.Time,
 			UpdatedAt:   dbCat.UpdatedAt.Time,
 		}}, nil
@@ -285,7 +284,7 @@ func (r *queryResolver) Categories(ctx context.Context, first *int, after *strin
 			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
-			Description: cat.Description.String,
+			Description: cat.Description,
 			CreatedAt:   cat.CreatedAt.Time,
 			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
@@ -326,7 +325,7 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 		ID:          strconv.FormatInt(cat.CategoryID, 10),
 		Slug:        cat.Slug,
 		Title:       cat.Title,
-		Description: cat.Description.String,
+		Description: cat.Description,
 		CreatedAt:   cat.CreatedAt.Time,
 		UpdatedAt:   cat.UpdatedAt.Time,
 	}, nil

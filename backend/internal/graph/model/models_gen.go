@@ -100,7 +100,7 @@ type Category struct {
 	ID                string                      `json:"id"`
 	Slug              string                      `json:"slug"`
 	Title             string                      `json:"title"`
-	Description       string                      `json:"description"`
+	Description       *string                     `json:"description,omitempty"`
 	Children          []Category                  `json:"children,omitempty"`
 	Products          *ProductConnection          `json:"products,omitempty"`
 	AllowedAttributes []AllowedCategoryAttributes `json:"allowedAttributes"`
@@ -169,7 +169,7 @@ func (CreateCategoryAttributeSuccess) IsCreateCategoryAttributePayload() {}
 type CreateCategoryInput struct {
 	ParentID    *string `json:"parentID,omitempty"`
 	Title       string  `json:"title"`
-	Description string  `json:"description"`
+	Description *string `json:"description,omitempty"`
 }
 
 type CreateCategorySuccess struct {

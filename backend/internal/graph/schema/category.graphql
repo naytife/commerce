@@ -33,7 +33,7 @@ type CategoryEdge {
 input CreateCategoryInput {
   parentID: ID
   title: String!
-  description: String!
+  description: String
 }
 input UpdateCategoryInput {
   parentID: ID
@@ -73,7 +73,7 @@ type Category implements Node {
   id: ID!
   slug: String!
   title: String!
-  description: String!
+  description: String
   children: [Category!]
   products(first: Int = 20, after: ID): ProductConnection
   allowedAttributes: [AllowedCategoryAttributes!]!

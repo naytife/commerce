@@ -91,6 +91,18 @@ func unmarshalAllowedProductAttributes(attributesDB []byte) ([]model.AllowedProd
 
 	return attributes, nil
 }
+func unmarshalProductAttributes(attributesDB []byte) ([]model.ProductAttribute, error) {
+	var attributes []model.ProductAttribute
+
+	// Attempt to unmarshal the attributesDB JSON into the attributes slice
+	err := json.Unmarshal(attributesDB, &attributes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal product attributes: %w", err)
+	}
+
+	// Return the slice of attributes and nil (no error)
+	return attributes, nil
+}
 
 func isValidE164(phoneNumber string) bool {
 	e164Regex := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)

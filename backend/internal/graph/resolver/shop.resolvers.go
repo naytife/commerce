@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
@@ -19,7 +18,7 @@ import (
 // CreateShop is the resolver for the createShop field.
 func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (model.CreateShopPayload, error) {
 	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
-	owner, err := r.Repository.GetUser(ctx, pgtype.Text{String: fakeAuthSub, Valid: true})
+	owner, err := r.Repository.GetUser(ctx, &fakeAuthSub)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
@@ -54,14 +53,14 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 	}
 	params := db.UpdateShopParams{
 		ShopID:         shopID,
-		Title:          pgTextFromStringPointer(shop.Title),        // Pass the pointer, no need to dereference here
-		CurrencyCode:   pgTextFromStringPointer(shop.CurrencyCode), // Pass the pointer
-		About:          pgTextFromStringPointer(shop.About),
-		SeoTitle:       pgTextFromStringPointer(shop.SeoTitle),
-		SeoDescription: pgTextFromStringPointer(shop.SeoDescription),
-		Email:          pgTextFromStringPointer(shop.ContactEmail),
-		PhoneNumber:    pgTextFromStringPointer(&shop.ContactPhone.E164),
-		Address:        pgTextFromStringPointer(&shop.Address.Address),
+		Title:          shop.Title,        // Pass the pointer, no need to dereference here
+		CurrencyCode:   shop.CurrencyCode, // Pass the pointer
+		About:          shop.About,
+		SeoTitle:       shop.SeoTitle,
+		SeoDescription: shop.SeoDescription,
+		Email:          shop.ContactEmail,
+		PhoneNumber:    &shop.ContactPhone.E164,
+		Address:        &shop.Address.Address,
 	}
 
 	dbShop, err := r.Repository.UpdateShop(ctx, params)
@@ -74,15 +73,15 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, shop model.UpdateShop
 		Status:         model.ShopStatus(dbShop.Status),
 		Title:          dbShop.Title,
 		DefaultDomain:  dbShop.Domain,
-		About:          &dbShop.About.String,
-		SeoTitle:       &dbShop.SeoTitle.String,
-		SeoDescription: &dbShop.SeoDescription.String,
+		About:          dbShop.About,
+		SeoTitle:       dbShop.SeoTitle,
+		SeoDescription: dbShop.SeoDescription,
 		ContactEmail:   &dbShop.Email,
 		ContactPhone: &model.PhoneNumber{
-			E164: dbShop.PhoneNumber.String,
+			E164: safeStringDereference(dbShop.PhoneNumber),
 		},
 		Address: &model.ShopAddress{
-			Address: dbShop.Address.String,
+			Address: safeStringDereference(dbShop.Address),
 		},
 	}}, nil
 }
@@ -147,17 +146,17 @@ func (r *queryResolver) Shop(ctx context.Context) (*model.Shop, error) {
 		DefaultDomain:  shop.Domain,
 		CurrencyCode:   shop.CurrencyCode,
 		Status:         model.ShopStatus(shop.Status),
-		About:          &shop.About.String,
-		SeoDescription: &shop.SeoDescription.String,
-		SeoTitle:       &shop.SeoTitle.String,
+		About:          shop.About,
+		SeoDescription: shop.SeoDescription,
+		SeoTitle:       shop.SeoTitle,
 		UpdatedAt:      shop.UpdatedAt.Time,
 		CreatedAt:      shop.CreatedAt.Time,
 		ContactEmail:   &shop.Email,
 		ContactPhone: &model.PhoneNumber{
-			E164: shop.PhoneNumber.String,
+			E164: safeStringDereference(shop.PhoneNumber),
 		},
 		Address: &model.ShopAddress{
-			Address: shop.Address.String,
+			Address: safeStringDereference(shop.Address),
 		},
 	}, nil
 }
@@ -263,7 +262,7 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 			ID:          strconv.FormatInt(cat.CategoryID, 10),
 			Slug:        cat.Slug,
 			Title:       cat.Title,
-			Description: cat.Description.String,
+			Description: cat.Description,
 			CreatedAt:   cat.CreatedAt.Time,
 			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
@@ -323,10 +322,10 @@ func (r *shopResolver) Images(ctx context.Context, obj *model.Shop) (*model.Shop
 		return nil, fmt.Errorf("internal server error %w", err)
 	}
 	return &model.ShopImages{
-		SiteLogo:   &model.Image{URL: imagesDB.LogoUrl.String, AltText: nil},
-		Favicon:    &model.Image{URL: imagesDB.FaviconUrl.String, AltText: nil},
-		Banner:     &model.Image{URL: imagesDB.BannerUrl.String, AltText: nil},
-		CoverImage: &model.Image{URL: imagesDB.CoverImageUrl.String, AltText: nil},
+		SiteLogo:   &model.Image{URL: safeStringDereference(imagesDB.LogoUrl), AltText: nil},
+		Favicon:    &model.Image{URL: safeStringDereference(imagesDB.FaviconUrl), AltText: nil},
+		Banner:     &model.Image{URL: safeStringDereference(imagesDB.BannerUrl), AltText: nil},
+		CoverImage: &model.Image{URL: safeStringDereference(imagesDB.CoverImageUrl), AltText: nil},
 	}, nil
 }
 
