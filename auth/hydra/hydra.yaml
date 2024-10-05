@@ -1,0 +1,21 @@
+hydra:
+  config:
+    dsn: postgres://naytife:naytifekey@postgres.default.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
+    urls:
+      self:
+        issuer: http://127.0.0.1:4444
+      consent: http://127.0.0.1:3000/consent
+      login: http://127.0.0.1:3000/login
+      logout: http://127.0.0.1:3000/logout
+
+    oidc:
+      subject_identifiers:
+        supported_types:
+          - pairwise
+          - public
+        pairwise:
+          salt: youReallyNeedToChangeThis
+  automigration:
+    enabled: true
+  dev: true
+  dangerousForceHttp: true
