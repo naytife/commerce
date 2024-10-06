@@ -152,7 +152,7 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 		if err != nil {
 			return nil, errors.New("could not find parent category")
 		}
-		param.ParentID = parent.ParentID
+		param.ParentID = &parent.CategoryID
 		param.CategoryAttributes = parent.CategoryAttributes
 	}
 	cat, err := r.Repository.CreateCategory(ctx, param)
