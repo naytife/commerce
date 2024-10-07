@@ -3,18 +3,21 @@
 	import ListFilter from 'lucide-svelte/icons/list-filter';
 	import Ellipsis from 'lucide-svelte/icons/ellipsis';
 	import CirclePlus from 'lucide-svelte/icons/circle-plus';
+	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { page } from '$app/stores';
+	import type { PageData } from './$types';
 
-	/* @type { import('./$houdini').PageData } */
-	export let data; //../$types.js;
-	$: ({ ProductsQuery } = data);
+	export let data: PageData;
+
 	let storeId = $page.params.store;
+	$: ({ Products } = data);
+	$: console.log(Products);
+	$: console.log($Products?.data?.products?.edges);
 </script>
 
 <div>
@@ -62,44 +65,46 @@
 						</Card.Description>
 					</Card.Header>
 					<Card.Content>
-						{#if $ProductsQuery.fetching}
-							loading...
-						{:else}
-							<Table.Root>
-								<Table.Header>
-									<Table.Row>
-										<Table.Head class="hidden w-[100px] sm:table-cell">
-											<span class="sr-only">Image</span>
-										</Table.Head>
-										<Table.Head>Name</Table.Head>
-										<Table.Head>Status</Table.Head>
-										<Table.Head>Price</Table.Head>
-										<Table.Head class="hidden md:table-cell">Total Sales</Table.Head>
-										<Table.Head class="hidden md:table-cell">Created at</Table.Head>
-										<Table.Head>
-											<span class="sr-only">Actions</span>
-										</Table.Head>
-									</Table.Row>
-								</Table.Header>
-								<Table.Body>
-									{#each $ProductsQuery.data.allProducts.nodes as product, idx (idx)}
+						<Table.Root>
+							<Table.Header>
+								<Table.Row>
+									<Table.Head class="hidden w-[100px] sm:table-cell">
+										<span class="sr-only">Image</span>
+									</Table.Head>
+									<Table.Head>Name</Table.Head>
+									<Table.Head>Status</Table.Head>
+									<Table.Head>Price</Table.Head>
+									<Table.Head class="hidden md:table-cell">Total Sales</Table.Head>
+									<Table.Head class="hidden md:table-cell">Created at</Table.Head>
+									<Table.Head>
+										<span class="sr-only">Actions</span>
+									</Table.Head>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body>
+								{#if $Products?.data?.products?.edges}
+									{#each $Products.data.products.edges as { node: product }, idx (idx)}
 										<Table.Row>
 											<Table.Cell class="hidden sm:table-cell">
 												<img
 													alt="Product example"
 													class="aspect-square rounded-md object-cover"
 													height="64"
-													src="/images/placeholder.png"
 													width="64"
+													src="/images/placeholder.png"
 												/>
 											</Table.Cell>
-											<Table.Cell class="font-medium">{product.title}</Table.Cell>
+											<Table.Cell class="font-medium">{product?.title || 'Untitled'}</Table.Cell>
 											<Table.Cell>
-												<Badge variant="outline">{product.status}</Badge>
+												<Badge variant="outline">{product?.status || 'Unknown'}</Badge>
 											</Table.Cell>
-											<Table.Cell>{product.productVariationByDefaultVariantId.price}</Table.Cell>
+											<Table.Cell>
+												{product?.productVariationByDefaultVariantId?.price || 'N/A'}
+											</Table.Cell>
 											<Table.Cell class="hidden md:table-cell">25</Table.Cell>
-											<Table.Cell class="hidden md:table-cell">{product.createdAt}</Table.Cell>
+											<Table.Cell class="hidden md:table-cell">
+												{new Date(product?.createdAt).toLocaleDateString() || 'N/A'}
+											</Table.Cell>
 											<Table.Cell>
 												<DropdownMenu.Root>
 													<DropdownMenu.Trigger asChild let:builder>
@@ -115,18 +120,20 @@
 													</DropdownMenu.Trigger>
 													<DropdownMenu.Content align="end">
 														<DropdownMenu.Label>Actions</DropdownMenu.Label>
-														<DropdownMenu.Item href="/admin/{storeId}/p/{product.rowId}/"
-															>Edit</DropdownMenu.Item
-														>
+														<DropdownMenu.Item href="/admin/{storeId}/p/{product?.id || ''}/">
+															Edit
+														</DropdownMenu.Item>
 														<DropdownMenu.Item>Delete</DropdownMenu.Item>
 													</DropdownMenu.Content>
 												</DropdownMenu.Root>
 											</Table.Cell>
 										</Table.Row>
 									{/each}
-								</Table.Body>
-							</Table.Root>
-						{/if}
+								{:else}
+									<p>Loading...</p>
+								{/if}
+							</Table.Body>
+						</Table.Root>
 					</Card.Content>
 					<Card.Footer>
 						<div class="text-xs text-muted-foreground">
