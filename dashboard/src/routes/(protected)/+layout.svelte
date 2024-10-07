@@ -8,6 +8,7 @@
 		Search,
 		Settings,
 		ShoppingCart,
+		Workflow,
 		UsersRound
 	} from 'lucide-svelte';
 
@@ -73,6 +74,20 @@
 					</a>
 				</Tooltip.Trigger>
 				<Tooltip.Content side="right">Products</Tooltip.Content>
+			</Tooltip.Root>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild let:builder>
+					<a
+						href="/admin/{storeId}/categories"
+						class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+						use:builder.action
+						{...builder}
+					>
+						<Workflow class="h-5 w-5" />
+						<span class="sr-only">Categories</span>
+					</a>
+				</Tooltip.Trigger>
+				<Tooltip.Content side="right">Categories</Tooltip.Content>
 			</Tooltip.Root>
 			<!-- <Tooltip.Root>
 				<Tooltip.Trigger asChild let:builder>
@@ -174,6 +189,12 @@
 							<LineChart class="h-5 w-5" />
 							Settings
 						</a>
+						<a
+							href="/admin/{storeId}/categories"
+							class="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+						>
+							<Workflow class="h-5 w-5" /> Categories
+						</a>
 					</nav>
 				</Sheet.Content>
 			</Sheet.Root>
@@ -185,6 +206,10 @@
 					<Breadcrumb.Separator />
 					<Breadcrumb.Item>
 						<Breadcrumb.Link href="/admin/{storeId}/products">Products</Breadcrumb.Link>
+					</Breadcrumb.Item>
+					<Breadcrumb.Separator />
+					<Breadcrumb.Item>
+						<Breadcrumb.Link href="/admin/{storeId}/categories">Categories</Breadcrumb.Link>
 					</Breadcrumb.Item>
 					<Breadcrumb.Separator />
 					<Breadcrumb.Item>
