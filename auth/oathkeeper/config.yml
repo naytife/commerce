@@ -4,25 +4,6 @@ oathkeeper:
       matching_strategy: glob
       repositories:
         - file:///etc/rules/access-rules.json 
-    serve:
-      proxy:
-        cors:
-          enabled: true
-          allowed_origins:
-            - http://127.0.0.1:8080
-          allowed_methods:
-            - POST
-            - GET
-            - PUT
-            - PATCH
-            - DELETE
-          allowed_headers:
-            - Authorization
-            - Content-Type
-          exposed_headers:
-            - Content-Type
-          allow_credentials: true
-          debug: true
 
     errors:
       fallback:
