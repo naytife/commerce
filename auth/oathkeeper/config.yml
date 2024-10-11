@@ -14,6 +14,18 @@ oathkeeper:
           enabled: true
           config:
             verbose: true
+        redirect:
+          enabled: true
+          config:
+            to: http://127.0.0.1:4455/login
+            when:
+              - error:
+                  - unauthorized
+                  - forbidden
+                request:
+                  header:
+                    accept:
+                      - text/html
 
     authenticators:
       anonymous:
@@ -23,6 +35,16 @@ oathkeeper:
 
       noop:
         enabled: true
+
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: http://kratos:4433/sessions/whoami
+          preserve_path: true
+          extra_from: "@this"
+          subject_from: "identity.id"
+          only:
+            - ory_kratos_session
 
     authorizers:
       allow:
