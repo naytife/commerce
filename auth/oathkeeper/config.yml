@@ -36,15 +36,56 @@ oathkeeper:
       noop:
         enabled: true
 
-      cookie_session:
+      oauth2_introspection:
         enabled: true
         config:
-          check_session_url: http://kratos:4433/sessions/whoami
-          preserve_path: true
-          extra_from: "@this"
-          subject_from: "identity.id"
-          only:
-            - ory_kratos_session
+          introspection_url: https://my-website.com/oauth2/introspection
+          scope_strategy: exact
+          required_scope:
+            - photo
+            - profile
+          target_audience:
+            - example_audience
+          trusted_issuers:
+            - https://my-website.com/
+          pre_authorization:
+            enabled: true
+            client_id: some_id
+            client_secret: some_secret
+            scope:
+              - introspect
+            token_url: https://my-website.com/oauth2/token
+          token_from:
+            header: Custom-Authorization-Header
+
+          introspection_request_headers:
+            x-forwarded-proto: https
+          retry:
+            max_delay: 300ms
+            give_up_after: 2s
+          cache:
+            enabled: true
+            ttl: 60s
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - https://my-website.com/.well-known/jwks.json
+            - https://my-other-website.com/.well-known/jwks.json
+            - file://path/to/local/jwks.json
+          scope_strategy: none
+          required_scope:
+            - scope-a
+            - scope-b
+          target_audience:
+            - https://my-service.com/api/users
+            - https://my-service.com/api/devices
+          trusted_issuers:
+            - https://my-issuer.com/
+          allowed_algorithms:
+            - RS256
+          token_from:
+            header: Custom-Authorization-Header
 
     authorizers:
       allow:
