@@ -4,9 +4,9 @@ hydra:
     urls:
       self:
         issuer: http://127.0.0.1:4444
-      consent: http://127.0.0.1:3000/consent
-      login: http://127.0.0.1:3000/login
-      logout: http://127.0.0.1:3000/logout
+      consent: http://example-idp.local/consent
+      login: http://example-idp.local/login
+      logout: http://example-idp.local/logout
 
     oidc:
       subject_identifiers:
@@ -19,3 +19,18 @@ hydra:
     enabled: true
   dev: true
   dangerousForceHttp: true
+ingress:
+  public:
+    enabled: true
+    hosts:
+      - host: public.hydra.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+  admin:
+    enabled: true
+    hosts:
+      - host: admin.hydra.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
