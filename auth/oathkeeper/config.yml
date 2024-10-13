@@ -17,7 +17,7 @@ oathkeeper:
         redirect:
           enabled: true
           config:
-            to: http://127.0.0.1:4455/login
+            to: http://127.0.0.1:3000/login  # Hydra's login page
             when:
               - error:
                   - unauthorized
@@ -39,27 +39,22 @@ oathkeeper:
       oauth2_introspection:
         enabled: true
         config:
-          introspection_url: https://my-website.com/oauth2/introspection
+          introspection_url: http://hydra:4445/oauth2/introspect
           scope_strategy: exact
-          required_scope:
-            - photo
-            - profile
-          target_audience:
-            - example_audience
+          required_scope:  # You can use this to enforce broad scope checks, but Keto may handle finer-grained access control
+            - hydra.openid
+            - offline
           trusted_issuers:
-            - https://my-website.com/
+            - http://127.0.0.1:4444
           pre_authorization:
             enabled: true
-            client_id: some_id
-            client_secret: some_secret
+            client_id: your-hydra-client-id
+            client_secret: your-hydra-client-secret
             scope:
               - introspect
-            token_url: https://my-website.com/oauth2/token
+            token_url: http://hydra:4444/oauth2/token
           token_from:
-            header: Custom-Authorization-Header
-
-          introspection_request_headers:
-            x-forwarded-proto: https
+            header: Authorization 
           retry:
             max_delay: 300ms
             give_up_after: 2s
@@ -70,26 +65,19 @@ oathkeeper:
         enabled: true
         config:
           jwks_urls:
-            - https://my-website.com/.well-known/jwks.json
-            - https://my-other-website.com/.well-known/jwks.json
-            - file://path/to/local/jwks.json
-          scope_strategy: none
-          required_scope:
-            - scope-a
-            - scope-b
-          target_audience:
-            - https://my-service.com/api/users
-            - https://my-service.com/api/devices
-          trusted_issuers:
-            - https://my-issuer.com/
+            - http://127.0.0.1:4444/.well-known/jwks.json  # This URL exposes Hydra's keys for verifying JWTs
           allowed_algorithms:
             - RS256
-          token_from:
-            header: Custom-Authorization-Header
+          trusted_issuers:
+            - http://127.0.0.1:4444
 
     authorizers:
       allow:
         enabled: true
+      keto_engine_acp_ory:
+        enabled: false
+        config:
+          base_url: http://keto:4466/engines/acp/ory/exact
 
     mutators:
       noop:
