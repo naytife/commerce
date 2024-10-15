@@ -1,3 +1,7 @@
+image:
+  repository: oryd/hydra-login-consent-node
+  tag: v2.2.0
+  pullPolicy: IfNotPresent
 ingress:
   enabled: true
   className: ""
