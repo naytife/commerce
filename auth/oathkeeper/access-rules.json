@@ -6,7 +6,7 @@
       "url": "http://192.168.49.1:8000"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/<**>",
+      "url": "http://<*>.localhost:8080/",
       "methods": [
         "GET",
         "POST"
@@ -33,7 +33,7 @@
       "url": "http://192.168.49.1:8000"
     },
     "match": {
-      "url": "http://<[^/]+>/api/query",
+      "url": "http://<*>.localhost:8080/api/<**>",
       "methods": [
         "GET",
         "POST"
@@ -41,7 +41,7 @@
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection"
       }
     ],
     "authorizer": {
