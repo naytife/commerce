@@ -39,9 +39,9 @@ oathkeeper:
       oauth2_introspection:
         enabled: true
         config:
-          introspection_url: http://hydra-admin.naytife-ory:4445/oauth2/introspect
+          introspection_url: http://admin.hydra.local/oauth2/introspect
           scope_strategy: exact
-          required_scope:  # You can use this to enforce broad scope checks, but Keto may handle finer-grained access control
+          required_scope:
             - hydra.openid
             - offline
           trusted_issuers:
@@ -52,7 +52,7 @@ oathkeeper:
             client_secret: BAts69P4NE39ghbEu0CNeOE5Pt
             scope:
               - introspect
-            token_url: http://public.hydra.local/oauth2/token
+            token_url: http://hydra-public.naytife-ory.svc.cluster.local:4444/oauth2/token
           token_from:
             header: Authorization 
           retry:
