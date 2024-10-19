@@ -1,12 +1,12 @@
 hydra:
   config:
-    dsn: postgres://naytife:naytifekey@postgres.default.svc.cluster.local:5432/naytifedb?search_path=hydra2&sslmode=disable
+    dsn: postgres://naytife:naytifekey@postgres.default.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
     urls:
       self:
         issuer: http://public.hydra.local
         admin: http://hydra-admin.naytife-ory.svc.cluster.local:4445
       consent: http://example-idp.local/consent
-      login: http://example-idp.local/login
+      login: https://accounts.google.com/o/oauth2/v2/auth
       logout: http://example-idp.local/logout
 
     oidc:

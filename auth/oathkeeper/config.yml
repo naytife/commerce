@@ -6,7 +6,7 @@ oathkeeper:
     access_rules:
       matching_strategy: glob
       repositories:
-        - file:///etc/rules/access-rules.json 
+        - file:///etc/rules/access-rules.json
 
     errors:
       fallback:
@@ -20,7 +20,7 @@ oathkeeper:
         redirect:
           enabled: true
           config:
-            to: http://example-idp.local/login  # Hydra's login page
+            to: http://example-idp.local/login # Hydra's login page
             when:
               - error:
                   - unauthorized
@@ -51,13 +51,13 @@ oathkeeper:
             - http://public.hydra.local
           pre_authorization:
             enabled: true
-            client_id: 95a886f5-b311-4b15-b557-4457b8c28695
-            client_secret: GnWGz7AoYapzYt9fV8W_THgdEd
+            client_id: 50d1bd9a-a480-491a-b4a3-05307c4aeb43
+            client_secret: B7tjVNKXD40xv2NRtRcE7m.Noh
             scope:
               - introspect
             token_url: http://hydra-public.naytife-ory.svc.cluster.local:4444/oauth2/token
           token_from:
-            header: Authorization 
+            header: Authorization
           retry:
             max_delay: 300ms
             give_up_after: 2s
@@ -68,7 +68,7 @@ oathkeeper:
         enabled: true
         config:
           jwks_urls:
-            - http://public.hydra.local/.well-known/jwks.json  # This URL exposes Hydra's keys for verifying JWTs
+            - http://public.hydra.local/.well-known/jwks.json # This URL exposes Hydra's keys for verifying JWTs
           allowed_algorithms:
             - RS256
           trusted_issuers:
