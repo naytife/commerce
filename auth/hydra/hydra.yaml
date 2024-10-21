@@ -5,9 +5,13 @@ hydra:
       self:
         issuer: http://public.hydra.local
         admin: http://hydra-admin.naytife-ory.svc.cluster.local:4445
-      consent: http://example-idp.local/consent
-      login: https://accounts.google.com/o/oauth2/v2/auth
-      logout: http://example-idp.local/logout
+      login: http://127.0.0.1:3000/login
+      logout: http://127.0.0.1:3000/logout
+      consent: http://127.0.0.1:3000/consent
+
+    secrets:
+      system:
+        - "OG5XbmxXa3dYeGplQXpQanYxeEFuRUFa"
 
     oidc:
       subject_identifiers:
