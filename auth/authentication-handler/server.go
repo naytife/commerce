@@ -196,7 +196,7 @@ func fetchUserInfo(client *http.Client) (*GoogleUserInfo, error) {
 type GoogleUserInfo struct {
 	ID           string `json:"id"`
 	Email        string `json:"email"`
-	VerifieEmail string `json:"verified_email"`
+	VerifieEmail bool   `json:"verified_email"`
 	Name         string `json:"name"`
 	GivenName    string `json:"given_name"`
 	FamilyName   string `json:"family_name"`
