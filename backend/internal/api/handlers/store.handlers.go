@@ -5,16 +5,6 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-// Handler struct with the repository
-type Handler struct {
-	Repository db.Repository
-}
-
-// NewHandler returns a handler with a repository
-func NewHandler(repo db.Repository) *Handler {
-	return &Handler{Repository: repo}
-}
-
 // GetCategory handler for REST API
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
