@@ -1,9 +1,11 @@
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),           
-    auth0_sub VARCHAR(255) UNIQUE,        
+    provider VARCHAR(255),        
+    provider_id VARCHAR(255) UNIQUE,        
     email VARCHAR(255) NOT NULL,          
-    name VARCHAR(255),                    
-    profile_picture_url TEXT,             
+    name VARCHAR(255),   
+    locale VARCHAR(255),                 
+    profile_picture TEXT,             
     created_at TIMESTAMP DEFAULT NOW(),   
     last_login TIMESTAMP                  
 );
