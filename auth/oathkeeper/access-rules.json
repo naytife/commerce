@@ -3,18 +3,22 @@
     "id": "api:graph-playground",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://192.168.49.1:8000",
+      "strip_path": "/api"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/",
+      "url": "http://<*>.127.0.0.1:8080/api/v1/",
       "methods": [
         "GET",
-        "POST"
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
       ]
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_introspection"
       }
     ],
     "authorizer": {
@@ -30,13 +34,119 @@
     "id": "api:graph-query",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://192.168.49.1:8000",
+      "strip_path": "/api"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/<**>",
+      "url": "http://<*>.127.0.0.1:8080/api/query",
       "methods": [
         "GET",
         "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:auth-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://public.hydra.local/oauth2/auth"
+    },
+    "match": {
+      "url": "http://<*>.127.0.0.1:8080/oauth2/auth",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:token-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://public.hydra.local/oauth2/token"
+    },
+    "match": {
+      "url": "http://<*>.127.0.0.1:8080/oauth2/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:userinfo-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://public.hydra.local/userinfo"
+    },
+    "match": {
+      "url": "http://<*>.127.0.0.1:8080/userinfo",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:logout-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://public.hydra.local/oauth2/sessions/logout"
+    },
+    "match": {
+      "url": "http://<*>.127.0.0.1:8080/oauth2/sessions/logout",
+      "methods": [
+        "GET"
       ]
     },
     "authenticators": [
