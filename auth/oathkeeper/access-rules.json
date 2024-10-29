@@ -151,7 +151,13 @@
     },
     "authenticators": [
       {
-        "handler": "anonymous"
+        "handler": "oauth2_client_credentials",
+        "config": {
+          "required_scope": [
+            "hydra.openid",
+            "offline"
+          ]
+        }
       }
     ],
     "authorizer": {

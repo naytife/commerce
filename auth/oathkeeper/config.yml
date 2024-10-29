@@ -64,6 +64,10 @@ oathkeeper:
           cache:
             enabled: true
             ttl: 60s
+      oauth2_client_credentials:
+        enabled: true
+        config:
+          token_url: http://hydra-public.naytife-ory:4444/oauth2/token
       jwt:
         enabled: true
         config:
