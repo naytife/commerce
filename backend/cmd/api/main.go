@@ -39,15 +39,12 @@ func main() {
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	// Middleware
-	api := app.Group("/api")
-
 	// GraphQL handlers (using the same resolver logic)
-	graphql := api.Group("/query", middleware.ShopIDMiddlewareFiber(repo))
+	graphql := app.Group("/query", middleware.ShopIDMiddlewareFiber(repo))
 	graphql.All("/", graph.NewHandler(repo))
 
 	// REST endpoints with versioning (e.g., /api/v1/shops)
-	rest := api.Group("/v1")
+	rest := app.Group("/v1")
 	routes.ShopRouter(rest, repo)
 
 	// Playground for testing GraphQL queries

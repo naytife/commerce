@@ -48,11 +48,11 @@ oathkeeper:
             - hydra.openid
             - offline
           trusted_issuers:
-            - http://public.hydra.local
+            - http://127.0.0.1:8080
           pre_authorization:
             enabled: true
-            client_id: 50d1bd9a-a480-491a-b4a3-05307c4aeb43
-            client_secret: B7tjVNKXD40xv2NRtRcE7m.Noh
+            client_id: 3a9a5ae2-e6a3-4774-afae-6ebe1d0ca2c1
+            client_secret: yQt.DfWQWfAosPOpU4spO9Zx19
             scope:
               - introspect
             token_url: http://hydra-public.naytife-ory.svc.cluster.local:4444/oauth2/token
@@ -68,11 +68,11 @@ oathkeeper:
         enabled: true
         config:
           jwks_urls:
-            - http://public.hydra.local/.well-known/jwks.json # This URL exposes Hydra's keys for verifying JWTs
+            - http://hydra-public.naytife-ory:4444/.well-known/jwks.json # This URL exposes Hydra's keys for verifying JWTs
           allowed_algorithms:
             - RS256
           trusted_issuers:
-            - http://public.hydra.local
+            - http://hydra-public.naytife-ory:4444
 
     authorizers:
       allow:

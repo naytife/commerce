@@ -1,13 +1,13 @@
 [
   {
-    "id": "api:graph-playground",
+    "id": "api:rest-api",
     "upstream": {
       "preserve_host": true,
       "url": "http://192.168.49.1:8000",
       "strip_path": "/api"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/api/v1/",
+      "url": "http://127.0.0.1:8080/api/v1/",
       "methods": [
         "GET",
         "POST",
@@ -31,14 +31,41 @@
     ]
   },
   {
+    "id": "api:graph-playground",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://192.168.49.1:8000",
+      "strip_path": "/api/graph"
+    },
+    "match": {
+      "url": "http://<*>.localhost:8080/api/graph/",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
     "id": "api:graph-query",
     "upstream": {
       "preserve_host": true,
       "url": "http://192.168.49.1:8000",
-      "strip_path": "/api"
+      "strip_path": "/api/graph"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/api/query",
+      "url": "http://<*>.localhost:8080/api/graph/query",
       "methods": [
         "GET",
         "POST"
@@ -62,17 +89,43 @@
     "id": "oauth:auth-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://public.hydra.local/oauth2/auth"
+      "url": "http://hydra-public.naytife-ory:4444"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/oauth2/auth",
+      "url": "http://127.0.0.1:8080/oauth2/auth",
       "methods": [
         "GET"
       ]
     },
     "authenticators": [
       {
-        "handler": "oauth2_introspection"
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:fallbacks-error-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.naytife-ory:4444"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/oauth2/fallbacks/error",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
       }
     ],
     "authorizer": {
@@ -88,17 +141,17 @@
     "id": "oauth:token-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://public.hydra.local/oauth2/token"
+      "url": "http://hydra-public.naytife-ory:4444"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/oauth2/token",
+      "url": "http://127.0.0.1:8080/oauth2/token",
       "methods": [
         "POST"
       ]
     },
     "authenticators": [
       {
-        "handler": "oauth2_introspection"
+        "handler": "anonymous"
       }
     ],
     "authorizer": {
@@ -114,10 +167,10 @@
     "id": "oauth:userinfo-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://public.hydra.local/userinfo"
+      "url": "http://hydra-public.naytife-ory:4444"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/userinfo",
+      "url": "http://127.0.0.1:8080/userinfo",
       "methods": [
         "GET",
         "POST"
@@ -141,10 +194,10 @@
     "id": "oauth:logout-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://public.hydra.local/oauth2/sessions/logout"
+      "url": "http://hydra-public.naytife-ory:4444"
     },
     "match": {
-      "url": "http://<*>.127.0.0.1:8080/oauth2/sessions/logout",
+      "url": "http://127.0.0.1:8080/oauth2/sessions/logout",
       "methods": [
         "GET"
       ]
@@ -152,6 +205,32 @@
     "authenticators": [
       {
         "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oidc:well-known",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.naytife-ory:4444"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/.well-known/openid-configuration",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
       }
     ],
     "authorizer": {
