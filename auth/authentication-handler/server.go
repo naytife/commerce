@@ -100,6 +100,7 @@ func main() {
 
 // Handle login request, specifying provider (e.g., /login?provider=google)
 func handleLogin(c *fiber.Ctx) error {
+	log.Println("handleLogin")
 	provider := c.Query("provider", "google")
 	oauthProvider, exists := oauthProviders[provider]
 	if !exists {
@@ -224,6 +225,7 @@ func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo) (*hydra.OAuth
 }
 
 func handleConsent(c *fiber.Ctx) error {
+	log.Println("Handling consent")
 	consentChallenge := c.Query("consent_challenge")
 	if consentChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing consent_challenge")

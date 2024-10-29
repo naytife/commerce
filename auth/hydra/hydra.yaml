@@ -3,7 +3,7 @@ hydra:
     dsn: postgres://naytife:naytifekey@postgres.default.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
     urls:
       self:
-        issuer: http://public.hydra.local
+        issuer: http://127.0.0.1:8080
         admin: http://hydra-admin.naytife-ory.svc.cluster.local:4445
       login: http://127.0.0.1:3000/login
       logout: http://127.0.0.1:3000/logout
