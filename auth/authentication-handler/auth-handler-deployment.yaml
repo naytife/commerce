@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-handler
+  namespace: naytife-ory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-handler
+  template:
+    metadata:
+      labels:
+        app: auth-handler
+    spec:
+      containers:
+      - name: auth-handler
+        image: auth-handler:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: auth-handler-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-handler
+  namespace: naytife-ory
+spec:
+  selector:
+    app: auth-handler
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-handler
+  namespace: naytife-ory
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: auth-handler.local  # Use Minikube IP or custom domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-handler
+            port:
+              number: 80

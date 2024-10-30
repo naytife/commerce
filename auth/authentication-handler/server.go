@@ -26,10 +26,11 @@ var (
 )
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	godotenv.Load()
+	// err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
 	hydraAdminURL = os.Getenv("HYDRA_ADMIN_URL")
 	if hydraAdminURL == "" {
@@ -100,7 +101,6 @@ func main() {
 
 // Handle login request, specifying provider (e.g., /login?provider=google)
 func handleLogin(c *fiber.Ctx) error {
-	log.Println("handleLogin")
 	provider := c.Query("provider", "google")
 	oauthProvider, exists := oauthProviders[provider]
 	if !exists {
@@ -225,7 +225,6 @@ func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo) (*hydra.OAuth
 }
 
 func handleConsent(c *fiber.Ctx) error {
-	log.Println("Handling consent")
 	consentChallenge := c.Query("consent_challenge")
 	if consentChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing consent_challenge")
