@@ -45,13 +45,11 @@ func init() {
 	hydraAdminClient = hydra.NewAPIClient(config)
 }
 
-// OAuthProvider structure to abstract different providers
 type OAuthProvider struct {
 	OAuth2Config *oauth2.Config
 	Name         string
 }
 
-// Creates a new OAuthProvider for modularity
 func NewOAuthProvider(endpoint oauth2.Endpoint, name, clientID, clientSecret, redirectURL string) *OAuthProvider {
 	return &OAuthProvider{
 		OAuth2Config: &oauth2.Config{
@@ -65,7 +63,6 @@ func NewOAuthProvider(endpoint oauth2.Endpoint, name, clientID, clientSecret, re
 	}
 }
 
-// Generates a random string for CSRF protection
 func generateStateOauthCookie() (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
@@ -77,13 +74,12 @@ func generateStateOauthCookie() (string, error) {
 
 func main() {
 	app := fiber.New(fiber.Config{
-		Prefork:        true,
+		Prefork:        false,
 		StrictRouting:  true,
 		ServerHeader:   "Fiber",
 		ReadBufferSize: 8192,
 	})
 
-	// Middleware for secure headers
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		c.Set("X-Content-Type-Options", "nosniff")
@@ -95,11 +91,9 @@ func main() {
 	app.Get("/login", handleLogin)
 	app.Get("/callback", handleCallback)
 	app.Get("/consent", handleConsent)
-
 	log.Fatal(app.Listen(":3000"))
 }
 
-// Handle login request, specifying provider (e.g., /login?provider=google)
 func handleLogin(c *fiber.Ctx) error {
 	provider := c.Query("provider", "google")
 	oauthProvider, exists := oauthProviders[provider]
@@ -138,7 +132,6 @@ func handleLogin(c *fiber.Ctx) error {
 	return c.Redirect(authURL)
 }
 
-// Handle callback after OAuth provider redirects back
 func handleCallback(c *fiber.Ctx) error {
 	state := c.Cookies("oauthstate")
 	if state != c.Query("state") {
@@ -179,7 +172,6 @@ func handleCallback(c *fiber.Ctx) error {
 	return c.Redirect(redirectTo.RedirectTo)
 }
 
-// Fetch user info from provider (Google, Facebook, etc.)
 func fetchUserInfo(client *http.Client) (*GoogleUserInfo, error) {
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -204,7 +196,6 @@ type GoogleUserInfo struct {
 	Picture      string `json:"picture"`
 }
 
-// Use Hydra's SDK for login acceptance
 func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo) (*hydra.OAuth2RedirectTo, error) {
 	// Accept the login request
 	acceptRequest := hydra.AcceptOAuth2LoginRequest{
