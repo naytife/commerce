@@ -94,6 +94,7 @@ func main() {
 }
 
 func handleLogin(c *fiber.Ctx) error {
+	log.Printf("Handling login request")
 	provider := c.Query("provider", "google")
 	oauthProvider, exists := oauthProviders[provider]
 	if !exists {
