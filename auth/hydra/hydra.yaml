@@ -5,9 +5,9 @@ hydra:
       self:
         issuer: http://127.0.0.1:8080
         admin: http://hydra-admin.naytife-ory.svc.cluster.local:4445
-      login: http://127.0.0.1:3000/login
-      logout: http://127.0.0.1:3000/logout
-      consent: http://127.0.0.1:3000/consent
+      login: http://127.0.0.1:8080/login
+      logout: http://127.0.0.1:8080/logout
+      consent: http://127.0.0.1:8080/consent
 
     secrets:
       system:

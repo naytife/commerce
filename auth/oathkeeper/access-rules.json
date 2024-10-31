@@ -38,7 +38,7 @@
       "strip_path": "/api/graph"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/graph/",
+      "url": "http://<*>.localhost:8080/api/graph",
       "methods": [
         "GET"
       ]
@@ -62,10 +62,10 @@
     "upstream": {
       "preserve_host": true,
       "url": "http://192.168.49.1:8000",
-      "strip_path": "/api/graph"
+      "strip_path": "/api"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/graph/query",
+      "url": "http://<*>.localhost:8080/api/query",
       "methods": [
         "GET",
         "POST"
@@ -230,6 +230,86 @@
     },
     "match": {
       "url": "http://127.0.0.1:8080/.well-known/openid-configuration",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:login-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.naytife-ory:80"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/login",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:consent-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.naytife-ory:80"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/consent",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:callback-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.naytife-ory:80"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/callback",
       "methods": [
         "GET"
       ]

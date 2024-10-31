@@ -19,6 +19,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app server.go
 # Use a minimal Docker image for the final stage
 FROM scratch
 
+# Copy the CA certificates from the builder stage (from /etc/ssl/certs in the Go image)
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
 # Copy the binary from the builder stage
 COPY --from=builder /app/app /app
 
