@@ -74,7 +74,6 @@ func generateStateOauthCookie() (string, error) {
 
 func main() {
 	app := fiber.New(fiber.Config{
-		Prefork:        false,
 		StrictRouting:  true,
 		ServerHeader:   "Fiber",
 		ReadBufferSize: 8192,
