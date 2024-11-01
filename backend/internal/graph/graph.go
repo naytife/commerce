@@ -11,14 +11,12 @@ import (
 )
 
 func NewHandler(repo db.Repository) fiber.Handler {
-	// Create the GraphQL server
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &resolver.Resolver{
 			Repository: repo,
 		},
 	}))
 
-	// Use Fiber's adaptor to convert http.Handler to fiber.Handler
 	return adaptor.HTTPHandler(h)
 }
 func NewPlaygroundHandler(endpoint string) fiber.Handler {

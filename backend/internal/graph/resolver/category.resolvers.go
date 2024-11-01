@@ -18,7 +18,6 @@ import (
 
 // ID is the resolver for the id field.
 func (r *categoryResolver) ID(ctx context.Context, obj *model.Category) (string, error) {
-	// Return the base64-encoded ID
 	return encodeRelayID("Category", obj.ID), nil
 }
 
@@ -48,7 +47,6 @@ func (r *categoryResolver) Children(ctx context.Context, obj *model.Category) ([
 	return categories, nil
 }
 
-// Products is the resolver for the products field.
 func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error) {
 	catID, err := strconv.Atoi(obj.ID)
 	if err != nil {
@@ -111,7 +109,6 @@ func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, fi
 	}, nil
 }
 
-// AllowedAttributes is the resolver for the allowedAttributes field.
 func (r *categoryResolver) AllowedAttributes(ctx context.Context, obj *model.Category) ([]model.AllowedCategoryAttributes, error) {
 	catID, err := strconv.Atoi(obj.ID)
 	if err != nil {
@@ -128,7 +125,6 @@ func (r *categoryResolver) AllowedAttributes(ctx context.Context, obj *model.Cat
 	return attributes, nil
 }
 
-// Images is the resolver for the images field.
 func (r *categoryResolver) Images(ctx context.Context, obj *model.Category) (*model.CategoryImages, error) {
 	panic(fmt.Errorf("not implemented: Images - images"))
 }
