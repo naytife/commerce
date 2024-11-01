@@ -16,41 +16,32 @@ import (
 )
 
 func main() {
-	// Load environment configuration
 	env, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize database connection
 	dbase, err := db.InitDB(env.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer dbase.Close()
 
-	// Initialize repository
 	repo := db.NewRepository(dbase)
 
-	// Set up Fiber app
 	app := fiber.New()
 
-	// Add some middlewares (CORS, logger)
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	// GraphQL handlers (using the same resolver logic)
 	graphql := app.Group("/query", middleware.ShopIDMiddlewareFiber(repo))
 	graphql.All("/", graph.NewHandler(repo))
 
-	// REST endpoints with versioning (e.g., /api/v1/shops)
 	rest := app.Group("/v1")
 	routes.ShopRouter(rest, repo)
 
-	// Playground for testing GraphQL queries
 	app.Get("/", graph.NewPlaygroundHandler("/api/query"))
 
-	// Start the server
 	address := ":" + env.PORT
 	fmt.Fprintf(os.Stdout, "🚀 Server ready at port %s\n", address)
 	if err := app.Listen(address); err != nil {

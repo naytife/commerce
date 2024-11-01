@@ -5,8 +5,6 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-// Handler struct with the repository
-// GetCategory handler for REST API
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param db.UpsertUserParams
 	c.BodyParser(&param)

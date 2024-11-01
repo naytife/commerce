@@ -5,7 +5,6 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-// GetCategory handler for REST API
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
 	owner, err := h.Repository.GetUser(c.Context(), &fakeAuthSub)
