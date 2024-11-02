@@ -40,7 +40,7 @@ type Repository interface {
 	SetShopIDInSession(ctx context.Context, shopID int64) error
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
-	GetUser(ctx context.Context, auth0Sub *string) (User, error)
+	GetUser(ctx context.Context, email string) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)

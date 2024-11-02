@@ -96,7 +96,7 @@ func (q *Queries) DeleteCategoryAttribute(ctx context.Context, arg DeleteCategor
 const getCategories = `-- name: GetCategories :many
 SELECT category_id, slug, title, description, created_at, updated_at
 FROM categories
-WHERE shop_id = $1 AND category_id > $2
+WHERE shop_id = $1 AND parent_id IS NULL AND category_id > $2
 LIMIT $3
 `
 
@@ -196,12 +196,15 @@ func (q *Queries) GetCategoryAttributes(ctx context.Context, categoryID int64) (
 const getCategoryChildren = `-- name: GetCategoryChildren :many
 SELECT category_id, slug, title, description, created_at, updated_at
 FROM categories
-WHERE shop_id = $1 AND parent_id = $2
+WHERE shop_id = $1 AND parent_id = $2 AND category_id > $3
+LIMIT $4
 `
 
 type GetCategoryChildrenParams struct {
 	ShopID   int64  `json:"shop_id"`
 	ParentID *int64 `json:"parent_id"`
+	After    int64  `json:"after"`
+	Limit    int32  `json:"limit"`
 }
 
 type GetCategoryChildrenRow struct {
@@ -214,7 +217,12 @@ type GetCategoryChildrenRow struct {
 }
 
 func (q *Queries) GetCategoryChildren(ctx context.Context, arg GetCategoryChildrenParams) ([]GetCategoryChildrenRow, error) {
-	rows, err := q.db.Query(ctx, getCategoryChildren, arg.ShopID, arg.ParentID)
+	rows, err := q.db.Query(ctx, getCategoryChildren,
+		arg.ShopID,
+		arg.ParentID,
+		arg.After,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

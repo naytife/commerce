@@ -101,7 +101,7 @@ type Category struct {
 	Slug              string                      `json:"slug"`
 	Title             string                      `json:"title"`
 	Description       *string                     `json:"description,omitempty"`
-	Children          []Category                  `json:"children,omitempty"`
+	Children          *ChildrenCategoryConnection `json:"children,omitempty"`
 	Products          *ProductConnection          `json:"products,omitempty"`
 	AllowedAttributes []AllowedCategoryAttributes `json:"allowedAttributes"`
 	Images            *CategoryImages             `json:"images,omitempty"`
@@ -154,6 +154,29 @@ func (CategoryNotFoundError) IsCreateCategoryAttributePayload() {}
 func (CategoryNotFoundError) IsDeleteCategoryAttributePayload() {}
 
 func (CategoryNotFoundError) IsCreateProductPayload() {}
+
+type ChildCategory struct {
+	ID                string                      `json:"id"`
+	Slug              string                      `json:"slug"`
+	Title             string                      `json:"title"`
+	Description       *string                     `json:"description,omitempty"`
+	Products          *ProductConnection          `json:"products,omitempty"`
+	AllowedAttributes []AllowedCategoryAttributes `json:"allowedAttributes"`
+	Images            *CategoryImages             `json:"images,omitempty"`
+	UpdatedAt         time.Time                   `json:"updatedAt"`
+	CreatedAt         time.Time                   `json:"createdAt"`
+}
+
+type ChildrenCategoryConnection struct {
+	Edges      []ChildrenCategoryEdge `json:"edges"`
+	PageInfo   *PageInfo              `json:"pageInfo"`
+	TotalCount int                    `json:"totalCount"`
+}
+
+type ChildrenCategoryEdge struct {
+	Cursor string         `json:"cursor"`
+	Node   *ChildCategory `json:"node"`
+}
 
 type CreateCategoryAttributeInput struct {
 	Title    string                   `json:"title"`

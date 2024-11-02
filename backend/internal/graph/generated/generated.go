@@ -62,7 +62,7 @@ type ComplexityRoot struct {
 
 	Category struct {
 		AllowedAttributes func(childComplexity int) int
-		Children          func(childComplexity int) int
+		Children          func(childComplexity int, first *int, after *string) int
 		CreatedAt         func(childComplexity int) int
 		Description       func(childComplexity int) int
 		ID                func(childComplexity int) int
@@ -92,6 +92,29 @@ type ComplexityRoot struct {
 		Code    func(childComplexity int) int
 		Message func(childComplexity int) int
 		Path    func(childComplexity int) int
+	}
+
+	ChildCategory struct {
+		AllowedAttributes func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		Description       func(childComplexity int) int
+		ID                func(childComplexity int) int
+		Images            func(childComplexity int) int
+		Products          func(childComplexity int, first *int, after *string) int
+		Slug              func(childComplexity int) int
+		Title             func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
+	}
+
+	ChildrenCategoryConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	ChildrenCategoryEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	CreateCategoryAttributeSuccess struct {
@@ -317,7 +340,7 @@ type ComplexityRoot struct {
 type CategoryResolver interface {
 	ID(ctx context.Context, obj *model.Category) (string, error)
 
-	Children(ctx context.Context, obj *model.Category) ([]model.Category, error)
+	Children(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ChildrenCategoryConnection, error)
 	Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error)
 	AllowedAttributes(ctx context.Context, obj *model.Category) ([]model.AllowedCategoryAttributes, error)
 	Images(ctx context.Context, obj *model.Category) (*model.CategoryImages, error)
@@ -424,7 +447,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Category.Children(childComplexity), true
+		args, err := ec.field_Category_children_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Category.Children(childComplexity, args["first"].(*int), args["after"].(*string)), true
 
 	case "Category.createdAt":
 		if e.complexity.Category.CreatedAt == nil {
@@ -549,6 +577,109 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CategoryNotFoundError.Path(childComplexity), true
+
+	case "ChildCategory.allowedAttributes":
+		if e.complexity.ChildCategory.AllowedAttributes == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.AllowedAttributes(childComplexity), true
+
+	case "ChildCategory.createdAt":
+		if e.complexity.ChildCategory.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.CreatedAt(childComplexity), true
+
+	case "ChildCategory.description":
+		if e.complexity.ChildCategory.Description == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.Description(childComplexity), true
+
+	case "ChildCategory.id":
+		if e.complexity.ChildCategory.ID == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.ID(childComplexity), true
+
+	case "ChildCategory.images":
+		if e.complexity.ChildCategory.Images == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.Images(childComplexity), true
+
+	case "ChildCategory.products":
+		if e.complexity.ChildCategory.Products == nil {
+			break
+		}
+
+		args, err := ec.field_ChildCategory_products_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.ChildCategory.Products(childComplexity, args["first"].(*int), args["after"].(*string)), true
+
+	case "ChildCategory.slug":
+		if e.complexity.ChildCategory.Slug == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.Slug(childComplexity), true
+
+	case "ChildCategory.title":
+		if e.complexity.ChildCategory.Title == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.Title(childComplexity), true
+
+	case "ChildCategory.updatedAt":
+		if e.complexity.ChildCategory.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.ChildCategory.UpdatedAt(childComplexity), true
+
+	case "ChildrenCategoryConnection.edges":
+		if e.complexity.ChildrenCategoryConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.ChildrenCategoryConnection.Edges(childComplexity), true
+
+	case "ChildrenCategoryConnection.pageInfo":
+		if e.complexity.ChildrenCategoryConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.ChildrenCategoryConnection.PageInfo(childComplexity), true
+
+	case "ChildrenCategoryConnection.totalCount":
+		if e.complexity.ChildrenCategoryConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.ChildrenCategoryConnection.TotalCount(childComplexity), true
+
+	case "ChildrenCategoryEdge.cursor":
+		if e.complexity.ChildrenCategoryEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ChildrenCategoryEdge.Cursor(childComplexity), true
+
+	case "ChildrenCategoryEdge.node":
+		if e.complexity.ChildrenCategoryEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.ChildrenCategoryEdge.Node(childComplexity), true
 
 	case "CreateCategoryAttributeSuccess.attributes":
 		if e.complexity.CreateCategoryAttributeSuccess.Attributes == nil {
@@ -1612,6 +1743,28 @@ type CategoryEdge {
   node: Category!
 }
 
+type ChildrenCategoryConnection {
+  edges: [ChildrenCategoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type ChildrenCategoryEdge {
+  cursor: String!
+  node: ChildCategory!
+}
+
+type ChildCategory {
+  id: ID!
+  slug: String!
+  title: String!
+  description: String
+  products(first: Int = 20, after: ID): ProductConnection
+  allowedAttributes: [AllowedCategoryAttributes!]!
+  images: CategoryImages
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
 input CreateCategoryInput {
   parentID: ID
   title: String!
@@ -1656,7 +1809,7 @@ type Category implements Node {
   slug: String!
   title: String!
   description: String
-  children: [Category!]
+  children(first: Int = 20, after: ID): ChildrenCategoryConnection
   products(first: Int = 20, after: ID): ProductConnection
   allowedAttributes: [AllowedCategoryAttributes!]!
   images: CategoryImages
@@ -2015,6 +2168,65 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Category_children_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Category_children_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := ec.field_Category_children_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Category_children_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["first"]
+	if !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Category_children_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["after"]
+	if !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Category_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2053,6 +2265,65 @@ func (ec *executionContext) field_Category_products_argsFirst(
 }
 
 func (ec *executionContext) field_Category_products_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*string, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["after"]
+	if !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_ChildCategory_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_ChildCategory_products_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg0
+	arg1, err := ec.field_ChildCategory_products_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_ChildCategory_products_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*int, error) {
+	// We won't call the directive if the argument is null.
+	// Set call_argument_directives_with_null to true to call directives
+	// even if the argument is null.
+	_, ok := rawArgs["first"]
+	if !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_ChildCategory_products_argsAfter(
 	ctx context.Context,
 	rawArgs map[string]interface{},
 ) (*string, error) {
@@ -3542,7 +3813,7 @@ func (ec *executionContext) _Category_children(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Category().Children(rctx, obj)
+		return ec.resolvers.Category().Children(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3551,12 +3822,12 @@ func (ec *executionContext) _Category_children(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]model.Category)
+	res := resTmp.(*model.ChildrenCategoryConnection)
 	fc.Result = res
-	return ec.marshalOCategory2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryᚄ(ctx, field.Selections, res)
+	return ec.marshalOChildrenCategoryConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Category_children(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Category_children(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Category",
 		Field:      field,
@@ -3564,29 +3835,26 @@ func (ec *executionContext) fieldContext_Category_children(_ context.Context, fi
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Category_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Category_slug(ctx, field)
-			case "title":
-				return ec.fieldContext_Category_title(ctx, field)
-			case "description":
-				return ec.fieldContext_Category_description(ctx, field)
-			case "children":
-				return ec.fieldContext_Category_children(ctx, field)
-			case "products":
-				return ec.fieldContext_Category_products(ctx, field)
-			case "allowedAttributes":
-				return ec.fieldContext_Category_allowedAttributes(ctx, field)
-			case "images":
-				return ec.fieldContext_Category_images(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Category_updatedAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Category_createdAt(ctx, field)
+			case "edges":
+				return ec.fieldContext_ChildrenCategoryConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ChildrenCategoryConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_ChildrenCategoryConnection_totalCount(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ChildrenCategoryConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Category_children_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -4269,6 +4537,678 @@ func (ec *executionContext) fieldContext_CategoryNotFoundError_path(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_id(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_slug(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_slug(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Slug, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_title(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_title(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_description(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_products(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_products(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Products, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProductConnection)
+	fc.Result = res
+	return ec.marshalOProductConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐProductConnection(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_products(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "edges":
+				return ec.fieldContext_ProductConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ProductConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_ProductConnection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProductConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_ChildCategory_products_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_allowedAttributes(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_allowedAttributes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AllowedAttributes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.AllowedCategoryAttributes)
+	fc.Result = res
+	return ec.marshalNAllowedCategoryAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐAllowedCategoryAttributesᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_allowedAttributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "title":
+				return ec.fieldContext_AllowedCategoryAttributes_title(ctx, field)
+			case "dataType":
+				return ec.fieldContext_AllowedCategoryAttributes_dataType(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AllowedCategoryAttributes", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_images(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_images(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Images, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CategoryImages)
+	fc.Result = res
+	return ec.marshalOCategoryImages2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryImages(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_images(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "banner":
+				return ec.fieldContext_CategoryImages_banner(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CategoryImages", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildCategory_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.ChildCategory) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildCategory_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildCategory_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildCategory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildrenCategoryConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.ChildrenCategoryConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildrenCategoryConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.ChildrenCategoryEdge)
+	fc.Result = res
+	return ec.marshalNChildrenCategoryEdge2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildrenCategoryConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildrenCategoryConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cursor":
+				return ec.fieldContext_ChildrenCategoryEdge_cursor(ctx, field)
+			case "node":
+				return ec.fieldContext_ChildrenCategoryEdge_node(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChildrenCategoryEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildrenCategoryConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.ChildrenCategoryConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildrenCategoryConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildrenCategoryConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildrenCategoryConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildrenCategoryConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.ChildrenCategoryConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildrenCategoryConnection_totalCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildrenCategoryConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildrenCategoryConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildrenCategoryEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ChildrenCategoryEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildrenCategoryEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildrenCategoryEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildrenCategoryEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChildrenCategoryEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.ChildrenCategoryEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChildrenCategoryEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ChildCategory)
+	fc.Result = res
+	return ec.marshalNChildCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildCategory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChildrenCategoryEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChildrenCategoryEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ChildCategory_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_ChildCategory_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_ChildCategory_title(ctx, field)
+			case "description":
+				return ec.fieldContext_ChildCategory_description(ctx, field)
+			case "products":
+				return ec.fieldContext_ChildCategory_products(ctx, field)
+			case "allowedAttributes":
+				return ec.fieldContext_ChildCategory_allowedAttributes(ctx, field)
+			case "images":
+				return ec.fieldContext_ChildCategory_images(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ChildCategory_updatedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ChildCategory_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChildCategory", field.Name)
 		},
 	}
 	return fc, nil
@@ -13382,6 +14322,169 @@ func (ec *executionContext) _CategoryNotFoundError(ctx context.Context, sel ast.
 	return out
 }
 
+var childCategoryImplementors = []string{"ChildCategory"}
+
+func (ec *executionContext) _ChildCategory(ctx context.Context, sel ast.SelectionSet, obj *model.ChildCategory) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, childCategoryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChildCategory")
+		case "id":
+			out.Values[i] = ec._ChildCategory_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "slug":
+			out.Values[i] = ec._ChildCategory_slug(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._ChildCategory_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._ChildCategory_description(ctx, field, obj)
+		case "products":
+			out.Values[i] = ec._ChildCategory_products(ctx, field, obj)
+		case "allowedAttributes":
+			out.Values[i] = ec._ChildCategory_allowedAttributes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "images":
+			out.Values[i] = ec._ChildCategory_images(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._ChildCategory_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._ChildCategory_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var childrenCategoryConnectionImplementors = []string{"ChildrenCategoryConnection"}
+
+func (ec *executionContext) _ChildrenCategoryConnection(ctx context.Context, sel ast.SelectionSet, obj *model.ChildrenCategoryConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, childrenCategoryConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChildrenCategoryConnection")
+		case "edges":
+			out.Values[i] = ec._ChildrenCategoryConnection_edges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._ChildrenCategoryConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._ChildrenCategoryConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var childrenCategoryEdgeImplementors = []string{"ChildrenCategoryEdge"}
+
+func (ec *executionContext) _ChildrenCategoryEdge(ctx context.Context, sel ast.SelectionSet, obj *model.ChildrenCategoryEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, childrenCategoryEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChildrenCategoryEdge")
+		case "cursor":
+			out.Values[i] = ec._ChildrenCategoryEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "node":
+			out.Values[i] = ec._ChildrenCategoryEdge_node(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var createCategoryAttributeSuccessImplementors = []string{"CreateCategoryAttributeSuccess", "CreateCategoryAttributePayload"}
 
 func (ec *executionContext) _CreateCategoryAttributeSuccess(ctx context.Context, sel ast.SelectionSet, obj *model.CreateCategoryAttributeSuccess) graphql.Marshaler {
@@ -15941,10 +17044,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCategory2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v model.Category) graphql.Marshaler {
-	return ec._Category(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -15984,6 +17083,64 @@ func (ec *executionContext) marshalNCategoryEdge2ᚕgithubᚗcomᚋpetrejonnᚋn
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNCategoryEdge2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNChildCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildCategory(ctx context.Context, sel ast.SelectionSet, v *model.ChildCategory) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChildCategory(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNChildrenCategoryEdge2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryEdge(ctx context.Context, sel ast.SelectionSet, v model.ChildrenCategoryEdge) graphql.Marshaler {
+	return ec._ChildrenCategoryEdge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNChildrenCategoryEdge2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ChildrenCategoryEdge) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNChildrenCategoryEdge2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -16858,53 +18015,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCategory2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategoryᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Category) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNCategory2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalOCategory2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCategory(ctx context.Context, sel ast.SelectionSet, v *model.Category) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -16924,6 +18034,13 @@ func (ec *executionContext) marshalOCategoryImages2ᚖgithubᚗcomᚋpetrejonn�
 		return graphql.Null
 	}
 	return ec._CategoryImages(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOChildrenCategoryConnection2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐChildrenCategoryConnection(ctx context.Context, sel ast.SelectionSet, v *model.ChildrenCategoryConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ChildrenCategoryConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOCreateCategoryAttributePayload2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgraphᚋmodelᚐCreateCategoryAttributePayload(ctx context.Context, sel ast.SelectionSet, v model.CreateCategoryAttributePayload) graphql.Marshaler {

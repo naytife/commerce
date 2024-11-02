@@ -12,62 +12,56 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT user_id, auth0_sub, email, name, profile_picture_url, created_at, last_login FROM users
-WHERE auth0_sub = $1
+SELECT user_id, provider, email, name, profile_picture, created_at, last_login, provider_id, locale FROM users
+WHERE email = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, auth0Sub *string) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, auth0Sub)
+func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, email)
 	var i User
 	err := row.Scan(
 		&i.UserID,
-		&i.Auth0Sub,
+		&i.Provider,
 		&i.Email,
 		&i.Name,
-		&i.ProfilePictureUrl,
+		&i.ProfilePicture,
 		&i.CreatedAt,
 		&i.LastLogin,
+		&i.ProviderID,
+		&i.Locale,
 	)
 	return i, err
 }
 
 const upsertUser = `-- name: UpsertUser :one
-INSERT INTO users (auth0_sub, email, name, profile_picture_url)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (auth0_sub)
-DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, profile_picture_url = EXCLUDED.profile_picture_url
-RETURNING user_id, auth0_sub, email, name, profile_picture_url
+INSERT INTO users ( email, name, profile_picture)
+VALUES ($1, $2, $3)
+ON CONFLICT (email)
+DO UPDATE SET name = EXCLUDED.name, profile_picture = EXCLUDED.profile_picture
+RETURNING user_id, email, name, profile_picture
 `
 
 type UpsertUserParams struct {
-	Auth0Sub          *string `json:"auth0_sub"`
-	Email             string  `json:"email"`
-	Name              *string `json:"name"`
-	ProfilePictureUrl *string `json:"profile_picture_url"`
+	Email          string  `json:"email"`
+	Name           *string `json:"name"`
+	ProfilePicture *string `json:"profile_picture"`
 }
 
 type UpsertUserRow struct {
-	UserID            uuid.UUID `json:"user_id"`
-	Auth0Sub          *string   `json:"auth0_sub"`
-	Email             string    `json:"email"`
-	Name              *string   `json:"name"`
-	ProfilePictureUrl *string   `json:"profile_picture_url"`
+	UserID         uuid.UUID `json:"user_id"`
+	Email          string    `json:"email"`
+	Name           *string   `json:"name"`
+	ProfilePicture *string   `json:"profile_picture"`
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error) {
-	row := q.db.QueryRow(ctx, upsertUser,
-		arg.Auth0Sub,
-		arg.Email,
-		arg.Name,
-		arg.ProfilePictureUrl,
-	)
+	row := q.db.QueryRow(ctx, upsertUser, arg.Email, arg.Name, arg.ProfilePicture)
 	var i UpsertUserRow
 	err := row.Scan(
 		&i.UserID,
-		&i.Auth0Sub,
 		&i.Email,
 		&i.Name,
-		&i.ProfilePictureUrl,
+		&i.ProfilePicture,
 	)
 	return i, err
 }
