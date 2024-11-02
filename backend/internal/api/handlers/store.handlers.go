@@ -6,8 +6,8 @@ import (
 )
 
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
-	fakeAuthSub := "9vgPO5K5ipI424xe84HUrtqQJMWT3e7f@clients"
-	owner, err := h.Repository.GetUser(c.Context(), &fakeAuthSub)
+	fakeAuthSub := "user@example.com"
+	owner, err := h.Repository.GetUser(c.Context(), fakeAuthSub)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "user not found",

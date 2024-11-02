@@ -20,13 +20,14 @@ RETURNING *;
 -- name: GetCategories :many
 SELECT category_id, slug, title, description, created_at, updated_at
 FROM categories
-WHERE shop_id = sqlc.arg('shop_id') AND category_id > sqlc.arg('after')
+WHERE shop_id = sqlc.arg('shop_id') AND parent_id IS NULL AND category_id > sqlc.arg('after')
 LIMIT sqlc.arg('limit');
 
 -- name: GetCategoryChildren :many
 SELECT category_id, slug, title, description, created_at, updated_at
 FROM categories
-WHERE shop_id = sqlc.arg('shop_id') AND parent_id = sqlc.arg('parent_id');
+WHERE shop_id = sqlc.arg('shop_id') AND parent_id = sqlc.arg('parent_id') AND category_id > sqlc.arg('after')
+LIMIT sqlc.arg('limit');
 
 -- name: CreateCategoryAttribute :one
 UPDATE categories

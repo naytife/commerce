@@ -92,13 +92,15 @@ type ShopImage struct {
 }
 
 type User struct {
-	UserID            uuid.UUID        `json:"user_id"`
-	Auth0Sub          *string          `json:"auth0_sub"`
-	Email             string           `json:"email"`
-	Name              *string          `json:"name"`
-	ProfilePictureUrl *string          `json:"profile_picture_url"`
-	CreatedAt         pgtype.Timestamp `json:"created_at"`
-	LastLogin         pgtype.Timestamp `json:"last_login"`
+	UserID         uuid.UUID        `json:"user_id"`
+	Provider       *string          `json:"provider"`
+	Email          string           `json:"email"`
+	Name           *string          `json:"name"`
+	ProfilePicture *string          `json:"profile_picture"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	LastLogin      pgtype.Timestamp `json:"last_login"`
+	ProviderID     *string          `json:"provider_id"`
+	Locale         *string          `json:"locale"`
 }
 
 type Whatsapp struct {
