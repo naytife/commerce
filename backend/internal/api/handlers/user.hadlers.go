@@ -7,11 +7,16 @@ import (
 
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param db.UpsertUserParams
-	c.BodyParser(&param)
+	err := c.BodyParser(&param)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
 	objDB, err := h.Repository.UpsertUser(c.Context(), param)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Could not create user",
+			"error": err,
 		})
 	}
 

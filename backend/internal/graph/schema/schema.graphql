@@ -24,9 +24,7 @@ input ImageInput {
 type Query {
   node(id: ID!): Node
 }
-type Mutation {
-  signInUser(input: SignInInput!): SignInUserPayload!
-}
+
 type PageInfo {
   startCursor: ID!
   endCursor: ID!

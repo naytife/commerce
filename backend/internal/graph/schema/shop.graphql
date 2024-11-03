@@ -1,7 +1,7 @@
 extend type Query {
   shop: Shop!
 }
-extend type Mutation {
+type Mutation {
   createShop(shop: CreateShopInput!): CreateShopPayload
   updateShop(shop: UpdateShopInput!): UpdateShopPayload
   updateShopImages(input: UpdateShopImagesInput!): UpdateShopImagesPayload

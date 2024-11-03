@@ -94,7 +94,7 @@ type ShopImage struct {
 type User struct {
 	UserID         uuid.UUID        `json:"user_id"`
 	Provider       *string          `json:"provider"`
-	Email          string           `json:"email"`
+	Email          *string          `json:"email"`
 	Name           *string          `json:"name"`
 	ProfilePicture *string          `json:"profile_picture"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
