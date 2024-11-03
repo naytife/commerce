@@ -39,8 +39,8 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 type Repository interface {
 	SetShopIDInSession(ctx context.Context, shopID int64) error
 	// USER
-	UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error)
-	GetUser(ctx context.Context, email string) (User, error)
+	UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error)
+	GetUser(ctx context.Context, email *string) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)

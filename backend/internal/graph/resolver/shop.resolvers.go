@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
@@ -17,11 +18,9 @@ import (
 
 // CreateShop is the resolver for the createShop field.
 func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShopInput) (model.CreateShopPayload, error) {
-	fakeAuthSub := "user@example.com"
-	owner, err := r.Repository.GetUser(ctx, fakeAuthSub)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
+	// TODO: verify user exist
+	// user_id := ctx.Value("user_id")
+	user_id := uuid.New()
 	host, ok := ctx.Value("shopHost").(string)
 	if !ok {
 		return nil, errors.New("host not found")
@@ -29,7 +28,7 @@ func (r *mutationResolver) CreateShop(ctx context.Context, shop model.CreateShop
 	param := db.CreateShopParams{
 		Title:        shop.Title,
 		Domain:       shop.Domain + "." + host,
-		OwnerID:      owner.UserID,
+		OwnerID:      user_id,
 		Status:       model.ShopStatusPublished.String(),
 		CurrencyCode: "NGN",
 	}
@@ -329,7 +328,11 @@ func (r *shopResolver) Images(ctx context.Context, obj *model.Shop) (*model.Shop
 	}, nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Shop returns generated.ShopResolver implementation.
 func (r *Resolver) Shop() generated.ShopResolver { return &shopResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type shopResolver struct{ *Resolver }

@@ -8,35 +8,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/graph/generated"
 	"github.com/petrejonn/naytife/internal/graph/model"
 )
-
-// SignInUser is the resolver for the signInUser field.
-func (r *mutationResolver) SignInUser(ctx context.Context, input model.SignInInput) (model.SignInUserPayload, error) {
-	fakeEmail := "fake@email.com"
-	fakeName := "Fake Name"
-	fakeUrl := "https://fake-url.com/profile-picture.png"
-	// Check if the user exists in the database
-	user, err := r.Repository.UpsertUser(ctx, db.UpsertUserParams{
-		Email:          fakeEmail,
-		Name:           &fakeName,
-		ProfilePicture: &fakeUrl,
-	})
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-	// Return the user data and a JWT token
-	return &model.SignInUserSuccess{
-		User: &model.User{
-			ID:                user.UserID.String(),
-			Email:             user.Email,
-			Name:              user.Name,
-			ProfilePictureURL: user.ProfilePicture,
-		},
-	}, nil
-}
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error) {
@@ -55,11 +29,7 @@ func (r *queryResolver) Node(ctx context.Context, id string) (model.Node, error)
 	}
 }
 
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

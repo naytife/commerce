@@ -46,10 +46,6 @@ type Node interface {
 	GetID() string
 }
 
-type SignInUserPayload interface {
-	IsSignInUserPayload()
-}
-
 type SocialMediaContact interface {
 	IsSocialMediaContact()
 	GetURL() *string
@@ -453,16 +449,6 @@ func (this ShopNotFoundError) GetPath() []string {
 	return interfaceSlice
 }
 
-type SignInInput struct {
-	Username *string `json:"username,omitempty"`
-}
-
-type SignInUserSuccess struct {
-	User *User `json:"user,omitempty"`
-}
-
-func (SignInUserSuccess) IsSignInUserPayload() {}
-
 type UpdateCategoryInput struct {
 	ParentID    *string `json:"parentID,omitempty"`
 	Title       *string `json:"title,omitempty"`
@@ -538,18 +524,6 @@ type UpdateShopWhatsAppSuccess struct {
 }
 
 func (UpdateShopWhatsAppSuccess) IsUpdateShopWhatsAppPayload() {}
-
-type User struct {
-	ID                string  `json:"id"`
-	Email             string  `json:"email"`
-	Name              *string `json:"name,omitempty"`
-	ProfilePictureURL *string `json:"profilePictureUrl,omitempty"`
-	CreatedAt         string  `json:"createdAt"`
-	LastLogin         string  `json:"lastLogin"`
-}
-
-func (User) IsNode()            {}
-func (this User) GetID() string { return this.ID }
 
 type WhatsApp struct {
 	URL         *string      `json:"url,omitempty"`

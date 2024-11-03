@@ -1,9 +1,12 @@
 -- name: UpsertUser :one
-INSERT INTO users ( email, name, profile_picture)
-VALUES ($1, $2, $3)
+INSERT INTO users (provider_id, provider, email, name, locale, profile_picture)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (email)
-DO UPDATE SET name = EXCLUDED.name, profile_picture = EXCLUDED.profile_picture
-RETURNING user_id, email, name, profile_picture;
+DO UPDATE SET
+    name = COALESCE(EXCLUDED.name, users.name),
+    profile_picture = COALESCE(EXCLUDED.profile_picture, users.profile_picture),
+    locale = COALESCE(EXCLUDED.locale, users.locale)
+RETURNING *;
 
 -- name: GetUser :one
 SELECT * FROM users

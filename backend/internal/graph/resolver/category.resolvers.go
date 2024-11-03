@@ -171,6 +171,11 @@ func (r *categoryResolver) Images(ctx context.Context, obj *model.Category) (*mo
 	panic(fmt.Errorf("not implemented: Images - images"))
 }
 
+// ID is the resolver for the id field.
+func (r *childCategoryResolver) ID(ctx context.Context, obj *model.ChildCategory) (string, error) {
+	return encodeRelayID("Category", obj.ID), nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, category model.CreateCategoryInput) (model.CreateCategoryPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
@@ -372,4 +377,8 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 // Category returns generated.CategoryResolver implementation.
 func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
+// ChildCategory returns generated.ChildCategoryResolver implementation.
+func (r *Resolver) ChildCategory() generated.ChildCategoryResolver { return &childCategoryResolver{r} }
+
 type categoryResolver struct{ *Resolver }
+type childCategoryResolver struct{ *Resolver }

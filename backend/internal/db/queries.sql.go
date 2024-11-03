@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const getUser = `-- name: GetUser :one
@@ -16,7 +14,7 @@ SELECT user_id, provider, email, name, profile_picture, created_at, last_login, 
 WHERE email = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, email *string) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, email)
 	var i User
 	err := row.Scan(
@@ -34,34 +32,45 @@ func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
 }
 
 const upsertUser = `-- name: UpsertUser :one
-INSERT INTO users ( email, name, profile_picture)
-VALUES ($1, $2, $3)
+INSERT INTO users (provider_id, provider, email, name, locale, profile_picture)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (email)
-DO UPDATE SET name = EXCLUDED.name, profile_picture = EXCLUDED.profile_picture
-RETURNING user_id, email, name, profile_picture
+DO UPDATE SET
+    name = COALESCE(EXCLUDED.name, users.name),
+    profile_picture = COALESCE(EXCLUDED.profile_picture, users.profile_picture),
+    locale = COALESCE(EXCLUDED.locale, users.locale)
+RETURNING user_id, provider, email, name, profile_picture, created_at, last_login, provider_id, locale
 `
 
 type UpsertUserParams struct {
-	Email          string  `json:"email"`
+	ProviderID     *string `json:"provider_id"`
+	Provider       *string `json:"provider"`
+	Email          *string `json:"email"`
 	Name           *string `json:"name"`
+	Locale         *string `json:"locale"`
 	ProfilePicture *string `json:"profile_picture"`
 }
 
-type UpsertUserRow struct {
-	UserID         uuid.UUID `json:"user_id"`
-	Email          string    `json:"email"`
-	Name           *string   `json:"name"`
-	ProfilePicture *string   `json:"profile_picture"`
-}
-
-func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (UpsertUserRow, error) {
-	row := q.db.QueryRow(ctx, upsertUser, arg.Email, arg.Name, arg.ProfilePicture)
-	var i UpsertUserRow
+func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, upsertUser,
+		arg.ProviderID,
+		arg.Provider,
+		arg.Email,
+		arg.Name,
+		arg.Locale,
+		arg.ProfilePicture,
+	)
+	var i User
 	err := row.Scan(
 		&i.UserID,
+		&i.Provider,
 		&i.Email,
 		&i.Name,
 		&i.ProfilePicture,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.ProviderID,
+		&i.Locale,
 	)
 	return i, err
 }
