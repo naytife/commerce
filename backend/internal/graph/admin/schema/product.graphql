@@ -1,0 +1,144 @@
+# ======== PRODUCT ========
+extend type Query {
+  products(first: Int = 20, after: ID): ProductConnection!
+  product(id: ID!): Product
+}
+
+extend type Mutation {
+  # TODO: Product publish
+  # TODO: Product archive
+  createProduct(product: CreateProductInput!): CreateProductPayload
+  updateProduct(
+    productID: ID!
+    product: UpdateProductInput!
+  ): UpdateProductPayload
+  createProductAttribute(
+    productID: ID!
+    attribute: CreateProductAttributeInput!
+  ): CreateProductAttributePayload
+  deleteProductAttribute(
+    productID: ID!
+    attribute: String!
+  ): DeleteProductAttributePayload
+
+  createProductVariant(
+    productID: ID!
+    variants: [CreateProductVariantInput!]!
+  ): CreateProductVariantPayload
+}
+enum ProductAttributeDataType {
+  STRING
+  INTEGER
+}
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type ProductEdge {
+  cursor: ID!
+  node: Product!
+}
+
+input CreateProductInput {
+  categoryID: ID!
+  title: String!
+  description: String!
+}
+
+union CreateProductPayload = CreateProductSuccess | CategoryNotFoundError
+type CreateProductSuccess {
+  product: Product!
+}
+input UpdateProductInput {
+  title: String
+  description: String
+}
+union UpdateProductPayload = UpdateProductSuccess | ProductNotFoundError
+type UpdateProductSuccess {
+  product: Product!
+}
+type ProductNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
+input CreateProductAttributeInput {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+union CreateProductAttributePayload =
+    CreateProductAttributeSuccess
+  | ProductNotFoundError
+type CreateProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
+}
+union DeleteProductAttributePayload =
+    DeleteProductAttributeSuccess
+  | ProductNotFoundError
+type DeleteProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
+}
+type Product implements Node {
+  id: ID!
+  title: String!
+  description: String!
+  defaultVariant: ProductVariant!
+  variants: [ProductVariant!]!
+  allowedAttributes: [AllowedProductAttributes!]!
+  images: [Image!]!
+  status: ProductStatus
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type AllowedProductAttributes {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
+}
+
+# ======== ProductVariant ========
+enum ProductStockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+}
+type ProductVariant implements Node {
+  id: ID!
+  slug: String!
+  price: Float!
+  availableQuantity: Int!
+  description: String!
+  attributes: [ProductAttribute!]!
+  stockStatus: ProductStockStatus!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type ProductAttribute {
+  key: String!
+  value: String
+}
+input CreateProductVariantInput {
+  price: Float!
+  availableQuantity: Int!
+  attributes: [ProductAttributeValueInput!]
+  stockStatus: ProductStockStatus!
+}
+union CreateProductVariantPayload =
+    CreateProductVariantSuccess
+  | ProductNotFoundError
+type CreateProductVariantSuccess {
+  variants: [ProductVariant!]!
+}
+input ProductAttributeValueInput {
+  key: String!
+  value: String!
+}
