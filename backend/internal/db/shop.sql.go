@@ -14,7 +14,7 @@ import (
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (owner_id, title, domain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link
 `
 
 type CreateShopParams struct {
@@ -64,12 +64,26 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 	)
 	return i, err
 }
 
+const deleteShop = `-- name: DeleteShop :exec
+DELETE FROM shops
+WHERE shop_id = $1
+`
+
+func (q *Queries) DeleteShop(ctx context.Context, shopID int64) error {
+	_, err := q.db.Exec(ctx, deleteShop, shopID)
+	return err
+}
+
 const getShop = `-- name: GetShop :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
 WHERE shop_id = $1
 `
 
@@ -92,12 +106,16 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 	)
 	return i, err
 }
 
 const getShopByDomain = `-- name: GetShopByDomain :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
 WHERE domain = $1
 `
 
@@ -120,23 +138,10 @@ func (q *Queries) GetShopByDomain(ctx context.Context, domain string) (Shop, err
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getShopFacebook = `-- name: GetShopFacebook :one
-SELECT facebook_id, handle, url, shop_id FROM facebooks
-WHERE shop_id = $1
-`
-
-func (q *Queries) GetShopFacebook(ctx context.Context, shopID int64) (Facebook, error) {
-	row := q.db.QueryRow(ctx, getShopFacebook, shopID)
-	var i Facebook
-	err := row.Scan(
-		&i.FacebookID,
-		&i.Handle,
-		&i.Url,
-		&i.ShopID,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 	)
 	return i, err
 }
@@ -172,25 +177,8 @@ func (q *Queries) GetShopImages(ctx context.Context, shopID int64) (ShopImage, e
 	return i, err
 }
 
-const getShopWhatsApp = `-- name: GetShopWhatsApp :one
-SELECT whatsapp_id, phone_number, url, shop_id FROM whatsapps
-WHERE shop_id = $1
-`
-
-func (q *Queries) GetShopWhatsApp(ctx context.Context, shopID int64) (Whatsapp, error) {
-	row := q.db.QueryRow(ctx, getShopWhatsApp, shopID)
-	var i Whatsapp
-	err := row.Scan(
-		&i.WhatsappID,
-		&i.PhoneNumber,
-		&i.Url,
-		&i.ShopID,
-	)
-	return i, err
-}
-
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
 WHERE owner_id = $1
 `
 
@@ -219,6 +207,10 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.SeoTitle,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.WhatsappPhoneNumber,
+			&i.WhatsappLink,
+			&i.FacebookLink,
+			&i.InstagramLink,
 		); err != nil {
 			return nil, err
 		}
@@ -238,27 +230,35 @@ SET
     about = COALESCE($3, about),
     status = COALESCE($4, status),
     phone_number = COALESCE($5, phone_number),
-    seo_description = COALESCE($6, seo_description),
-    seo_keywords = COALESCE($7, seo_keywords),
-    seo_title = COALESCE($8, seo_title),
-    address = COALESCE($9, address),
-    email = COALESCE($10, email)
-WHERE shop_id = $11
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at
+    whatsapp_link = COALESCE($6, whatsapp_link),
+    whatsapp_phone_number = COALESCE($7, whatsapp_phone_number),
+    facebook_link = COALESCE($8, facebook_link),
+    instagram_link = COALESCE($9, instagram_link),
+    seo_description = COALESCE($10, seo_description),
+    seo_keywords = COALESCE($11, seo_keywords),
+    seo_title = COALESCE($12, seo_title),
+    address = COALESCE($13, address),
+    email = COALESCE($14, email)
+WHERE shop_id = $15
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link
 `
 
 type UpdateShopParams struct {
-	Title          *string  `json:"title"`
-	CurrencyCode   *string  `json:"currency_code"`
-	About          *string  `json:"about"`
-	Status         *string  `json:"status"`
-	PhoneNumber    *string  `json:"phone_number"`
-	SeoDescription *string  `json:"seo_description"`
-	SeoKeywords    []string `json:"seo_keywords"`
-	SeoTitle       *string  `json:"seo_title"`
-	Address        *string  `json:"address"`
-	Email          *string  `json:"email"`
-	ShopID         int64    `json:"shop_id"`
+	Title               *string  `json:"title"`
+	CurrencyCode        *string  `json:"currency_code"`
+	About               *string  `json:"about"`
+	Status              *string  `json:"status"`
+	PhoneNumber         *string  `json:"phone_number"`
+	WhatsappLink        *string  `json:"whatsapp_link"`
+	WhatsappPhoneNumber *string  `json:"whatsapp_phone_number"`
+	FacebookLink        *string  `json:"facebook_link"`
+	InstagramLink       *string  `json:"instagram_link"`
+	SeoDescription      *string  `json:"seo_description"`
+	SeoKeywords         []string `json:"seo_keywords"`
+	SeoTitle            *string  `json:"seo_title"`
+	Address             *string  `json:"address"`
+	Email               *string  `json:"email"`
+	ShopID              int64    `json:"shop_id"`
 }
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
@@ -268,6 +268,10 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		arg.About,
 		arg.Status,
 		arg.PhoneNumber,
+		arg.WhatsappLink,
+		arg.WhatsappPhoneNumber,
+		arg.FacebookLink,
+		arg.InstagramLink,
 		arg.SeoDescription,
 		arg.SeoKeywords,
 		arg.SeoTitle,
@@ -292,58 +296,10 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const upsertShopFacebook = `-- name: UpsertShopFacebook :one
-INSERT INTO facebooks (shop_id, url, handle)
-VALUES ($1, $2, $3)
-ON CONFLICT (shop_id)
-DO UPDATE SET url = EXCLUDED.url, handle = EXCLUDED.handle
-RETURNING facebook_id, handle, url, shop_id
-`
-
-type UpsertShopFacebookParams struct {
-	ShopID int64  `json:"shop_id"`
-	Url    string `json:"url"`
-	Handle string `json:"handle"`
-}
-
-func (q *Queries) UpsertShopFacebook(ctx context.Context, arg UpsertShopFacebookParams) (Facebook, error) {
-	row := q.db.QueryRow(ctx, upsertShopFacebook, arg.ShopID, arg.Url, arg.Handle)
-	var i Facebook
-	err := row.Scan(
-		&i.FacebookID,
-		&i.Handle,
-		&i.Url,
-		&i.ShopID,
-	)
-	return i, err
-}
-
-const upsertShopWhatsapp = `-- name: UpsertShopWhatsapp :one
-INSERT INTO whatsapps (shop_id, url, phone_number)
-VALUES ($1, $2, $3)
-ON CONFLICT (shop_id)
-DO UPDATE SET url = EXCLUDED.url, phone_number = EXCLUDED.phone_number
-RETURNING whatsapp_id, phone_number, url, shop_id
-`
-
-type UpsertShopWhatsappParams struct {
-	ShopID      int64  `json:"shop_id"`
-	Url         string `json:"url"`
-	PhoneNumber string `json:"phone_number"`
-}
-
-func (q *Queries) UpsertShopWhatsapp(ctx context.Context, arg UpsertShopWhatsappParams) (Whatsapp, error) {
-	row := q.db.QueryRow(ctx, upsertShopWhatsapp, arg.ShopID, arg.Url, arg.PhoneNumber)
-	var i Whatsapp
-	err := row.Scan(
-		&i.WhatsappID,
-		&i.PhoneNumber,
-		&i.Url,
-		&i.ShopID,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 	)
 	return i, err
 }

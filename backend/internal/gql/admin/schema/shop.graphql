@@ -1,0 +1,95 @@
+extend type Query {
+  shop: Shop!
+}
+type Mutation {
+  updateShop(shop: UpdateShopInput!): UpdateShopPayload
+  updateShopImages(input: UpdateShopImagesInput!): UpdateShopImagesPayload
+}
+enum ShopStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SUSPENDED
+}
+type ShopNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
+type ShopAddress {
+  address: String!
+}
+input ShopAddressInput {
+  address: String!
+}
+input CreateShopInput {
+  title: String!
+  domain: String!
+}
+union CreateShopPayload = CreateShopSuccess
+type CreateShopSuccess {
+  shop: Shop
+}
+input UpdateShopInput {
+  title: String
+  contactEmail: String
+  contactPhone: String
+  whatsAppNumber: String
+  whatsAppLink: String
+  facebookLink: String
+  instagramLink: String
+  address: ShopAddressInput
+  currencyCode: String
+  about: String
+  seoDescription: String
+  seoKeywords: [String!]
+  seoTitle: String
+}
+union UpdateShopPayload = UpdateShopSuccess
+type UpdateShopSuccess {
+  shop: Shop
+}
+
+type Shop implements Node {
+  id: ID!
+  title: String!
+  defaultDomain: String!
+  contactPhone: String
+  contactEmail: String
+  address: ShopAddress!
+  products(first: Int = 20, after: ID): ProductConnection
+  categories(first: Int = 20, after: ID): CategoryConnection
+  whatsAppNumber: String
+  whatsAppLink: String
+  facebookLink: String
+  instagramLink: String
+  images: ShopImages!
+  currencyCode: String!
+  status: ShopStatus!
+  about: String
+  shopProductsCategory: String # Pets|Groceries|Fruits|Vegetables
+  # template: StoreFrontTemplate!
+  seoDescription: String
+  seoKeywords: [String!]!
+  seoTitle: String
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type ShopImages {
+  siteLogo: Image
+  favicon: Image
+  banner: Image
+  coverImage: Image
+}
+
+input UpdateShopImagesInput {
+  siteLogo: ImageInput
+  favicon: ImageInput
+  banner: ImageInput
+  coverImage: ImageInput
+}
+
+union UpdateShopImagesPayload = UpdateShopImagesSuccess
+type UpdateShopImagesSuccess {
+  images: ShopImages!
+}

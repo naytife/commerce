@@ -1,0 +1,39 @@
+extend type Query {
+  shop: Shop!
+}
+
+type ShopAddress {
+  address: String!
+}
+input ShopAddressInput {
+  address: String!
+}
+
+type Shop implements Node {
+  id: ID!
+  title: String!
+  defaultDomain: String!
+  contactPhone: String
+  contactEmail: String
+  address: ShopAddress!
+  products(first: Int = 20, after: ID): ProductConnection
+  categories(first: Int = 20, after: ID): CategoryConnection
+  whatsAppNumber: String
+  whatsAppLink: String
+  facebookLink: String
+  instagramLink: String
+  images: ShopImages!
+  currencyCode: String!
+  about: String
+  shopProductsCategory: String # Pets|Groceries|Fruits|Vegetables
+  # template: StoreFrontTemplate!
+  seoDescription: String
+  seoKeywords: [String!]!
+  seoTitle: String
+}
+type ShopImages {
+  siteLogo: Image
+  favicon: Image
+  banner: Image
+  coverImage: Image
+}

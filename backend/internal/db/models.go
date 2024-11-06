@@ -21,13 +21,6 @@ type Category struct {
 	CategoryAttributes []byte             `json:"category_attributes"`
 }
 
-type Facebook struct {
-	FacebookID int64  `json:"facebook_id"`
-	Handle     string `json:"handle"`
-	Url        string `json:"url"`
-	ShopID     int64  `json:"shop_id"`
-}
-
 type Product struct {
 	ProductID         int64              `json:"product_id"`
 	Title             string             `json:"title"`
@@ -65,21 +58,25 @@ type ProductVariation struct {
 }
 
 type Shop struct {
-	ShopID         int64              `json:"shop_id"`
-	OwnerID        uuid.UUID          `json:"owner_id"`
-	Title          string             `json:"title"`
-	Domain         string             `json:"domain"`
-	Email          string             `json:"email"`
-	CurrencyCode   string             `json:"currency_code"`
-	Status         string             `json:"status"`
-	About          *string            `json:"about"`
-	Address        *string            `json:"address"`
-	PhoneNumber    *string            `json:"phone_number"`
-	SeoDescription *string            `json:"seo_description"`
-	SeoKeywords    []string           `json:"seo_keywords"`
-	SeoTitle       *string            `json:"seo_title"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ShopID              int64              `json:"shop_id"`
+	OwnerID             uuid.UUID          `json:"owner_id"`
+	Title               string             `json:"title"`
+	Domain              string             `json:"domain"`
+	Email               string             `json:"email"`
+	CurrencyCode        string             `json:"currency_code"`
+	Status              string             `json:"status"`
+	About               *string            `json:"about"`
+	Address             *string            `json:"address"`
+	PhoneNumber         *string            `json:"phone_number"`
+	SeoDescription      *string            `json:"seo_description"`
+	SeoKeywords         []string           `json:"seo_keywords"`
+	SeoTitle            *string            `json:"seo_title"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	WhatsappPhoneNumber *string            `json:"whatsapp_phone_number"`
+	WhatsappLink        *string            `json:"whatsapp_link"`
+	FacebookLink        *string            `json:"facebook_link"`
+	InstagramLink       *string            `json:"instagram_link"`
 }
 
 type ShopImage struct {
@@ -101,11 +98,4 @@ type User struct {
 	LastLogin      pgtype.Timestamp `json:"last_login"`
 	ProviderID     *string          `json:"provider_id"`
 	Locale         *string          `json:"locale"`
-}
-
-type Whatsapp struct {
-	WhatsappID  int64  `json:"whatsapp_id"`
-	PhoneNumber string `json:"phone_number"`
-	Url         string `json:"url"`
-	ShopID      int64  `json:"shop_id"`
 }
