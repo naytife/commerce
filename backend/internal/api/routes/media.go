@@ -6,10 +6,9 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-func ShopRouter(app fiber.Router, repo db.Repository) {
+func MediaRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
 
-	app.Post("/shops", handler.CreateShop)
-	app.Get("/shops", handler.GetShops)
-	app.Delete("/shops/:id", handler.DeleteShop)
+	app.Post("/images/presigned_url", handler.CreateShop)
+	// app.Delete("/shops/:id", handler.DeleteShop)
 }

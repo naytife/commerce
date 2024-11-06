@@ -1,0 +1,40 @@
+extend type Query {
+  categories(first: Int = 20, after: ID): CategoryConnection
+  category(id: ID!): Category
+}
+
+type CategoryConnection {
+  edges: [CategoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type CategoryEdge {
+  cursor: String!
+  node: Category!
+}
+
+type CategoryNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
+
+type Category implements Node {
+  id: ID!
+  slug: String!
+  title: String!
+  description: String
+  products(first: Int = 20, after: ID): ProductConnection
+  allowedAttributes: [AllowedCategoryAttributes!]!
+  images: CategoryImages
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type AllowedCategoryAttributes {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+
+type CategoryImages {
+  banner: Image!
+}

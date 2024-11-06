@@ -44,15 +44,12 @@ type Repository interface {
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)
+	DeleteShop(ctx context.Context, shopID int64) error
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
 	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
 	GetShopImages(ctx context.Context, shopID int64) (ShopImage, error)
-	GetShopWhatsApp(ctx context.Context, shopID int64) (Whatsapp, error)
-	GetShopFacebook(ctx context.Context, shopID int64) (Facebook, error)
-	UpsertShopWhatsapp(ctx context.Context, arg UpsertShopWhatsappParams) (Whatsapp, error)
-	UpsertShopFacebook(ctx context.Context, arg UpsertShopFacebookParams) (Facebook, error)
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)

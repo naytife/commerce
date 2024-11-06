@@ -21,6 +21,10 @@ CREATE TABLE shops (
     about TEXT,
     address TEXT,
     phone_number VARCHAR(16),
+    whatsapp_phone_number VARCHAR(16),
+    whatsapp_link TEXT,
+    facebook_link TEXT,
+    instagram_link TEXT,
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
@@ -35,21 +39,6 @@ CREATE TABLE shop_images (
     logo_url TEXT,
     banner_url TEXT,
     cover_image_url TEXT,
-    shop_id BIGINT NOT NULL UNIQUE,
-    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
-);
-
-CREATE TABLE whatsapps (
-    whatsapp_id BIGSERIAL PRIMARY KEY,
-    phone_number VARCHAR(16) NOT NULL,
-    url TEXT NOT NULL,
-    shop_id BIGINT NOT NULL UNIQUE,
-    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
-);
-CREATE TABLE facebooks(
-    facebook_id BIGSERIAL PRIMARY KEY,
-    handle VARCHAR(50) NOT NULL,
-    url TEXT NOT NULL,
     shop_id BIGINT NOT NULL UNIQUE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );

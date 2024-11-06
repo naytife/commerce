@@ -12,7 +12,8 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/api/routes"
 	"github.com/petrejonn/naytife/internal/db"
-	"github.com/petrejonn/naytife/internal/graph"
+	admingraph "github.com/petrejonn/naytife/internal/gql/admin"
+	publicgraph "github.com/petrejonn/naytife/internal/gql/public"
 	"github.com/petrejonn/naytife/internal/middleware"
 )
 
@@ -43,14 +44,16 @@ func main() {
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	graphql := app.Group("/api/query", middleware.ShopIDMiddlewareFiber(repo))
-	graphql.All("/", graph.NewHandler(repo))
+	api := app.Group("/api/v1", middleware.WebMiddlewareFiber())
+	routes.ShopRouter(api, repo)
+	routes.UserRouter(api, repo)
 
-	web := app.Group("/api/v1", middleware.WebMiddlewareFiber())
-	routes.ShopRouter(web, repo)
-	routes.UserRouter(web, repo)
+	app.Get("/api/graph", publicgraph.NewPlaygroundHandler("/api/query"))
+	app.Get("/api/admin/graph", admingraph.NewPlaygroundHandler("/api/admin/query"))
 
-	app.Get("/api/graph", graph.NewPlaygroundHandler("/api/query"))
+	graphql := app.Group("/api", middleware.ShopIDMiddlewareFiber(repo))
+	graphql.Post("/query", publicgraph.NewHandler(repo))      // public
+	graphql.Post("/admin/query", admingraph.NewHandler(repo)) // admin
 
 	address := ":" + env.PORT
 	fmt.Fprintf(os.Stdout, "🚀 Server ready at port %s\n", address)

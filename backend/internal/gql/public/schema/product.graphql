@@ -1,0 +1,66 @@
+# ======== PRODUCT ========
+extend type Query {
+  products(first: Int = 20, after: ID): ProductConnection!
+  product(id: ID!): Product
+}
+
+enum ProductAttributeDataType {
+  STRING
+  INTEGER
+}
+
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type ProductEdge {
+  cursor: ID!
+  node: Product!
+}
+
+type ProductNotFoundError implements UserError {
+  message: String!
+  code: ErrorCode!
+  path: [String!]!
+}
+type Product implements Node {
+  id: ID!
+  title: String!
+  description: String!
+  defaultVariant: ProductVariant!
+  variants: [ProductVariant!]!
+  images: [Image!]!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type AllowedProductAttributes {
+  title: String!
+  dataType: ProductAttributeDataType!
+}
+type ProductAttributeValue {
+  intValue: Int
+  stringValue: String
+}
+
+# ======== ProductVariant ========
+enum ProductStockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+}
+type ProductVariant implements Node {
+  id: ID!
+  slug: String!
+  price: Float!
+  availableQuantity: Int!
+  description: String!
+  attributes: [ProductAttribute!]!
+  stockStatus: ProductStockStatus!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+type ProductAttribute {
+  key: String!
+  value: String
+}
