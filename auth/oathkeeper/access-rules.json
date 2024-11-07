@@ -31,11 +31,10 @@
     ]
   },
   {
-    "id": "api:graph-playground",
+    "id": "api:public-graph-playground",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000",
-      "strip_path": "/api/graph"
+      "url": "http://192.168.49.1:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/graph",
@@ -58,14 +57,67 @@
     ]
   },
   {
-    "id": "api:graph-query",
+    "id": "api:admin-graph-playground",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://192.168.49.1:8000"
+    },
+    "match": {
+      "url": "http://<*>.localhost:8080/api/admin/graph",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "api:public-graph-query",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://192.168.49.1:8000"
+    },
+    "match": {
+      "url": "http://<*>.localhost:8080/api/query",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "api:admin-graph-query",
     "upstream": {
       "preserve_host": true,
       "url": "http://192.168.49.1:8000",
       "strip_path": "/api"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/query",
+      "url": "http://<*>.localhost:8080/api/admin/query",
       "methods": [
         "GET",
         "POST"
