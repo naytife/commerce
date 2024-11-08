@@ -1,0 +1,22 @@
+query Products {
+	products(first: 20) {
+		edges {
+			cursor
+			node {
+				id
+				title
+				description
+				status
+				updatedAt
+				createdAt
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

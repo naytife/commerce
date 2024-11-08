@@ -1,0 +1,28 @@
+query Shop {
+	shop {
+		id
+		title
+		defaultDomain
+		contactPhone {
+			e164
+		}
+		contactEmail
+		address {
+			address
+		}
+		facebook {
+			url
+			handle
+		}
+
+		currencyCode
+		status
+		about
+		shopProductsCategory
+		seoDescription
+		seoKeywords
+		seoTitle
+		updatedAt
+		createdAt
+	}
+}
