@@ -1,0 +1,40 @@
+query Categories {
+	categories(first: 20) {
+		edges {
+			cursor
+			node {
+				id
+				slug
+				title
+				description
+				children {
+					id
+					slug
+					title
+					description
+					allowedAttributes {
+						title
+						dataType
+					}
+					updatedAt
+					createdAt
+				}
+
+				allowedAttributes {
+					title
+					dataType
+				}
+
+				updatedAt
+				createdAt
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}
