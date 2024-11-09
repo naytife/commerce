@@ -13,8 +13,8 @@
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { CirclePlus } from 'lucide-svelte';
 
-	export let data;
-	$: ({ ProductQuery } = data);
+	export let data: any;
+	$: ({ Products } = data);
 </script>
 
 <main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -25,11 +25,9 @@
 				<span class="sr-only">Back</span>
 			</Button>
 			<h1 class="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-				{$ProductQuery.data.productByRowId.title}
+				{$Products.data.products.title}
 			</h1>
-			<Badge variant="outline" class="ml-auto sm:ml-0"
-				>{$ProductQuery.data.productByRowId.status}</Badge
-			>
+			<Badge variant="outline" class="ml-auto sm:ml-0">{$Products.data.products.status}</Badge>
 			<div class="hidden items-center gap-2 md:ml-auto md:flex">
 				<Button variant="outline" size="sm">Discard</Button>
 				<Button size="sm">Save Product</Button>
@@ -46,18 +44,13 @@
 						<div class="grid gap-6">
 							<div class="grid gap-3">
 								<Label for="name">Title</Label>
-								<Input
-									id="name"
-									type="text"
-									class="w-full"
-									value={$ProductQuery.data.productByRowId.title}
-								/>
+								<Input id="name" type="text" class="w-full" value={$Products.data.products.title} />
 							</div>
 							<div class="grid gap-3">
 								<Label for="description">Description</Label>
 								<Textarea
 									id="description"
-									value={$ProductQuery.data.productByRowId.description}
+									value={$Products.data.products.description}
 									class="min-h-32"
 								/>
 							</div>
