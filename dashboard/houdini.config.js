@@ -2,12 +2,19 @@
 
 /** @type {import('houdini').ConfigFile} */
 const config = {
-    "watchSchema": {
-        "url": "https://apple.naytife.com/api/query"
-    },
-    "plugins": {
-        "houdini-svelte": {}
-    }
-}
+	schemaPath: './schema.graphql',
+	watchSchema: {
+		url: 'https://apple.naytife.com/api/query'
+	},
 
-export default config
+	scalars: {
+		DateTime: {
+			type: 'string'
+		}
+	},
+	plugins: {
+		'houdini-svelte': {}
+	}
+};
+
+export default config;

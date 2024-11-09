@@ -17,11 +17,10 @@ type Category implements Node {
   allowedAttributes: [AllowedCategoryAttributes!]!
   children: [Category!]
   createdAt: DateTime!
-  description: String!
+  description: String
   id: ID!
   images: CategoryImages
-  parent: Category
-  products: ProductConnection
+  products(after: ID, first: Int = 20): ProductConnection
   slug: String!
   title: String!
   updatedAt: DateTime!
@@ -30,6 +29,7 @@ type Category implements Node {
 type CategoryConnection {
   edges: [CategoryEdge!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type CategoryEdge {
@@ -59,7 +59,7 @@ type CreateCategoryAttributeSuccess {
 }
 
 input CreateCategoryInput {
-  description: String!
+  description: String
   parentID: ID
   title: String!
 }
@@ -68,6 +68,17 @@ union CreateCategoryPayload = CreateCategorySuccess
 
 type CreateCategorySuccess {
   category: Category
+}
+
+input CreateProductAttributeInput {
+  dataType: ProductAttributeDataType!
+  title: String!
+}
+
+union CreateProductAttributePayload = CreateProductAttributeSuccess | ProductNotFoundError
+
+type CreateProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
 }
 
 input CreateProductInput {
@@ -82,6 +93,19 @@ type CreateProductSuccess {
   product: Product!
 }
 
+input CreateProductVariantInput {
+  attributes: [ProductAttributeValueInput!]
+  availableQuantity: Int!
+  price: Float!
+  stockStatus: ProductStockStatus!
+}
+
+union CreateProductVariantPayload = CreateProductVariantSuccess | ProductNotFoundError
+
+type CreateProductVariantSuccess {
+  variants: [ProductVariant!]!
+}
+
 input CreateShopInput {
   domain: String!
   title: String!
@@ -93,23 +117,18 @@ type CreateShopSuccess {
   shop: Shop
 }
 
-input CreateWhatsAppInput {
-  phoneNumber: PhoneNumberInput!
-  url: String!
-}
-
-union CreateWhatsAppPayload = CreateWhatsAppSuccess | ShopNotFoundError
-
-type CreateWhatsAppSuccess {
-  whatsApp: WhatsApp
-}
-
 scalar DateTime
 
 union DeleteCategoryAttributePayload = CategoryNotFoundError | DeleteCategoryAttributeSuccess
 
 type DeleteCategoryAttributeSuccess {
   attributes: [AllowedCategoryAttributes!]!
+}
+
+union DeleteProductAttributePayload = DeleteProductAttributeSuccess | ProductNotFoundError
+
+type DeleteProductAttributeSuccess {
+  attributes: [AllowedProductAttributes!]!
 }
 
 enum ErrorCode {
@@ -122,8 +141,8 @@ enum ErrorCode {
 }
 
 type Facebook implements SocialMediaContact {
-  handle: String!
-  url: String!
+  handle: String
+  url: String
 }
 
 type Image {
@@ -131,22 +150,32 @@ type Image {
   url: String!
 }
 
-type Instagram implements SocialMediaContact {
-  handle: String!
+input ImageInput {
+  altText: String
   url: String!
+}
+
+type Instagram implements SocialMediaContact {
+  handle: String
+  url: String
 }
 
 type Mutation {
   createCategory(category: CreateCategoryInput!): CreateCategoryPayload
   createCategoryAttribute(attribute: CreateCategoryAttributeInput!, categoryID: ID!): CreateCategoryAttributePayload
   createProduct(product: CreateProductInput!): CreateProductPayload
+  createProductAttribute(attribute: CreateProductAttributeInput!, productID: ID!): CreateProductAttributePayload
+  createProductVariant(productID: ID!, variants: [CreateProductVariantInput!]!): CreateProductVariantPayload
   createShop(shop: CreateShopInput!): CreateShopPayload
-  createWhatsApp(input: CreateWhatsAppInput!): CreateWhatsAppPayload
   deleteCategoryAttribute(attribute: String!, categoryID: ID!): DeleteCategoryAttributePayload
+  deleteProductAttribute(attribute: String!, productID: ID!): DeleteProductAttributePayload
   signInUser(input: SignInInput!): SignInUserPayload!
   updateCategory(category: UpdateCategoryInput!, categoryID: ID!): UpdateCategoryPayload
+  updateProduct(product: UpdateProductInput!, productID: ID!): UpdateProductPayload
   updateShop(shop: UpdateShopInput!): UpdateShopPayload
-  updateWhatsApp(input: UpdateWhatsAppInput!): UpdateWhatsAppPayload!
+  updateShopFacebook(input: UpdateShopFacebookInput!): UpdateShopFacebookPayload!
+  updateShopImages(input: UpdateShopImagesInput!): UpdateShopImagesPayload
+  updateShopWhatsApp(input: UpdateShopWhatsAppInput!): UpdateShopWhatsAppPayload!
 }
 
 interface Node {
@@ -154,10 +183,10 @@ interface Node {
 }
 
 type PageInfo {
-  endCursor: String
+  endCursor: ID!
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
-  startCursor: String
+  startCursor: ID!
 }
 
 type PhoneNumber {
@@ -170,7 +199,6 @@ input PhoneNumberInput {
 
 type Product implements Node {
   allowedAttributes: [AllowedProductAttributes!]!
-  category: Category!
   createdAt: DateTime!
   defaultVariant: ProductVariant!
   description: String!
@@ -197,14 +225,26 @@ type ProductAttributeValue {
   stringValue: String
 }
 
+input ProductAttributeValueInput {
+  key: String!
+  value: String!
+}
+
 type ProductConnection {
   edges: [ProductEdge!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ProductEdge {
-  cursor: String!
+  cursor: ID!
   node: Product!
+}
+
+type ProductNotFoundError implements UserError {
+  code: ErrorCode!
+  message: String!
+  path: [String!]!
 }
 
 enum ProductStatus {
@@ -228,33 +268,30 @@ type ProductVariant implements Node {
   price: Float!
   slug: String!
   stockStatus: ProductStockStatus!
-  title: String!
   updatedAt: DateTime!
 }
 
 type Query {
-  categories: [Category!]!
+  categories(after: ID, first: Int = 20): CategoryConnection
   category(id: ID!): Category
-  myShops: [Shop!]!
   node(id: ID!): Node
   product(id: ID!): Product
-  products: [Product!]!
+  products(after: ID, first: Int = 20): ProductConnection!
   shop: Shop!
 }
 
 type Shop implements Node {
   about: String
-  address: ShopAddress
+  address: ShopAddress!
   categories(after: ID, first: Int = 20): CategoryConnection
   contactEmail: String
   contactPhone: PhoneNumber
   createdAt: DateTime!
   currencyCode: String!
   defaultDomain: String!
-  facebook: Facebook
+  facebook: Facebook!
   id: ID!
-  images: ShopImages
-  owner: User!
+  images: ShopImages!
   products(after: ID, first: Int = 20): ProductConnection
   seoDescription: String
   seoKeywords: [String!]!
@@ -263,7 +300,7 @@ type Shop implements Node {
   status: ShopStatus!
   title: String!
   updatedAt: DateTime!
-  whatsApp: WhatsApp
+  whatsApp: WhatsApp!
 }
 
 type ShopAddress {
@@ -320,6 +357,41 @@ type UpdateCategorySuccess {
   category: Category!
 }
 
+input UpdateProductInput {
+  description: String
+  title: String
+}
+
+union UpdateProductPayload = ProductNotFoundError | UpdateProductSuccess
+
+type UpdateProductSuccess {
+  product: Product!
+}
+
+input UpdateShopFacebookInput {
+  handle: String
+  url: String
+}
+
+union UpdateShopFacebookPayload = UpdateShopFacebookSuccess
+
+type UpdateShopFacebookSuccess {
+  facebook: Facebook!
+}
+
+input UpdateShopImagesInput {
+  banner: ImageInput
+  coverImage: ImageInput
+  favicon: ImageInput
+  siteLogo: ImageInput
+}
+
+union UpdateShopImagesPayload = UpdateShopImagesSuccess
+
+type UpdateShopImagesSuccess {
+  images: ShopImages!
+}
+
 input UpdateShopInput {
   about: String
   address: ShopAddressInput
@@ -332,20 +404,20 @@ input UpdateShopInput {
   title: String
 }
 
-union UpdateShopPayload = ShopNotFoundError | UpdateShopSuccess
+union UpdateShopPayload = UpdateShopSuccess
 
 type UpdateShopSuccess {
   shop: Shop
 }
 
-input UpdateWhatsAppInput {
+input UpdateShopWhatsAppInput {
   phoneNumber: PhoneNumberInput
   url: String
 }
 
-union UpdateWhatsAppPayload = ShopNotFoundError | UpdateWhatsAppSuccess
+union UpdateShopWhatsAppPayload = UpdateShopWhatsAppSuccess
 
-type UpdateWhatsAppSuccess {
+type UpdateShopWhatsAppSuccess {
   whatsApp: WhatsApp!
 }
 
@@ -365,6 +437,6 @@ interface UserError {
 }
 
 type WhatsApp implements SocialMediaContact {
-  phoneNumber: PhoneNumber!
-  url: String!
+  phoneNumber: PhoneNumber
+  url: String
 }

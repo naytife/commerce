@@ -1,21 +1,4 @@
-<script lang="ts" context="module">
-	import { z } from 'zod';
-	export const generalSettingsFormSchema = z.object({
-		title: z
-			.string()
-			.min(2, 'title must be at least 2 characters.')
-			.max(30, 'title must not be longer than 30 characters'),
-		email: z.string({ required_error: 'Please enter an email address' }).email(),
-		description: z.string().min(4).max(160).default('Our amazing shop.'),
-		phone: z
-			.string()
-			.min(1, 'Please enter a valid phone number')
-			.max(15, 'Please enter a valid phone number')
-	});
-	export type GeneralSettingsFormSchema = typeof generalSettingsFormSchema;
-</script>
-
-<script lang="ts">
+<!-- <script lang="ts">
 	import { type Infer, type SuperValidated, superForm } from 'sveltekit-superforms';
 	import { zodClient } from 'sveltekit-superforms/adapters';
 	import * as Card from '$lib/components/ui/card';
@@ -23,25 +6,22 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { get, writable } from 'svelte/store';
+	import type { PageData } from './$types';
+	import { generalSettingsFormSchema } from './schema';
 
-	// Assuming this is your Houdini's store data
-	export let data: {
-		ShopQuery: {
-			store: any; // Replace 'any' with the correct type if known
-		};
-	};
+	export let data: PageData;
+	$: ({ Shop } = data);
 
-	// Extract the data from the Houdini store
-	const shopData = get(data);
-	console.log(shopData);
+	const shopData = $Shop;
 
+	$: console.log($Shop?.data?.shop);
 	// Check if the data is available and map it to form fields
-	const initialFormData = shopData
+	const initialFormData = $shopData
 		? {
-				title: shopData.data.shop.title || '',
-				email: shopData.data.shop.contactEmail || '',
-				description: shopData.shop.shop.about || '',
-				phone: shopData.data.shop.contactPhone || ''
+				title: $shopData?.data?.shop?.title || '',
+				email: $shopData?.data?.shop?.contactEmail || '',
+				description: $shopData?.shop?.shop?.about || '',
+				phone: $shopData?.data?.shop?.contactPhone || ''
 			}
 		: {
 				title: '',
@@ -50,6 +30,8 @@
 				phone: ''
 			};
 
+	$: console.log(initialFormData);
+	$: console.log($shopData);
 	// Initialize the writable store with the form data
 	const formData = writable(initialFormData);
 
@@ -71,6 +53,47 @@
 	// 		lastInput && lastInput.focus();
 	// 	});
 	// }
+</script> -->
+<script lang="ts">
+	import { type Infer, type SuperValidated, superForm } from 'sveltekit-superforms';
+	import { zodClient } from 'sveltekit-superforms/adapters';
+	import * as Card from '$lib/components/ui/card';
+	import * as Form from '$lib/components/ui/form';
+	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { writable } from 'svelte/store';
+	import type { PageData } from './$types';
+	import { generalSettingsFormSchema } from './schema';
+
+	export let data: PageData;
+	$: ({ Shop } = data);
+
+	// Define initial form data as empty strings
+	const formData = writable({
+		title: '',
+		email: '',
+		description: '',
+		phone: ''
+	});
+
+	// Update `formData` reactively when `Shop` data becomes available
+	$: if ($Shop?.data?.shop) {
+		const shopData = $Shop?.data?.shop;
+		formData.set({
+			title: shopData.title || '',
+			email: shopData.contactEmail || '',
+			description: shopData.about || '',
+			phone: shopData.contactPhone || ''
+		});
+	}
+
+	// Initialize superForm with formData
+	const form = superForm(formData, {
+		validators: zodClient(generalSettingsFormSchema),
+		dataType: 'json'
+	});
+
+	const { form: formFields, enhance } = form;
 </script>
 
 <Card.Root>
