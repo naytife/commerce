@@ -94,9 +94,22 @@ func (q *Queries) DeleteProductAllowedAttribute(ctx context.Context, arg DeleteP
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT product_id, title, description, created_at, updated_at, status, category_id
-FROM products
-WHERE shop_id = $1 AND product_id = $2
+SELECT 
+    p.product_id, 
+    p.title, 
+    p.description, 
+    p.created_at, 
+    p.updated_at, 
+    p.status, 
+    p.category_id,
+    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+FROM 
+    products p
+LEFT JOIN 
+    categories c ON p.category_id = c.category_id
+WHERE 
+    p.shop_id = $1 
+    AND p.product_id = $2
 `
 
 type GetProductParams struct {
@@ -105,13 +118,14 @@ type GetProductParams struct {
 }
 
 type GetProductRow struct {
-	ProductID   int64              `json:"product_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Status      string             `json:"status"`
-	CategoryID  int64              `json:"category_id"`
+	ProductID         int64              `json:"product_id"`
+	Title             string             `json:"title"`
+	Description       string             `json:"description"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Status            string             `json:"status"`
+	CategoryID        int64              `json:"category_id"`
+	AllowedAttributes []byte             `json:"allowed_attributes"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -125,14 +139,20 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.UpdatedAt,
 		&i.Status,
 		&i.CategoryID,
+		&i.AllowedAttributes,
 	)
 	return i, err
 }
 
 const getProductAllowedAttributes = `-- name: GetProductAllowedAttributes :one
-SELECT allowed_attributes
-FROM products
-WHERE product_id = $1
+SELECT 
+    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+FROM 
+    products p
+LEFT JOIN 
+    categories c ON p.category_id = c.category_id
+WHERE 
+    p.product_id = $1
 `
 
 func (q *Queries) GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error) {
@@ -188,9 +208,22 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 }
 
 const getProducts = `-- name: GetProducts :many
-SELECT product_id, title, description, created_at, updated_at, status, category_id
-FROM products
-WHERE shop_id = $1 AND product_id > $2
+SELECT 
+    p.product_id, 
+    p.title, 
+    p.description, 
+    p.created_at, 
+    p.updated_at, 
+    p.status, 
+    p.category_id,
+    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+FROM 
+    products p
+LEFT JOIN 
+    categories c ON p.category_id = c.category_id
+WHERE 
+    p.shop_id = $1
+    AND p.product_id > $2
 LIMIT $3
 `
 
@@ -201,13 +234,14 @@ type GetProductsParams struct {
 }
 
 type GetProductsRow struct {
-	ProductID   int64              `json:"product_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Status      string             `json:"status"`
-	CategoryID  int64              `json:"category_id"`
+	ProductID         int64              `json:"product_id"`
+	Title             string             `json:"title"`
+	Description       string             `json:"description"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Status            string             `json:"status"`
+	CategoryID        int64              `json:"category_id"`
+	AllowedAttributes []byte             `json:"allowed_attributes"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -227,6 +261,7 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 			&i.UpdatedAt,
 			&i.Status,
 			&i.CategoryID,
+			&i.AllowedAttributes,
 		); err != nil {
 			return nil, err
 		}
@@ -239,9 +274,22 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 }
 
 const getProductsByCategory = `-- name: GetProductsByCategory :many
-SELECT product_id, title, description, created_at, updated_at, status, category_id
-FROM products
-WHERE category_id = $1 AND product_id > $2
+SELECT 
+    p.product_id, 
+    p.title, 
+    p.description, 
+    p.created_at, 
+    p.updated_at, 
+    p.status, 
+    p.category_id,
+    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+FROM 
+    products p
+LEFT JOIN 
+    categories c ON p.category_id = c.category_id
+WHERE 
+    p.category_id = $1 
+    AND p.product_id > $2
 LIMIT $3
 `
 
@@ -252,13 +300,14 @@ type GetProductsByCategoryParams struct {
 }
 
 type GetProductsByCategoryRow struct {
-	ProductID   int64              `json:"product_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Status      string             `json:"status"`
-	CategoryID  int64              `json:"category_id"`
+	ProductID         int64              `json:"product_id"`
+	Title             string             `json:"title"`
+	Description       string             `json:"description"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Status            string             `json:"status"`
+	CategoryID        int64              `json:"category_id"`
+	AllowedAttributes []byte             `json:"allowed_attributes"`
 }
 
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {
@@ -278,6 +327,7 @@ func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCa
 			&i.UpdatedAt,
 			&i.Status,
 			&i.CategoryID,
+			&i.AllowedAttributes,
 		); err != nil {
 			return nil, err
 		}
