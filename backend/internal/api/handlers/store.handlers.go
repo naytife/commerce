@@ -93,6 +93,9 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 			Message: "Failed to get shops",
 		}
 	}
+	if len(objsDB) == 0 {
+		objsDB = []db.Shop{}
+	}
 	return c.JSON(models.ResponseHTTP{
 		Success: true,
 		Data:    objsDB,

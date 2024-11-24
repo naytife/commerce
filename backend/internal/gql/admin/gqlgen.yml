@@ -98,8 +98,6 @@ models:
         resolver: true
       products:
         resolver: true
-      allowedAttributes:
-        resolver: true
       images:
         resolver: true
   ChildCategory:
@@ -113,8 +111,6 @@ models:
       defaultVariant:
         resolver: true
       variants:
-        resolver: true
-      allowedAttributes:
         resolver: true
       images:
         resolver: true
