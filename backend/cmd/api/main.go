@@ -47,6 +47,7 @@ func main() {
 	api := app.Group("/api/v1", middleware.WebMiddlewareFiber())
 	routes.ShopRouter(api, repo)
 	routes.UserRouter(api, repo)
+	routes.CartRouter(api, repo)
 
 	app.Get("/api/graph", publicgraph.NewPlaygroundHandler("/api/query"))
 	app.Get("/api/admin/graph", admingraph.NewPlaygroundHandler("/api/admin/query"))

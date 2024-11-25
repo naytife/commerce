@@ -21,6 +21,25 @@ type Category struct {
 	CategoryAttributes []byte             `json:"category_attributes"`
 }
 
+type Order struct {
+	OrderID    int64              `json:"order_id"`
+	Status     string             `json:"status"`
+	TotalPrice pgtype.Numeric     `json:"total_price"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	UserID     uuid.UUID          `json:"user_id"`
+}
+
+type OrderItem struct {
+	OrderItemID        int64              `json:"order_item_id"`
+	Quantity           int64              `json:"quantity"`
+	Price              pgtype.Numeric     `json:"price"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ProductVariationID int64              `json:"product_variation_id"`
+	OrderID            int64              `json:"order_id"`
+}
+
 type Product struct {
 	ProductID         int64              `json:"product_id"`
 	Title             string             `json:"title"`
@@ -86,6 +105,22 @@ type ShopImage struct {
 	BannerUrl     *string `json:"banner_url"`
 	CoverImageUrl *string `json:"cover_image_url"`
 	ShopID        int64   `json:"shop_id"`
+}
+
+type ShoppingCart struct {
+	ShoppingCartID int64              `json:"shopping_cart_id"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	UserID         uuid.UUID          `json:"user_id"`
+}
+
+type ShoppingCartItem struct {
+	ShoppingCartItemID int64              `json:"shopping_cart_item_id"`
+	Quantity           int64              `json:"quantity"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ProductVariationID int64              `json:"product_variation_id"`
+	ShoppingCartID     int64              `json:"shopping_cart_id"`
 }
 
 type User struct {
