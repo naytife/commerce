@@ -130,12 +130,12 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 	if err != nil {
 		return nil, errors.New("invalid product ID")
 	}
-	attributesDB, err := r.Repository.GetProductAllowedAttributes(ctx, *objID)
+	objDB, err := r.Repository.GetProduct(ctx, db.GetProductParams{ShopID: shopID, ProductID: *objID})
 	if err != nil {
 		return nil, errors.New("could not fetch product attribute")
 	}
 	var attributesDBMap map[string]interface{}
-	if err := json.Unmarshal(attributesDB, &attributesDBMap); err != nil {
+	if err := json.Unmarshal(objDB.AllowedAttributes, &attributesDBMap); err != nil {
 		return nil, err
 	}
 	params := []db.UpsertProductVariationParams{}
@@ -149,7 +149,7 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 		}
 		attributesString := formatAttributes(variant.Attributes)
 		params = append(params, db.UpsertProductVariationParams{
-			Slug:              slug.MakeLang(attributesString, "en"),
+			Slug:              slug.MakeLang(objDB.Title+" "+attributesString, "en"),
 			Description:       attributesString,
 			Price:             pgtype.Numeric{Int: big.NewInt(int64(variant.Price)), Valid: true},
 			AvailableQuantity: int64(variant.AvailableQuantity),
@@ -168,14 +168,19 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 		if err != nil {
 			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
 		}
+		attributes, err := unmarshalProductAttributes(objDB.Attributes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+		}
 		objs = append(objs, model.ProductVariant{
-			ID:                strconv.FormatInt(objDB.ProductVariationID, 10),
+			ID:                encodeRelayID("Product", strconv.FormatInt(objDB.ProductVariationID, 10)),
 			Slug:              objDB.Slug,
 			Description:       objDB.Description,
 			Price:             priceFloat64.Float64,
 			AvailableQuantity: int(objDB.AvailableQuantity),
 			UpdatedAt:         objDB.UpdatedAt.Time,
 			CreatedAt:         objDB.CreatedAt.Time,
+			Attributes:        attributes,
 		})
 	}
 	return model.CreateProductVariantSuccess{

@@ -102,3 +102,52 @@ CREATE TABLE product_variations(
     CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE 
 );
+
+CREATE TABLE shopping_cart(
+    shopping_cart_id BIGSERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    user_id UUID NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE shopping_cart_items(
+    shopping_cart_item_id BIGSERIAL PRIMARY KEY,
+    quantity BIGINT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    product_variation_id BIGINT NOT NULL,
+    shopping_cart_id BIGINT NOT NULL,
+    CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shopping_cart FOREIGN KEY (shopping_cart_id) REFERENCES shopping_cart(shopping_cart_id) ON DELETE CASCADE
+);
+
+CREATE TABLE orders(
+    order_id BIGSERIAL PRIMARY KEY,
+    status VARCHAR(10) NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    -- discount_price DECIMAL(10, 2) NOT NULL,
+    -- shipping_price DECIMAL(10, 2) NOT NULL,
+    -- tax_price DECIMAL(10, 2) NOT NULL,
+    -- shipping_address TEXT NOT NULL,
+    -- payment_method VARCHAR(10) NOT NULL,
+    -- payment_status VARCHAR(10) NOT NULL,
+    -- shipping_method VARCHAR(10) NOT NULL,
+    -- shipping_status VARCHAR(10) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    user_id UUID NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE order_items(
+    order_item_id BIGSERIAL PRIMARY KEY,
+    quantity BIGINT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    product_variation_id BIGINT NOT NULL,
+    order_id BIGINT NOT NULL,
+    CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+);
