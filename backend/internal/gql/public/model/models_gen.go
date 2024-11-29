@@ -21,6 +21,11 @@ type UserError interface {
 	GetPath() []string
 }
 
+type AddCartItemInput struct {
+	ProductID string `json:"productId"`
+	Quantity  int    `json:"quantity"`
+}
+
 type AllowedCategoryAttributes struct {
 	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
@@ -29,6 +34,25 @@ type AllowedCategoryAttributes struct {
 type AllowedProductAttributes struct {
 	Title    string                   `json:"title"`
 	DataType ProductAttributeDataType `json:"dataType"`
+}
+
+type Cart struct {
+	ID    string     `json:"id"`
+	Items []CartItem `json:"items"`
+	Total float64    `json:"total"`
+}
+
+type CartItem struct {
+	ID       string       `json:"id"`
+	Product  *CartProduct `json:"product"`
+	Quantity int          `json:"quantity"`
+}
+
+type CartProduct struct {
+	ID    string  `json:"id"`
+	Title string  `json:"title"`
+	Price float64 `json:"price"`
+	Image string  `json:"image"`
 }
 
 type Category struct {
@@ -89,6 +113,9 @@ type Image struct {
 type ImageInput struct {
 	URL     string  `json:"url"`
 	AltText *string `json:"altText,omitempty"`
+}
+
+type Mutation struct {
 }
 
 type PageInfo struct {
@@ -171,6 +198,10 @@ func (this ProductVariant) GetID() string { return this.ID }
 type Query struct {
 }
 
+type RemoveCartItemInput struct {
+	ProductID string `json:"productId"`
+}
+
 type Shop struct {
 	ID                   string              `json:"id"`
 	Title                string              `json:"title"`
@@ -209,6 +240,11 @@ type ShopImages struct {
 	Favicon    *Image `json:"favicon,omitempty"`
 	Banner     *Image `json:"banner,omitempty"`
 	CoverImage *Image `json:"coverImage,omitempty"`
+}
+
+type UpdateCartItemInput struct {
+	ProductID string `json:"productId"`
+	Quantity  int    `json:"quantity"`
 }
 
 type ErrorCode string
