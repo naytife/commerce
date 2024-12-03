@@ -51,8 +51,8 @@ oathkeeper:
             - http://127.0.0.1:8080
           pre_authorization:
             enabled: true
-            client_id: 3a9a5ae2-e6a3-4774-afae-6ebe1d0ca2c1
-            client_secret: yQt.DfWQWfAosPOpU4spO9Zx19
+            client_id: 758e89bc-0824-4007-8106-8fb99c05e1f3
+            client_secret: f2FeP4O2zSiRioYXAJ7li2vYMr
             scope:
               - introspect
             token_url: http://hydra-public.naytife-ory.svc.cluster.local:4444/oauth2/token

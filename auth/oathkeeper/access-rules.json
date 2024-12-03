@@ -97,7 +97,7 @@
     },
     "authenticators": [
       {
-        "handler": "oauth2_introspection"
+        "handler": "anonymous"
       }
     ],
     "authorizer": {
@@ -113,8 +113,7 @@
     "id": "api:admin-graph-query",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000",
-      "strip_path": "/api"
+      "url": "http://192.168.49.1:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/admin/query",
