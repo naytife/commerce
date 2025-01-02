@@ -1,6 +1,6 @@
 hydra:
   config:
-    dsn: postgres://naytife:naytifekey@postgres.default.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
+    dsn: postgres://postgres:bdQGszmfyR@postgres-postgresql.default.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
     urls:
       self:
         issuer: http://127.0.0.1:8080
