@@ -3,7 +3,7 @@
     "id": "api:rest-api",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000",
+      "url": "http://host.minikube.internal:8000",
       "strip_path": "/api"
     },
     "match": {
@@ -34,7 +34,7 @@
     "id": "api:public-graph-playground",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/graph",
@@ -60,7 +60,7 @@
     "id": "api:admin-graph-playground",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/admin/graph",
@@ -86,7 +86,7 @@
     "id": "api:public-graph-query",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/query",
@@ -113,7 +113,7 @@
     "id": "api:admin-graph-query",
     "upstream": {
       "preserve_host": true,
-      "url": "http://192.168.49.1:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
       "url": "http://<*>.localhost:8080/api/admin/query",

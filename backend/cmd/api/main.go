@@ -44,8 +44,8 @@ func main() {
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	api := app.Group("/api/v1")
-	// api := app.Group("/api/v1", middleware.WebMiddlewareFiber())
+	// api := app.Group("/api/v1")
+	api := app.Group("/api/v1", middleware.WebMiddlewareFiber())
 	routes.ShopRouter(api, repo)
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)

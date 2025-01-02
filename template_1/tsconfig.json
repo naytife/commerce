@@ -13,7 +13,7 @@
         "rootDirs": [
             ".",
             "./.svelte-kit/types",
-            "./$houdini/types"
+            "./.houdini/types"
         ]
     }
 }
