@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { initFlowbite } from 'flowbite';
+	import type { PageData } from './$houdini'
+
+    export let data: PageData
+
+    $: ({ Shop } = data)
 
 	onMount(() => {
 		initFlowbite();
@@ -16,7 +21,7 @@
 					<ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
 						<li class="inline-flex items-center">
 							<a
-								href="#"
+								href="/"
 								class="hover:text-primary-600 inline-flex items-center text-sm font-medium text-gray-700 dark:text-gray-400 dark:hover:text-white"
 							>
 								<svg
@@ -30,7 +35,7 @@
 										d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"
 									/>
 								</svg>
-								Home
+								{$Shop.data?.shop.title}
 							</a>
 						</li>
 						<li>
@@ -53,7 +58,7 @@
 									/>
 								</svg>
 								<a
-									href="#"
+									href="/"
 									class="hover:text-primary-600 ms-1 text-sm font-medium text-gray-700 dark:text-gray-400 dark:hover:text-white md:ms-2"
 									>Products</a
 								>
@@ -184,7 +189,7 @@
 					>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								The most popular
@@ -192,7 +197,7 @@
 						</li>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								Newest
@@ -200,7 +205,7 @@
 						</li>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								Increasing price
@@ -208,7 +213,7 @@
 						</li>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								Decreasing price
@@ -216,7 +221,7 @@
 						</li>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								No. reviews
@@ -224,7 +229,7 @@
 						</li>
 						<li>
 							<a
-								href="#"
+								href="/"
 								class="group inline-flex w-full items-center rounded-md px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white"
 							>
 								Discount %
@@ -479,7 +484,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/iphone-light.svg"
@@ -574,7 +579,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>Apple iPhone 15 Pro Max, 256GB, Blue Titanium</a
 					>
@@ -722,7 +727,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/ipad-light.svg"
@@ -817,7 +822,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>iPad Pro 13-Inch (M4): XDR Display, 512GB</a
 					>
@@ -961,7 +966,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/ps5-light.svg"
@@ -1056,7 +1061,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>PlayStation®5 Console – 1TB, PRO Controller</a
 					>
@@ -1200,7 +1205,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/xbox-light.svg"
@@ -1295,7 +1300,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>Microsoft Xbox Series X 1TB Gaming Console</a
 					>
@@ -1441,7 +1446,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/macbook-pro-light.svg"
@@ -1536,7 +1541,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>Apple MacBook PRO Laptop with M2 chip</a
 					>
@@ -1682,7 +1687,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/apple-watch-light.svg"
@@ -1777,7 +1782,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>Apple Watch SE [GPS 40mm], Smartwatch</a
 					>
@@ -1921,7 +1926,7 @@
 				class="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<div class="h-56 w-full">
-					<a href="#">
+					<a href="/">
 						<img
 							class="mx-auto h-full dark:hidden"
 							src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/ipad-keyboard.svg"
@@ -2015,7 +2020,7 @@
 					</div>
 
 					<a
-						href="#"
+						href="/"
 						class="text-lg font-semibold leading-tight text-gray-900 hover:underline dark:text-white"
 						>Microsoft Surface Pro, Copilot+ PC, 13 Inch</a
 					>
