@@ -92,7 +92,8 @@
       "url": "http://<*>.localhost:8080/api/query",
       "methods": [
         "GET",
-        "POST"
+        "POST",
+        "OPTIONS"
       ]
     },
     "authenticators": [

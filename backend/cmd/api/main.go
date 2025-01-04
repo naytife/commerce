@@ -41,7 +41,11 @@ func main() {
 		},
 	})
 
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,OPTIONS",
+		AllowHeaders: "Content-Type,Authorization",
+	}))
 	app.Use(logger.New())
 
 	// api := app.Group("/api/v1")

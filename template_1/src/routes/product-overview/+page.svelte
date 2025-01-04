@@ -1,27 +1,13 @@
 <script lang="ts">
-	import SuperDebug, { type Infer, type SuperValidated, superForm } from 'sveltekit-superforms';
-	import { zodClient } from 'sveltekit-superforms/adapters';
-	import { toast } from 'svelte-sonner';
-	import { browser } from '$app/environment';
-	import { page } from '$app/stores';
-	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
-	import Upload from 'lucide-svelte/icons/upload';
 
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Accordion from '$lib/components/ui/accordion';
-	import * as Form from '$lib/components/ui/form';
-	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import * as Table from '$lib/components/ui/table';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
-	import { CirclePlus, Info, MapPin } from 'lucide-svelte';
-	import * as RadioGroup from '$lib/components/ui/radio-group/index';
-	import { NumberInput, Radio } from 'flowbite-svelte';
-	import AlertDialogOverlay from '$lib/components/ui/alert-dialog/alert-dialog-overlay.svelte';
+	import { Info, MapPin } from 'lucide-svelte';
+	import * as RadioGroup from '$lib/components/ui/radio-group';
+	import {Button} from '$lib/components/ui/button';
+
 	// import { formSchema, type FormSchema } from './schema';
 
 	export let data: { type: string }; // Define the form data type
@@ -186,7 +172,7 @@
 								</div>
 
 								<a
-									href="#"
+									href="/"
 									class="text-sm font-medium leading-none text-gray-900 underline hover:no-underline dark:text-white"
 								>
 									345 Reviews
@@ -222,7 +208,7 @@
 
 						<div class="mt-6 flex flex-col sm:mt-8 sm:flex sm:items-center sm:gap-4">
 							<a
-								href="#"
+								href="/"
 								title=""
 								class="hover:text-primary-700 flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700"
 								role="button"
@@ -301,7 +287,7 @@
 									<RadioGroup.Item value="mentions" />
 									<div>
 										<Label class="font-normal">Pickup from Flowbox- $9</Label>
-										<p><a href="#" class="text-xs text-blue-600">Pick a Flowbox near you</a></p>
+										<p><a href="/" class="text-xs text-blue-600">Pick a Flowbox near you</a></p>
 									</div>
 								</div>
 								<div class="flex items-center space-x-3 space-y-0">

@@ -18,6 +18,7 @@
         "@internationalized/date": "^3.5.6",
         "@playwright/test": "^1.45.3",
         "@sveltejs/adapter-auto": "^3.0.0",
+        "@sveltejs/adapter-static": "^3.0.8",
         "@sveltejs/kit": "^2.8.2",
         "@sveltejs/vite-plugin-svelte": "^4.0.1",
         "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -26,13 +27,15 @@
         "@tailwindcss/typography": "^0.5.15",
         "@types/eslint": "^9.6.0",
         "autoprefixer": "^10.4.20",
-        "bits-ui": "^0.21.16",
+        "bits-ui": "^0.22.0",
         "clsx": "^2.1.1",
         "cmdk-sv": "^0.0.18",
         "embla-carousel-svelte": "^8.3.1",
         "eslint": "^9.7.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-svelte": "^2.36.0",
+        "flowbite": "^2.5.2",
+        "flowbite-svelte": "^0.47.4",
         "formsnap": "^1.0.1",
         "globals": "^15.0.0",
         "houdini": "^1.4.0",
@@ -58,8 +61,6 @@
         "zod": "^3.23.8"
     },
     "dependencies": {
-        "@popperjs/core": "^2.11.8",
-        "flowbite": "^2.5.2",
-        "flowbite-svelte": "^0.47.3"
+        "@popperjs/core": "^2.11.8"
     }
 }
