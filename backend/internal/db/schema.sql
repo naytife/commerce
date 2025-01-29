@@ -49,9 +49,6 @@ CREATE TABLE categories (
     title VARCHAR(50) NOT NULL,
     description VARCHAR(255),
     parent_id BIGINT,
-    category_attributes JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     shop_id BIGINT NOT NULL,
     UNIQUE (title, shop_id),
     UNIQUE (slug, shop_id),
@@ -59,17 +56,27 @@ CREATE TABLE categories (
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
+CREATE TABLE product_types (
+    product_type_id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    shippable BOOLEAN NOT NULL DEFAULT TRUE,
+    digital BOOLEAN NOT NULL DEFAULT FALSE,
+    shop_id BIGINT NOT NULL,
+    UNIQUE (title, shop_id),
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
 CREATE TABLE products(
     product_id BIGSERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    allowed_attributes JSONB DEFAULT '{}' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    status VARCHAR(10) NOT NULL,
+    product_type_id BIGINT NOT NULL,
     category_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
     UNIQUE (title, shop_id),
+    CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES product_types(product_type_id) ON DELETE CASCADE,
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
@@ -86,11 +93,12 @@ CREATE TABLE product_images(
 
 CREATE TABLE product_variations(
     product_variation_id BIGSERIAL PRIMARY KEY,
+    sku VARCHAR(50) NOT NULL,
     slug VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     available_quantity BIGINT NOT NULL,
-    attributes JSONB DEFAULT '{}' NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'DRAFT',
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
@@ -103,10 +111,29 @@ CREATE TABLE product_variations(
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE 
 );
 
+CREATE TABLE attributes(
+    attribute_id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    input_type VARCHAR(50) NOT NULL, -- use enum e.g. text, number, etc.
+    unit VARCHAR(50), -- use enum e.g. cm, kg, etc.
+    required BOOLEAN NOT NULL DEFAULT FALSE,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
+CREATE TABLE attribute_values(
+    attribute_value_id BIGSERIAL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    value VARCHAR(50) NOT NULL,
+    boolean_value BOOLEAN,
+    shop_id BIGINT NOT NULL,
+    attribute_id BIGINT NOT NULL,
+    CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
 CREATE TABLE shopping_cart(
     shopping_cart_id BIGSERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     user_id UUID NOT NULL,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

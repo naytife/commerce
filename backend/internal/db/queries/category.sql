@@ -1,10 +1,10 @@
 -- name: CreateCategory :one
-INSERT INTO categories (slug, title, description, parent_id, shop_id, category_attributes)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO categories (slug, title, description, parent_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetCategory :one
-SELECT category_id, slug, title, description, created_at, updated_at, parent_id, category_attributes
+SELECT category_id, slug, title, description, parent_id
 FROM categories
 WHERE shop_id = $1 AND category_id = $2;
 
@@ -18,34 +18,34 @@ WHERE category_id = sqlc.arg('category_id')
 RETURNING *;
 
 -- name: GetCategories :many
-SELECT category_id, slug, title, description, created_at, updated_at
+SELECT category_id, slug, title, description
 FROM categories
 WHERE shop_id = sqlc.arg('shop_id') AND parent_id IS NULL AND category_id > sqlc.arg('after')
 LIMIT sqlc.arg('limit');
 
 -- name: GetCategoryChildren :many
-SELECT category_id, slug, title, description, created_at, updated_at
+SELECT category_id, slug, title, description
 FROM categories
 WHERE shop_id = sqlc.arg('shop_id') AND parent_id = sqlc.arg('parent_id') AND category_id > sqlc.arg('after')
 LIMIT sqlc.arg('limit');
 
 -- name: CreateCategoryAttribute :one
-UPDATE categories
-SET category_attributes = jsonb_set(
-    COALESCE(category_attributes, '{}'), 
-    ARRAY[UPPER(sqlc.arg('title'))::text], 
-    to_jsonb(sqlc.arg('data_type')::text)
-)
-WHERE category_id = sqlc.arg('category_id')
-RETURNING category_attributes;
+-- UPDATE categories
+-- SET category_attributes = jsonb_set(
+--     COALESCE(category_attributes, '{}'), 
+--     ARRAY[UPPER(sqlc.arg('title'))::text], 
+--     to_jsonb(sqlc.arg('data_type')::text)
+-- )
+-- WHERE category_id = sqlc.arg('category_id')
+-- RETURNING category_attributes;
 
 -- name: DeleteCategoryAttribute :one
-UPDATE categories
-SET category_attributes = category_attributes - UPPER(sqlc.arg('attribute')::text)
-WHERE category_id = sqlc.arg('category_id')
-RETURNING category_attributes;
+-- UPDATE categories
+-- SET category_attributes = category_attributes - UPPER(sqlc.arg('attribute')::text)
+-- WHERE category_id = sqlc.arg('category_id')
+-- RETURNING category_attributes;
 
 -- name: GetCategoryAttributes :one
-SELECT category_attributes
-FROM categories
-WHERE category_id = sqlc.arg('category_id');
+-- SELECT category_attributes
+-- FROM categories
+-- WHERE category_id = sqlc.arg('category_id');
