@@ -1,7 +1,7 @@
 
 -- name: CreateProduct :one
-INSERT INTO products ( title, description, category_id, shop_id, allowed_attributes, status)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO products ( title, description, category_id, shop_id)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetProducts :many
@@ -11,9 +11,7 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.status, 
-    p.category_id,
-    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+    p.category_id
 FROM 
     products p
 LEFT JOIN 
@@ -30,9 +28,7 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.status, 
-    p.category_id,
-    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+    p.category_id
 FROM 
     products p
 LEFT JOIN 
@@ -49,9 +45,7 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.status, 
-    p.category_id,
-    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+    p.category_id
 FROM 
     products p
 LEFT JOIN 
@@ -61,14 +55,14 @@ WHERE
     AND p.product_id = $2;
 
 -- name: GetProductAllowedAttributes :one
-SELECT 
-    (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
-FROM 
-    products p
-LEFT JOIN 
-    categories c ON p.category_id = c.category_id
-WHERE 
-    p.product_id = sqlc.arg('product_id');
+-- SELECT 
+--     (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+-- FROM 
+--     products p
+-- LEFT JOIN 
+--     categories c ON p.category_id = c.category_id
+-- WHERE 
+--     p.product_id = sqlc.arg('product_id');
 
 -- name: UpdateProduct :one
 UPDATE products
@@ -79,24 +73,24 @@ WHERE product_id = sqlc.arg('product_id')
 RETURNING *;
 
 -- name: CreateProductAllowedAttribute :one
-UPDATE products
-SET allowed_attributes = jsonb_set(
-    COALESCE(allowed_attributes, '{}'), 
-    ARRAY[UPPER(sqlc.arg('title'))::text], 
-    to_jsonb(sqlc.arg('data_type')::text)
-)
-WHERE product_id = sqlc.arg('product_id')
-RETURNING allowed_attributes;
+-- UPDATE products
+-- SET allowed_attributes = jsonb_set(
+--     COALESCE(allowed_attributes, '{}'), 
+--     ARRAY[UPPER(sqlc.arg('title'))::text], 
+--     to_jsonb(sqlc.arg('data_type')::text)
+-- )
+-- WHERE product_id = sqlc.arg('product_id')
+-- RETURNING allowed_attributes;
 
 -- name: DeleteProductAllowedAttribute :one
-UPDATE products
-SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
-WHERE product_id = sqlc.arg('product_id')
-RETURNING allowed_attributes;
+-- UPDATE products
+-- SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
+-- WHERE product_id = sqlc.arg('product_id')
+-- RETURNING allowed_attributes;
 
 -- name: UpsertProductVariation :batchmany
-INSERT INTO product_variations (slug, description, price, available_quantity, attributes, seo_description, seo_keywords, seo_title, product_id, shop_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO product_variations (slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 ON CONFLICT (slug, shop_id)
 DO UPDATE SET
     description = EXCLUDED.description,
