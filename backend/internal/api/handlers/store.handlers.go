@@ -21,6 +21,15 @@ const (
 	SUSPENDED ShopStatus = "SUSPENDED"
 )
 
+// CreateShop creates a shop
+// @Summary      Create a shop
+// @Description
+// @Tags         shop
+// @Accept       json
+// @Produce      json
+// @Param        shop body models.ShopCreate true "Shop object that needs to be created"
+// @Security     OAuth2AccessCode
+// @Router       /shop [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// TODO: verify user exist
 	userIDStr, ok := c.Locals("user_id").(string)
@@ -29,7 +38,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	}
 
 	param := db.CreateShopParams{}
-	var shop models.Shop
+	var shop models.ShopCreate
 	c.BodyParser(&shop)
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
@@ -103,6 +112,15 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 	})
 }
 
+// GetShop fetches a shop
+// @Summary      Fetch a shop
+// @Description
+// @Tags         shop
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Shop ID"
+// @Security     OAuth2AccessCode
+// @Router       /shop/{id} [get]
 func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 	shopID := c.Params("id")
 	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)

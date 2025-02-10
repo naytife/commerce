@@ -140,8 +140,6 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
 	}
 	var startCursor, endCursor *string

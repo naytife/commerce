@@ -6,7 +6,7 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-func UserRouter(app fiber.Router, repo db.Repository) {
+func AuthRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
-	app.Get("/me", handler.GetMe)
+	app.Post("/auth/register", handler.UpsertUser)
 }

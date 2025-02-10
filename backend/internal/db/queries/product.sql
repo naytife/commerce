@@ -54,7 +54,7 @@ WHERE
     p.shop_id = $1 
     AND p.product_id = $2;
 
--- name: GetProductAllowedAttributes :one
+-- xname: GetProductAllowedAttributes :one
 -- SELECT 
 --     (p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
 -- FROM 
@@ -72,7 +72,7 @@ SET
 WHERE product_id = sqlc.arg('product_id')
 RETURNING *;
 
--- name: CreateProductAllowedAttribute :one
+-- xname: CreateProductAllowedAttribute :one
 -- UPDATE products
 -- SET allowed_attributes = jsonb_set(
 --     COALESCE(allowed_attributes, '{}'), 
@@ -82,7 +82,7 @@ RETURNING *;
 -- WHERE product_id = sqlc.arg('product_id')
 -- RETURNING allowed_attributes;
 
--- name: DeleteProductAllowedAttribute :one
+-- xname: DeleteProductAllowedAttribute :one
 -- UPDATE products
 -- SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
 -- WHERE product_id = sqlc.arg('product_id')

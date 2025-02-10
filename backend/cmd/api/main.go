@@ -27,8 +27,6 @@ import (
 // @securityDefinitions.oauth2.accessCode OAuth2AccessCode
 // @tokenUrl http://127.0.0.1:8080/oauth2/token
 // @authorizationUrl http://127.0.0.1:8080/oauth2/auth
-// @scope.openid "OpenID scope"
-// @scope.profile "Profile scope"
 func main() {
 	env, err := config.LoadConfig()
 	if err != nil {
@@ -44,6 +42,7 @@ func main() {
 	repo := db.NewRepository(dbase)
 
 	app := fiber.New(fiber.Config{
+		ReadBufferSize: 8192,
 		// Global custom error handler
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusBadRequest).JSON(models.GlobalErrorHandlerResp{
@@ -70,15 +69,18 @@ func main() {
 		// Prefill OAuth ClientId on Authorize popup
 		OAuth: &swagger.OAuthConfig{
 			AppName:      "OAuth Provider",
-			ClientId:     "f748b964-7de3-4159-9419-ae6e78502dc1",
-			ClientSecret: "_6EHdptai8.SwLKodQxhpv3SKm",
+			ClientId:     "bcb8b621-1519-4127-b4d2-6187b48eba99",
+			ClientSecret: "Zr1-2LBQgiR5.0SzF~AT8.rPut",
+			Scopes:       []string{"openid", "offline", "hydra.openid", "introspect"},
+			UseBasicAuthenticationWithAccessCodeGrant: true,
 		},
 		// Ability to change OAuth2 redirect uri location
-		OAuth2RedirectUrl: "http://localhost:8080/api/v1/docs/oauth2-redirect.html",
+		OAuth2RedirectUrl: "http://127.0.0.1:8080/api/v1/docs/oauth2-redirect.html",
 	}))
 
-	v1 := app.Group("/api/v1/")
+	v1 := app.Group("/api/v1")
 	api := v1.Group("/*", middleware.WebMiddlewareFiber())
+	routes.AuthRouter(v1, repo)
 	routes.ShopRouter(api, repo)
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)

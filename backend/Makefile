@@ -46,6 +46,10 @@ migrate-down: ## Rollback the last migration
 migrate-clean: ## Clean the database
 	atlas schema clean --env local
 
+.PHONY: migrate-hash
+migrate-hash: ## Clean the database
+	atlas migrate hash --env local
+
 .PHONY: migrate-new
 migrate-new: ## Create a new migration file
 	atlas migrate diff --dir file://$(ATLAS_MIGRATIONS_DIR) --to file://$(ATLAS_SCHEMA_DIR) --dev-url $(ATLAS_DEV_URL) $(name)

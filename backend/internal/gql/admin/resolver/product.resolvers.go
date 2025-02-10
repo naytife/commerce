@@ -6,14 +6,14 @@ package resolver
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
 	"strconv"
 
-	"github.com/gosimple/slug"
+	// "github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/gql/admin/generated"
@@ -27,17 +27,17 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 	if err != nil {
 		return nil, errors.New("invalid category ID")
 	}
-	cat, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
-	if err != nil {
-		return &model.CategoryNotFoundError{Message: "category not found", Code: model.ErrorCodeNotFoundCategory}, nil
-	}
+	// cat, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
+	// if err != nil {
+	// 	return &model.CategoryNotFoundError{Message: "category not found", Code: model.ErrorCodeNotFoundCategory}, nil
+	// }
 	param := db.CreateProductParams{
-		Title:             product.Title,
-		Description:       product.Description,
-		ShopID:            shopID,
-		CategoryID:        *catID,
-		AllowedAttributes: cat.CategoryAttributes,
-		Status:            model.ProductStatusDraft.String(),
+		Title:       product.Title,
+		Description: product.Description,
+		ShopID:      shopID,
+		CategoryID:  *catID,
+		// AllowedAttributes: cat.CategoryAttributes,
+		// Status:            model.ProductStatusDraft.String(),
 	}
 	dbProduct, err := r.Repository.CreateProduct(ctx, param)
 	if err != nil {
@@ -48,9 +48,9 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 		ID:          strconv.FormatInt(dbProduct.ProductID, 10),
 		Title:       dbProduct.Title,
 		Description: dbProduct.Description,
-		Status:      (*model.ProductStatus)(&dbProduct.Status),
-		CreatedAt:   dbProduct.CreatedAt.Time,
-		UpdatedAt:   dbProduct.UpdatedAt.Time,
+		// Status:      (*model.ProductStatus)(&dbProduct.Status),
+		CreatedAt: dbProduct.CreatedAt.Time,
+		UpdatedAt: dbProduct.UpdatedAt.Time,
 	}}, nil
 }
 
@@ -81,46 +81,48 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, productID string, 
 
 // CreateProductAttribute is the resolver for the createProductAttribute field.
 func (r *mutationResolver) CreateProductAttribute(ctx context.Context, productID string, attribute model.CreateProductAttributeInput) (model.CreateProductAttributePayload, error) {
-	_, objID, err := decodeRelayID(productID)
-	if err != nil {
-		return nil, errors.New("invalid object ID")
-	}
-	objsDB, err := r.Repository.CreateProductAllowedAttribute(ctx, db.CreateProductAllowedAttributeParams{
-		ProductID: *objID,
-		Title:     attribute.Title,
-		DataType:  attribute.DataType.String(),
-	})
-	if err != nil {
-		return nil, errors.New("could not create object attribute")
-	}
-	objs, err := unmarshalAllowedProductAttributes(objsDB)
-	if err != nil {
-		return nil, errors.New("failed to serialize attributes")
-	}
-	return &model.CreateProductAttributeSuccess{
-		Attributes: objs,
-	}, nil
+	// _, objID, err := decodeRelayID(productID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid object ID")
+	// }
+	// objsDB, err := r.Repository.CreateProductAllowedAttribute(ctx, db.CreateProductAllowedAttributeParams{
+	// 	ProductID: *objID,
+	// 	Title:     attribute.Title,
+	// 	DataType:  attribute.DataType.String(),
+	// })
+	// if err != nil {
+	// 	return nil, errors.New("could not create object attribute")
+	// }
+	// objs, err := unmarshalAllowedProductAttributes(objsDB)
+	// if err != nil {
+	// 	return nil, errors.New("failed to serialize attributes")
+	// }
+	// return &model.CreateProductAttributeSuccess{
+	// 	Attributes: objs,
+	// }, nil
+	panic("not implemented")
 }
 
 // DeleteProductAttribute is the resolver for the deleteProductAttribute field.
 func (r *mutationResolver) DeleteProductAttribute(ctx context.Context, productID string, attribute string) (model.DeleteProductAttributePayload, error) {
-	_, objID, err := decodeRelayID(productID)
-	if err != nil {
-		return nil, errors.New("invalid object ID")
-	}
-	objsDB, err := r.Repository.DeleteProductAllowedAttribute(ctx, db.DeleteProductAllowedAttributeParams{
-		ProductID: *objID, Attribute: attribute,
-	})
-	if err != nil {
-		return nil, errors.New("could not fetch object attribute")
-	}
-	objs, err := unmarshalAllowedProductAttributes(objsDB)
-	if err != nil {
-		return nil, errors.New("failed to fetch attributes")
-	}
-	return &model.DeleteProductAttributeSuccess{
-		Attributes: objs,
-	}, nil
+	// _, objID, err := decodeRelayID(productID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid object ID")
+	// }
+	// objsDB, err := r.Repository.DeleteProductAllowedAttribute(ctx, db.DeleteProductAllowedAttributeParams{
+	// 	ProductID: *objID, Attribute: attribute,
+	// })
+	// if err != nil {
+	// 	return nil, errors.New("could not fetch object attribute")
+	// }
+	// objs, err := unmarshalAllowedProductAttributes(objsDB)
+	// if err != nil {
+	// 	return nil, errors.New("failed to fetch attributes")
+	// }
+	// return &model.DeleteProductAttributeSuccess{
+	// 	Attributes: objs,
+	// }, nil
+	panic("not implemented")
 }
 
 // CreateProductVariant is the resolver for the createProductVariant field.
@@ -130,32 +132,32 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 	if err != nil {
 		return nil, errors.New("invalid product ID")
 	}
-	objDB, err := r.Repository.GetProduct(ctx, db.GetProductParams{ShopID: shopID, ProductID: *objID})
-	if err != nil {
-		return nil, errors.New("could not fetch product attribute")
-	}
-	var attributesDBMap map[string]interface{}
-	if err := json.Unmarshal(objDB.AllowedAttributes, &attributesDBMap); err != nil {
-		return nil, err
-	}
+	// objDB, err := r.Repository.GetProduct(ctx, db.GetProductParams{ShopID: shopID, ProductID: *objID})
+	// if err != nil {
+	// 	return nil, errors.New("could not fetch product attribute")
+	// }
+	// var attributesDBMap map[string]interface{}
+	// if err := json.Unmarshal(objDB.AllowedAttributes, &attributesDBMap); err != nil {
+	// 	return nil, err
+	// }
 	params := []db.UpsertProductVariationParams{}
 	for _, variant := range variants {
-		if err := validateProductVariantInput(variant, attributesDBMap); err != nil {
-			return nil, fmt.Errorf("validation error: %v", err)
-		}
-		attributesJSON, err := json.Marshal(variant.Attributes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to serialize attributes: %v", err)
-		}
-		attributesString := formatAttributes(variant.Attributes)
+		// if err := validateProductVariantInput(variant, attributesDBMap); err != nil {
+		// 	return nil, fmt.Errorf("validation error: %v", err)
+		// }
+		// attributesJSON, err := json.Marshal(variant.Attributes)
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to serialize attributes: %v", err)
+		// }
+		// attributesString := formatAttributes(variant.Attributes)
 		params = append(params, db.UpsertProductVariationParams{
-			Slug:              slug.MakeLang(objDB.Title+" "+attributesString, "en"),
-			Description:       attributesString,
+			// Slug:              slug.MakeLang(objDB.Title+" "+attributesString, "en"),
+			// Description:       attributesString,
 			Price:             pgtype.Numeric{Int: big.NewInt(int64(variant.Price)), Valid: true},
 			AvailableQuantity: int64(variant.AvailableQuantity),
-			Attributes:        attributesJSON,
-			ProductID:         *objID,
-			ShopID:            shopID,
+			// Attributes:        attributesJSON,
+			ProductID: *objID,
+			ShopID:    shopID,
 		})
 	}
 	objsDB, err := r.Repository.UpsertProductVariations(ctx, shopID, *objID, params)
@@ -168,10 +170,10 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 		if err != nil {
 			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
 		}
-		attributes, err := unmarshalProductAttributes(objDB.Attributes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-		}
+		// attributes, err := unmarshalProductAttributes(objDB.Attributes)
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+		// }
 		objs = append(objs, model.ProductVariant{
 			ID:                encodeRelayID("Product", strconv.FormatInt(objDB.ProductVariationID, 10)),
 			Slug:              objDB.Slug,
@@ -180,7 +182,7 @@ func (r *mutationResolver) CreateProductVariant(ctx context.Context, productID s
 			AvailableQuantity: int(objDB.AvailableQuantity),
 			UpdatedAt:         objDB.UpdatedAt.Time,
 			CreatedAt:         objDB.CreatedAt.Time,
-			Attributes:        attributes,
+			// Attributes:        attributes,
 		})
 	}
 	return model.CreateProductVariantSuccess{
@@ -215,7 +217,7 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 		if err != nil {
 			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
 		}
-		attributes, err := unmarshalProductAttributes(objDB.Attributes)
+		// attributes, err := unmarshalProductAttributes(objDB.Attributes)
 		if err != nil {
 			log.Fatalf("Failed to unmarshal product attributes: %v", err)
 		}
@@ -225,9 +227,9 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 			Description:       objDB.Description,
 			Price:             priceFloat64.Float64,
 			AvailableQuantity: int(objDB.AvailableQuantity),
-			Attributes:        attributes,
-			UpdatedAt:         objDB.UpdatedAt.Time,
-			CreatedAt:         objDB.CreatedAt.Time,
+			// Attributes:        attributes,
+			UpdatedAt: objDB.UpdatedAt.Time,
+			CreatedAt: objDB.CreatedAt.Time,
 		})
 	}
 	return objs, nil
@@ -275,15 +277,15 @@ func (r *queryResolver) Products(ctx context.Context, first *int, after *string)
 			Description: prod.Description,
 			CreatedAt:   prod.CreatedAt.Time,
 			UpdatedAt:   prod.UpdatedAt.Time,
-			Status:      (*model.ProductStatus)(&prod.Status),
+			// Status:      (*model.ProductStatus)(&prod.Status),
 		}}
-		if prod.AllowedAttributes != nil {
-			attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-			}
-			edges[i].Node.AllowedAttributes = attributes
-		}
+		// if prod.AllowedAttributes != nil {
+		// 	attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
+		// 	if err != nil {
+		// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+		// 	}
+		// 	edges[i].Node.AllowedAttributes = attributes
+		// }
 	}
 	var startCursor, endCursor *string
 	if len(objsDB) > 0 {
@@ -318,17 +320,17 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product,
 	}
 
 	var attributes []model.AllowedProductAttributes
-	if objDB.AllowedAttributes != nil {
-		attributes, err = unmarshalAllowedProductAttributes(objDB.AllowedAttributes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-		}
-	}
+	// if objDB.AllowedAttributes != nil {
+	// 	attributes, err = unmarshalAllowedProductAttributes(objDB.AllowedAttributes)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+	// 	}
+	// }
 	return &model.Product{
-		ID:                strconv.FormatInt(objDB.ProductID, 10),
-		Title:             objDB.Title,
-		Description:       objDB.Description,
-		Status:            (*model.ProductStatus)(&objDB.Status),
+		ID:          strconv.FormatInt(objDB.ProductID, 10),
+		Title:       objDB.Title,
+		Description: objDB.Description,
+		// Status:            (*model.ProductStatus)(&objDB.Status),
 		AllowedAttributes: attributes,
 		CreatedAt:         objDB.CreatedAt.Time,
 		UpdatedAt:         objDB.UpdatedAt.Time,

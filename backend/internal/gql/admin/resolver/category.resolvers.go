@@ -61,8 +61,6 @@ func (r *categoryResolver) Children(ctx context.Context, obj *model.Category, fi
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
 	}
 	var startCursor, endCursor *string
@@ -126,15 +124,15 @@ func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, fi
 			Description: prod.Description,
 			CreatedAt:   prod.CreatedAt.Time,
 			UpdatedAt:   prod.UpdatedAt.Time,
-			Status:      (*model.ProductStatus)(&prod.Status),
+			// Status:      (*model.ProductStatus)(&prod.Status),
 		}}
-		if prod.AllowedAttributes != nil {
-			attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-			}
-			edges[i].Node.AllowedAttributes = attributes
-		}
+		// if prod.AllowedAttributes != nil {
+		// 	attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
+		// 	if err != nil {
+		// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+		// 	}
+		// 	edges[i].Node.AllowedAttributes = attributes
+		// }
 	}
 	var startCursor, endCursor *string
 	if len(productsDB) > 0 {
@@ -175,19 +173,19 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 		Slug:        slug.MakeLang(category.Title, "en"),
 		ShopID:      shopID,
 	}
-	param.CategoryAttributes = []byte("{}")
-	if category.ParentID != nil {
-		_, catID, err := decodeRelayID(*category.ParentID)
-		if err != nil {
-			return nil, errors.New("could not find parent category")
-		}
-		parent, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
-		if err != nil {
-			return nil, errors.New("could not find parent category")
-		}
-		param.ParentID = &parent.CategoryID
-		param.CategoryAttributes = parent.CategoryAttributes
-	}
+	// param.CategoryAttributes = []byte("{}")
+	// if category.ParentID != nil {
+	// 	_, catID, err := decodeRelayID(*category.ParentID)
+	// 	if err != nil {
+	// 		return nil, errors.New("could not find parent category")
+	// 	}
+	// 	parent, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
+	// 	if err != nil {
+	// 		return nil, errors.New("could not find parent category")
+	// 	}
+	// 	param.ParentID = &parent.CategoryID
+	// 	param.CategoryAttributes = parent.CategoryAttributes
+	// }
 	cat, err := r.Repository.CreateCategory(ctx, param)
 	if err != nil {
 		return nil, err
@@ -198,8 +196,6 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, category model.Cr
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}, nil
 }
 
@@ -233,53 +229,53 @@ func (r *mutationResolver) UpdateCategory(ctx context.Context, categoryID string
 			Slug:        dbCat.Slug,
 			Title:       dbCat.Title,
 			Description: dbCat.Description,
-			CreatedAt:   dbCat.CreatedAt.Time,
-			UpdatedAt:   dbCat.UpdatedAt.Time,
 		}}, nil
 }
 
 // CreateCategoryAttribute is the resolver for the createCategoryAttribute field.
 func (r *mutationResolver) CreateCategoryAttribute(ctx context.Context, categoryID string, attribute model.CreateCategoryAttributeInput) (model.CreateCategoryAttributePayload, error) {
-	_, catId, err := decodeRelayID(categoryID)
-	if err != nil {
-		return nil, errors.New("invalid category ID")
-	}
-	attributesDB, err := r.Repository.CreateCategoryAttribute(ctx, db.CreateCategoryAttributeParams{
-		CategoryID: *catId,
-		Title:      attribute.Title,
-		DataType:   attribute.DataType.String(),
-	})
-	if err != nil {
-		return nil, errors.New("could not create category attribute")
-	}
-	attributes, err := unmarshalCategoryAttributes(attributesDB)
-	if err != nil {
-		return nil, errors.New("failed to fetch attributes")
-	}
-	return &model.CreateCategoryAttributeSuccess{
-		Attributes: attributes,
-	}, nil
+	// _, catId, err := decodeRelayID(categoryID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid category ID")
+	// }
+	// attributesDB, err := r.Repository.CreateCategoryAttribute(ctx, db.CreateCategoryAttributeParams{
+	// 	CategoryID: *catId,
+	// 	Title:      attribute.Title,
+	// 	DataType:   attribute.DataType.String(),
+	// })
+	// if err != nil {
+	// 	return nil, errors.New("could not create category attribute")
+	// }
+	// attributes, err := unmarshalCategoryAttributes(attributesDB)
+	// if err != nil {
+	// 	return nil, errors.New("failed to fetch attributes")
+	// }
+	// return &model.CreateCategoryAttributeSuccess{
+	// 	Attributes: attributes,
+	// }, nil
+	panic("not implemented")
 }
 
 // DeleteCategoryAttribute is the resolver for the deleteCategoryAttribute field.
 func (r *mutationResolver) DeleteCategoryAttribute(ctx context.Context, categoryID string, attribute string) (model.DeleteCategoryAttributePayload, error) {
-	_, catId, err := decodeRelayID(categoryID)
-	if err != nil {
-		return nil, errors.New("invalid category ID")
-	}
-	attributesDB, err := r.Repository.DeleteCategoryAttribute(ctx, db.DeleteCategoryAttributeParams{
-		CategoryID: *catId, Attribute: attribute,
-	})
-	if err != nil {
-		return nil, errors.New("could not fetch category attribute")
-	}
-	attributes, err := unmarshalCategoryAttributes(attributesDB)
-	if err != nil {
-		return nil, errors.New("failed to fetch attributes")
-	}
-	return &model.DeleteCategoryAttributeSuccess{
-		Attributes: attributes,
-	}, nil
+	// _, catId, err := decodeRelayID(categoryID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid category ID")
+	// }
+	// attributesDB, err := r.Repository.DeleteCategoryAttribute(ctx, db.DeleteCategoryAttributeParams{
+	// 	CategoryID: *catId, Attribute: attribute,
+	// })
+	// if err != nil {
+	// 	return nil, errors.New("could not fetch category attribute")
+	// }
+	// attributes, err := unmarshalCategoryAttributes(attributesDB)
+	// if err != nil {
+	// 	return nil, errors.New("failed to fetch attributes")
+	// }
+	// return &model.DeleteCategoryAttributeSuccess{
+	// 	Attributes: attributes,
+	// }, nil
+	panic("not implemented")
 }
 
 // Categories is the resolver for the categories field.
@@ -318,8 +314,6 @@ func (r *queryResolver) Categories(ctx context.Context, first *int, after *strin
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
 	}
 	var startCursor, endCursor *string
@@ -359,8 +353,6 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 		Slug:        cat.Slug,
 		Title:       cat.Title,
 		Description: cat.Description,
-		CreatedAt:   cat.CreatedAt.Time,
-		UpdatedAt:   cat.UpdatedAt.Time,
 	}, nil
 }
 

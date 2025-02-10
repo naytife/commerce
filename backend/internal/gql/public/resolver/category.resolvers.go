@@ -123,8 +123,6 @@ func (r *queryResolver) Categories(ctx context.Context, first *int, after *strin
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
 	}
 	var startCursor, endCursor *string
@@ -164,8 +162,6 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 		Slug:        cat.Slug,
 		Title:       cat.Title,
 		Description: cat.Description,
-		CreatedAt:   cat.CreatedAt.Time,
-		UpdatedAt:   cat.UpdatedAt.Time,
 	}, nil
 }
 
