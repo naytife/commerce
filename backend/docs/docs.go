@@ -99,7 +99,25 @@ const docTemplate = `{
                 }
             }
         },
-        "/shop": {
+        "/shops": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shops"
+                ],
+                "summary": "Fetch all shops",
+                "responses": {}
+            },
             "post": {
                 "security": [
                     {
@@ -113,7 +131,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shop"
+                    "shops"
                 ],
                 "summary": "Create a shop",
                 "parameters": [
@@ -130,8 +148,8 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/shop/{id}": {
-            "get": {
+        "/shops/{id}": {
+            "delete": {
                 "security": [
                     {
                         "OAuth2AccessCode": []
@@ -144,9 +162,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "shop"
+                    "shops"
                 ],
-                "summary": "Fetch a shop",
+                "summary": "Delete a shop",
                 "parameters": [
                     {
                         "type": "string",

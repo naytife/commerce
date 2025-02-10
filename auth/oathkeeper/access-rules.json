@@ -58,7 +58,7 @@
       "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "http://127.0.0.1:8080/api/v1/<{me,shop}><**>",
+      "url": "http://127.0.0.1:8080/api/v1/<{me,shops}><**>",
       "methods": [
         "GET",
         "POST",

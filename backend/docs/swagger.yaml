@@ -134,7 +134,18 @@ paths:
       summary: Fetch the currently authenticated user
       tags:
       - user
-  /shop:
+  /shops:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all shops
+      tags:
+      - shops
     post:
       consumes:
       - application/json
@@ -152,9 +163,9 @@ paths:
       - OAuth2AccessCode: []
       summary: Create a shop
       tags:
-      - shop
-  /shop/{id}:
-    get:
+      - shops
+  /shops/{id}:
+    delete:
       consumes:
       - application/json
       parameters:
@@ -168,9 +179,9 @@ paths:
       responses: {}
       security:
       - OAuth2AccessCode: []
-      summary: Fetch a shop
+      summary: Delete a shop
       tags:
-      - shop
+      - shops
 schemes:
 - http
 securityDefinitions:
