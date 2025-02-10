@@ -45,81 +45,6 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	return i, err
 }
 
-const createProductAllowedAttribute = `-- name: CreateProductAllowedAttribute :one
-
-
-INSERT INTO product_variations (slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT (slug, shop_id)
-DO UPDATE SET
-    description = EXCLUDED.description,
-    price = EXCLUDED.price,
-    available_quantity = EXCLUDED.available_quantity,
-    attributes = EXCLUDED.attributes,
-    seo_description = EXCLUDED.seo_description,
-    seo_keywords = EXCLUDED.seo_keywords,
-    seo_title = EXCLUDED.seo_title
-RETURNING product_variation_id, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, sku, status
-`
-
-type CreateProductAllowedAttributeParams struct {
-	Slug              string         `json:"slug"`
-	Description       string         `json:"description"`
-	Price             pgtype.Numeric `json:"price"`
-	AvailableQuantity int64          `json:"available_quantity"`
-	SeoDescription    *string        `json:"seo_description"`
-	SeoKeywords       []string       `json:"seo_keywords"`
-	SeoTitle          *string        `json:"seo_title"`
-	ProductID         int64          `json:"product_id"`
-	ShopID            int64          `json:"shop_id"`
-}
-
-// UPDATE products
-// SET allowed_attributes = jsonb_set(
-//
-//	COALESCE(allowed_attributes, '{}'),
-//	ARRAY[UPPER(sqlc.arg('title'))::text],
-//	to_jsonb(sqlc.arg('data_type')::text)
-//
-// )
-// WHERE product_id = sqlc.arg('product_id')
-// RETURNING allowed_attributes;
-// UPDATE products
-// SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
-// WHERE product_id = sqlc.arg('product_id')
-// RETURNING allowed_attributes;
-func (q *Queries) CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) (ProductVariation, error) {
-	row := q.db.QueryRow(ctx, createProductAllowedAttribute,
-		arg.Slug,
-		arg.Description,
-		arg.Price,
-		arg.AvailableQuantity,
-		arg.SeoDescription,
-		arg.SeoKeywords,
-		arg.SeoTitle,
-		arg.ProductID,
-		arg.ShopID,
-	)
-	var i ProductVariation
-	err := row.Scan(
-		&i.ProductVariationID,
-		&i.Slug,
-		&i.Description,
-		&i.Price,
-		&i.AvailableQuantity,
-		&i.SeoDescription,
-		&i.SeoKeywords,
-		&i.SeoTitle,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.ProductID,
-		&i.ShopID,
-		&i.Sku,
-		&i.Status,
-	)
-	return i, err
-}
-
 const getProduct = `-- name: GetProduct :one
 SELECT 
     p.product_id, 
@@ -161,53 +86,6 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CategoryID,
-	)
-	return i, err
-}
-
-const getProductAllowedAttributes = `-- name: GetProductAllowedAttributes :one
-
-UPDATE products
-SET 
-    title = COALESCE($1, title),
-    description = COALESCE($2, description)
-WHERE product_id = $3
-RETURNING product_id, title, description, created_at, updated_at, category_id, shop_id, product_type_id
-`
-
-type GetProductAllowedAttributesParams struct {
-	Title       *string `json:"title"`
-	Description *string `json:"description"`
-	ProductID   int64   `json:"product_id"`
-}
-
-// SELECT
-//
-//	(p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
-//
-// FROM
-//
-//	products p
-//
-// LEFT JOIN
-//
-//	categories c ON p.category_id = c.category_id
-//
-// WHERE
-//
-//	p.product_id = sqlc.arg('product_id');
-func (q *Queries) GetProductAllowedAttributes(ctx context.Context, arg GetProductAllowedAttributesParams) (Product, error) {
-	row := q.db.QueryRow(ctx, getProductAllowedAttributes, arg.Title, arg.Description, arg.ProductID)
-	var i Product
-	err := row.Scan(
-		&i.ProductID,
-		&i.Title,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CategoryID,
-		&i.ShopID,
-		&i.ProductTypeID,
 	)
 	return i, err
 }
@@ -376,4 +254,52 @@ func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCa
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateProduct = `-- name: UpdateProduct :one
+
+UPDATE products
+SET 
+    title = COALESCE($1, title),
+    description = COALESCE($2, description)
+WHERE product_id = $3
+RETURNING product_id, title, description, created_at, updated_at, category_id, shop_id, product_type_id
+`
+
+type UpdateProductParams struct {
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	ProductID   int64   `json:"product_id"`
+}
+
+// xname: GetProductAllowedAttributes :one
+// SELECT
+//
+//	(p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
+//
+// FROM
+//
+//	products p
+//
+// LEFT JOIN
+//
+//	categories c ON p.category_id = c.category_id
+//
+// WHERE
+//
+//	p.product_id = sqlc.arg('product_id');
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, updateProduct, arg.Title, arg.Description, arg.ProductID)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CategoryID,
+		&i.ShopID,
+		&i.ProductTypeID,
+	)
+	return i, err
 }

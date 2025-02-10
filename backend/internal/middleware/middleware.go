@@ -36,11 +36,7 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 func WebMiddlewareFiber() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID := c.Get("X-USER-ID")
-		if userID == "" {
-			return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
-		}
 		c.Locals("user_id", userID)
-
 		return c.Next()
 	}
 }

@@ -2,7 +2,7 @@ package models
 
 import "github.com/google/uuid"
 
-type Shop struct {
+type ShopCreate struct {
 	OwnerID      uuid.UUID `json:"owner_id" validate:"required,uuid"`
 	Title        string    `json:"title" validate:"required,min=3,max=255"`
 	Domain       string    `json:"domain" validate:"required,min=3,max=255"`

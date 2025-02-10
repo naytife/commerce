@@ -5,26 +5,157 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Attribute struct {
-	AttributeID int64   `json:"attribute_id"`
-	Title       string  `json:"title"`
-	InputType   string  `json:"input_type"`
-	Unit        *string `json:"unit"`
-	Required    bool    `json:"required"`
-	ShopID      int64   `json:"shop_id"`
+type AttributeAppliesTo string
+
+const (
+	AttributeAppliesToProduct          AttributeAppliesTo = "Product"
+	AttributeAppliesToProductVariation AttributeAppliesTo = "ProductVariation"
+)
+
+func (e *AttributeAppliesTo) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AttributeAppliesTo(s)
+	case string:
+		*e = AttributeAppliesTo(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AttributeAppliesTo: %T", src)
+	}
+	return nil
 }
 
-type AttributeValue struct {
-	AttributeValueID int64  `json:"attribute_value_id"`
-	Title            string `json:"title"`
-	Value            string `json:"value"`
-	BooleanValue     *bool  `json:"boolean_value"`
-	ShopID           int64  `json:"shop_id"`
-	AttributeID      int64  `json:"attribute_id"`
+type NullAttributeAppliesTo struct {
+	AttributeAppliesTo AttributeAppliesTo `json:"attribute_applies_to"`
+	Valid              bool               `json:"valid"` // Valid is true if AttributeAppliesTo is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAttributeAppliesTo) Scan(value interface{}) error {
+	if value == nil {
+		ns.AttributeAppliesTo, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AttributeAppliesTo.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAttributeAppliesTo) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AttributeAppliesTo), nil
+}
+
+type AttributeDataType string
+
+const (
+	AttributeDataTypeText   AttributeDataType = "Text"
+	AttributeDataTypeNumber AttributeDataType = "Number"
+	AttributeDataTypeDate   AttributeDataType = "Date"
+	AttributeDataTypeOption AttributeDataType = "Option"
+)
+
+func (e *AttributeDataType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AttributeDataType(s)
+	case string:
+		*e = AttributeDataType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AttributeDataType: %T", src)
+	}
+	return nil
+}
+
+type NullAttributeDataType struct {
+	AttributeDataType AttributeDataType `json:"attribute_data_type"`
+	Valid             bool              `json:"valid"` // Valid is true if AttributeDataType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAttributeDataType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AttributeDataType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AttributeDataType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAttributeDataType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AttributeDataType), nil
+}
+
+type AttributeUnit string
+
+const (
+	AttributeUnitKG   AttributeUnit = "KG"
+	AttributeUnitGB   AttributeUnit = "GB"
+	AttributeUnitINCH AttributeUnit = "INCH"
+)
+
+func (e *AttributeUnit) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AttributeUnit(s)
+	case string:
+		*e = AttributeUnit(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AttributeUnit: %T", src)
+	}
+	return nil
+}
+
+type NullAttributeUnit struct {
+	AttributeUnit AttributeUnit `json:"attribute_unit"`
+	Valid         bool          `json:"valid"` // Valid is true if AttributeUnit is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAttributeUnit) Scan(value interface{}) error {
+	if value == nil {
+		ns.AttributeUnit, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AttributeUnit.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAttributeUnit) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AttributeUnit), nil
+}
+
+type Attribute struct {
+	AttributeID int64              `json:"attribute_id"`
+	Title       string             `json:"title"`
+	Unit        NullAttributeUnit  `json:"unit"`
+	Required    bool               `json:"required"`
+	ShopID      int64              `json:"shop_id"`
+	DataType    AttributeDataType  `json:"data_type"`
+	AppliesTo   AttributeAppliesTo `json:"applies_to"`
+}
+
+type AttributeOption struct {
+	AttributeOptionID int64  `json:"attribute_option_id"`
+	Value             string `json:"value"`
+	ShopID            int64  `json:"shop_id"`
+	AttributeID       int64  `json:"attribute_id"`
 }
 
 type Category struct {
@@ -66,6 +197,15 @@ type Product struct {
 	ProductTypeID int64              `json:"product_type_id"`
 }
 
+type ProductAttributeValue struct {
+	ProductAttributeValueID int64   `json:"product_attribute_value_id"`
+	Value                   *string `json:"value"`
+	AttributeOptionID       *int64  `json:"attribute_option_id"`
+	ProductID               int64   `json:"product_id"`
+	AttributeID             int64   `json:"attribute_id"`
+	ShopID                  int64   `json:"shop_id"`
+}
+
 type ProductImage struct {
 	ProductImageID int64  `json:"product_image_id"`
 	Url            string `json:"url"`
@@ -96,7 +236,16 @@ type ProductVariation struct {
 	ProductID          int64              `json:"product_id"`
 	ShopID             int64              `json:"shop_id"`
 	Sku                string             `json:"sku"`
-	Status             string             `json:"status"`
+	Status             interface{}        `json:"status"`
+}
+
+type ProductVariationAttributeValue struct {
+	ProductVariationAttributeValueID int64   `json:"product_variation_attribute_value_id"`
+	Value                            *string `json:"value"`
+	AttributeOptionID                *int64  `json:"attribute_option_id"`
+	ProductVariationID               int64   `json:"product_variation_id"`
+	AttributeID                      int64   `json:"attribute_id"`
+	ShopID                           int64   `json:"shop_id"`
 }
 
 type Shop struct {

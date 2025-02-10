@@ -1,0 +1,182 @@
+basePath: /api/v1
+definitions:
+  db.UpsertUserParams:
+    properties:
+      email:
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      profile_picture:
+        type: string
+      provider:
+        type: string
+      provider_id:
+        type: string
+    type: object
+  models.ResponseHTTP:
+    description: Generic API response
+    properties:
+      data: {}
+      message:
+        type: string
+      statusCode:
+        type: integer
+      success:
+        type: boolean
+    type: object
+  models.ShopCreate:
+    properties:
+      currency_code:
+        enum:
+        - USD
+        - NGN
+        type: string
+      domain:
+        maxLength: 255
+        minLength: 3
+        type: string
+      owner_id:
+        type: string
+      status:
+        enum:
+        - PUBLISHED
+        - DRAFT
+        type: string
+      title:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - currency_code
+    - domain
+    - owner_id
+    - status
+    - title
+    type: object
+  models.UserResponse:
+    properties:
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      email:
+        type: string
+      last_login:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      profile_picture:
+        type: string
+      provider:
+        type: string
+      provider_id:
+        type: string
+      user_id:
+        type: string
+    type: object
+host: 127.0.0.1:8080
+info:
+  contact: {}
+  description: This is the Naytife API documentation
+  title: Naytife API Docs
+  version: "1.0"
+paths:
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User object that needs to be created or updated
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpsertUserParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User created or updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ResponseHTTP'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+      summary: Create or update a user
+      tags:
+      - auth
+  /me:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.ResponseHTTP'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch the currently authenticated user
+      tags:
+      - user
+  /shop:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Shop object that needs to be created
+        in: body
+        name: shop
+        required: true
+        schema:
+          $ref: '#/definitions/models.ShopCreate'
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a shop
+      tags:
+      - shop
+  /shop/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a shop
+      tags:
+      - shop
+schemes:
+- http
+securityDefinitions:
+  OAuth2AccessCode:
+    authorizationUrl: http://127.0.0.1:8080/oauth2/auth
+    flow: accessCode
+    tokenUrl: http://127.0.0.1:8080/oauth2/token
+    type: oauth2
+swagger: "2.0"

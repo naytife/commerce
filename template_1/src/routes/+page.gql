@@ -1,0 +1,60 @@
+query Shop {
+    shop {
+        id
+        title
+        defaultDomain
+        contactPhone
+        contactEmail
+        whatsAppNumber
+        whatsAppLink
+        facebookLink
+        instagramLink
+        currencyCode
+        about
+        shopProductsCategory
+        seoDescription
+        seoKeywords
+        seoTitle
+        products {
+            totalCount
+            edges {
+                cursor
+                node {
+                    id
+                    title
+                    description
+                    updatedAt
+                    createdAt
+                    variants {
+                        id
+                        slug
+                        price
+                        availableQuantity
+                        description
+                        stockStatus
+                        updatedAt
+                        createdAt
+                    }
+                }
+            }
+        }
+        categories {
+            totalCount
+            edges {
+                cursor
+                node {
+                    id
+                    slug
+                    title
+                    description
+                    updatedAt
+                    createdAt
+                    allowedAttributes {
+                        title
+                        dataType
+                    }
+                }
+            }
+        }
+    }
+}

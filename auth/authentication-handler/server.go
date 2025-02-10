@@ -199,7 +199,7 @@ func registerUser(client *http.Client, userInfo *GoogleUserInfo) error {
 	}
 
 	// Use bytes.NewReader to create an io.Reader
-	resp, err := client.Post("http://host.minikube.internal:8000/api/v1/user", "application/json", bytes.NewReader(userInfoJSON))
+	resp, err := client.Post("http://host.minikube.internal:8000/api/v1/auth/register", "application/json", bytes.NewReader(userInfoJSON))
 	if err != nil {
 		return err // Handle HTTP POST error
 	}

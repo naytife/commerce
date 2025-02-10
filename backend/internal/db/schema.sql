@@ -91,6 +91,7 @@ CREATE TABLE product_images(
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
+CREATE TYPE product_status AS ENUM('DRAFT','PUBLISHED', 'ARCHIVED');
 CREATE TABLE product_variations(
     product_variation_id BIGSERIAL PRIMARY KEY,
     sku VARCHAR(50) NOT NULL,
@@ -98,7 +99,7 @@ CREATE TABLE product_variations(
     description VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     available_quantity BIGINT NOT NULL,
-    status VARCHAR(10) NOT NULL DEFAULT 'DRAFT',
+    status product_status NOT NULL DEFAULT 'DRAFT'::product_status,
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
@@ -111,23 +112,51 @@ CREATE TABLE product_variations(
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE 
 );
 
+CREATE TYPE attribute_data_type AS ENUM('Text', 'Number', 'Date', 'Option');
+CREATE TYPE attribute_unit AS ENUM('KG', 'GB', 'INCH');
+CREATE TYPE attribute_applies_to AS ENUM('Product', 'ProductVariation');
 CREATE TABLE attributes(
     attribute_id BIGSERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
-    input_type VARCHAR(50) NOT NULL, -- use enum e.g. text, number, etc.
-    unit VARCHAR(50), -- use enum e.g. cm, kg, etc.
+    data_type attribute_data_type NOT NULL DEFAULT 'Text'::attribute_data_type,
+    unit attribute_unit,
     required BOOLEAN NOT NULL DEFAULT FALSE,
+    applies_to attribute_applies_to NOT NULL DEFAULT 'Product'::attribute_applies_to,
     shop_id BIGINT NOT NULL,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
-CREATE TABLE attribute_values(
-    attribute_value_id BIGSERIAL PRIMARY KEY,
-    title VARCHAR(50) NOT NULL,
+CREATE TABLE attribute_options(
+    attribute_option_id BIGSERIAL PRIMARY KEY,
     value VARCHAR(50) NOT NULL,
-    boolean_value BOOLEAN,
     shop_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
+    CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
+CREATE TABLE product_attribute_values(
+    product_attribute_value_id BIGSERIAL PRIMARY KEY,
+    value VARCHAR(50),
+    attribute_option_id BIGINT,
+    product_id BIGINT NOT NULL,
+    attribute_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE CASCADE,
+    CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
+CREATE TABLE product_variation_attribute_values(
+    product_variation_attribute_value_id BIGSERIAL PRIMARY KEY,
+    value VARCHAR(50),
+    attribute_option_id BIGINT,
+    product_variation_id BIGINT NOT NULL,
+    attribute_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE CASCADE,
+    CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );

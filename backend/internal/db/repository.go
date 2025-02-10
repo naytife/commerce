@@ -41,6 +41,7 @@ type Repository interface {
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error)
 	GetUser(ctx context.Context, email *string) (User, error)
+	GetUserById(ctx context.Context, userID uuid.UUID) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)
@@ -56,18 +57,18 @@ type Repository interface {
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	GetCategoryChildren(ctx context.Context, arg GetCategoryChildrenParams) ([]GetCategoryChildrenRow, error)
 	GetCategories(ctx context.Context, arg GetCategoriesParams) ([]GetCategoriesRow, error)
-	CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
-	DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
-	GetCategoryAttributes(ctx context.Context, categoryID int64) ([]byte, error)
+	// CreateCategoryAttribute(ctx context.Context, arg CreateCategoryAttributeParams) ([]byte, error)
+	// DeleteCategoryAttribute(ctx context.Context, arg DeleteCategoryAttributeParams) ([]byte, error)
+	// GetCategoryAttributes(ctx context.Context, categoryID int64) ([]byte, error)
 	// PRODUCT
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
-	GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
+	// GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
-	CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
-	DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
+	// CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
+	// DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
 	UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error)
 	GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error)
 }

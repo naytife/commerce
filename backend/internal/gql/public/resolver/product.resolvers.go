@@ -43,7 +43,7 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 		if err != nil {
 			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
 		}
-		attributes, err := unmarshalProductAttributes(objDB.Attributes)
+		// attributes, err := unmarshalProductAttributes(objDB.Attributes)
 		if err != nil {
 			log.Fatalf("Failed to unmarshal product attributes: %v", err)
 		}
@@ -53,9 +53,9 @@ func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]m
 			Description:       objDB.Description,
 			Price:             priceFloat64.Float64,
 			AvailableQuantity: int(objDB.AvailableQuantity),
-			Attributes:        attributes,
-			UpdatedAt:         objDB.UpdatedAt.Time,
-			CreatedAt:         objDB.CreatedAt.Time,
+			// Attributes:        attributes,
+			UpdatedAt: objDB.UpdatedAt.Time,
+			CreatedAt: objDB.CreatedAt.Time,
 		})
 	}
 	return objs, nil

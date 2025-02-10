@@ -3,6 +3,8 @@ image:
   tag: v0.40.7
 oathkeeper:
   config:
+    log:
+      leak_sensitive_values: true
     access_rules:
       matching_strategy: glob
       repositories:

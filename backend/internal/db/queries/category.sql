@@ -29,7 +29,7 @@ FROM categories
 WHERE shop_id = sqlc.arg('shop_id') AND parent_id = sqlc.arg('parent_id') AND category_id > sqlc.arg('after')
 LIMIT sqlc.arg('limit');
 
--- name: CreateCategoryAttribute :one
+-- xname: CreateCategoryAttribute :one
 -- UPDATE categories
 -- SET category_attributes = jsonb_set(
 --     COALESCE(category_attributes, '{}'), 
@@ -39,13 +39,13 @@ LIMIT sqlc.arg('limit');
 -- WHERE category_id = sqlc.arg('category_id')
 -- RETURNING category_attributes;
 
--- name: DeleteCategoryAttribute :one
+-- xname: DeleteCategoryAttribute :one
 -- UPDATE categories
 -- SET category_attributes = category_attributes - UPPER(sqlc.arg('attribute')::text)
 -- WHERE category_id = sqlc.arg('category_id')
 -- RETURNING category_attributes;
 
--- name: GetCategoryAttributes :one
+-- xname: GetCategoryAttributes :one
 -- SELECT category_attributes
 -- FROM categories
 -- WHERE category_id = sqlc.arg('category_id');

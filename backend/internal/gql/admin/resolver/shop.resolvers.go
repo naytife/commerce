@@ -140,20 +140,20 @@ func (r *shopResolver) Products(ctx context.Context, obj *model.Shop, first *int
 	edges := make([]model.ProductEdge, len(productsDB))
 	for i, prod := range productsDB {
 		var attributes []model.AllowedProductAttributes
-		if prod.AllowedAttributes != nil {
-			attributes, err = unmarshalAllowedProductAttributes(prod.AllowedAttributes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-			}
-		}
+		// if prod.AllowedAttributes != nil {
+		// 	attributes, err = unmarshalAllowedProductAttributes(prod.AllowedAttributes)
+		// 	if err != nil {
+		// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+		// 	}
+		// }
 		relayID := encodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
 		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
-			ID:                strconv.FormatInt(prod.ProductID, 10),
-			Title:             prod.Title,
-			Description:       prod.Description,
-			CreatedAt:         prod.CreatedAt.Time,
-			UpdatedAt:         prod.UpdatedAt.Time,
-			Status:            (*model.ProductStatus)(&prod.Status),
+			ID:          strconv.FormatInt(prod.ProductID, 10),
+			Title:       prod.Title,
+			Description: prod.Description,
+			CreatedAt:   prod.CreatedAt.Time,
+			UpdatedAt:   prod.UpdatedAt.Time,
+			// Status:            (*model.ProductStatus)(&prod.Status),
 			AllowedAttributes: attributes,
 		}}
 	}
@@ -213,8 +213,6 @@ func (r *shopResolver) Categories(ctx context.Context, obj *model.Shop, first *i
 			Slug:        cat.Slug,
 			Title:       cat.Title,
 			Description: cat.Description,
-			CreatedAt:   cat.CreatedAt.Time,
-			UpdatedAt:   cat.UpdatedAt.Time,
 		}}
 	}
 	var startCursor, endCursor *string
