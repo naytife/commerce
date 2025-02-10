@@ -24,12 +24,12 @@ const (
 // CreateShop creates a shop
 // @Summary      Create a shop
 // @Description
-// @Tags         shop
+// @Tags         shops
 // @Accept       json
 // @Produce      json
 // @Param        shop body models.ShopCreate true "Shop object that needs to be created"
 // @Security     OAuth2AccessCode
-// @Router       /shop [post]
+// @Router       /shops [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// TODO: verify user exist
 	userIDStr, ok := c.Locals("user_id").(string)
@@ -90,6 +90,14 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	})
 }
 
+// GetShops fetches auth user shop
+// @Summary      Fetch all shops
+// @Description
+// @Tags         shops
+// @Accept       json
+// @Produce      json
+// @Security     OAuth2AccessCode
+// @Router       /shops [get]
 func (h *Handler) GetShops(c *fiber.Ctx) error {
 	userIDStr, ok := c.Locals("user_id").(string)
 	if !ok || userIDStr == "" {
@@ -112,15 +120,15 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 	})
 }
 
-// GetShop fetches a shop
-// @Summary      Fetch a shop
+// DeleteShop deletes a shop
+// @Summary      Delete a shop
 // @Description
-// @Tags         shop
+// @Tags         shops
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Shop ID"
 // @Security     OAuth2AccessCode
-// @Router       /shop/{id} [get]
+// @Router       /shops/{id} [delete]
 func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 	shopID := c.Params("id")
 	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)

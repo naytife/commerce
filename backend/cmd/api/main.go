@@ -68,18 +68,19 @@ func main() {
 		DocExpansion: "none",
 		// Prefill OAuth ClientId on Authorize popup
 		OAuth: &swagger.OAuthConfig{
-			AppName:      "OAuth Provider",
+			AppName:      "Naytife API",
 			ClientId:     "bcb8b621-1519-4127-b4d2-6187b48eba99",
 			ClientSecret: "Zr1-2LBQgiR5.0SzF~AT8.rPut",
 			Scopes:       []string{"openid", "offline", "hydra.openid", "introspect"},
 			UseBasicAuthenticationWithAccessCodeGrant: true,
 		},
+		PersistAuthorization: true,
 		// Ability to change OAuth2 redirect uri location
 		OAuth2RedirectUrl: "http://127.0.0.1:8080/api/v1/docs/oauth2-redirect.html",
 	}))
 
 	v1 := app.Group("/api/v1")
-	api := v1.Group("/*", middleware.WebMiddlewareFiber())
+	api := v1.Group("/", middleware.WebMiddlewareFiber())
 	routes.AuthRouter(v1, repo)
 	routes.ShopRouter(api, repo)
 	routes.UserRouter(api, repo)
