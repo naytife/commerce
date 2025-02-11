@@ -13,7 +13,7 @@ import (
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        user body db.UpsertUserParams true "User object that needs to be created or updated"
+// @Param        user body models.RegisterUserParams true "User object that needs to be created or updated"
 // @Success      200  {object}   models.ResponseHTTP{data=models.UserResponse} "User created or updated successfully"
 // @Router       /auth/register [post]
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
