@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 )
 
@@ -16,14 +17,23 @@ import (
 // @Success      200  {object}   models.ResponseHTTP{data=models.UserResponse} "User created or updated successfully"
 // @Router       /auth/register [post]
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
-	var param db.UpsertUserParams
+	var param models.RegisterUserParams
 	err := c.BodyParser(&param)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
-	objDB, err := h.Repository.UpsertUser(c.Context(), param)
+	objDB, err := h.Repository.UpsertUser(c.Context(), db.UpsertUserParams{
+		Sub:            param.Email,
+		ProviderID:     param.ProviderID,
+		Provider:       param.Provider,
+		Email:          param.Email,
+		Name:           param.Name,
+		ProfilePicture: param.ProfilePicture,
+		Locale:         param.Locale,
+		VerifiedEmail:  param.VerifiedEmail,
+	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err,

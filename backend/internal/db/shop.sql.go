@@ -14,7 +14,7 @@ import (
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (owner_id, title, domain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type CreateShopParams struct {
@@ -59,15 +59,15 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.About,
 		&i.Address,
 		&i.PhoneNumber,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.WhatsappPhoneNumber,
-		&i.WhatsappLink,
-		&i.FacebookLink,
-		&i.InstagramLink,
 	)
 	return i, err
 }
@@ -83,7 +83,7 @@ func (q *Queries) DeleteShop(ctx context.Context, shopID int64) error {
 }
 
 const getShop = `-- name: GetShop :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE shop_id = $1
 `
 
@@ -101,21 +101,21 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.About,
 		&i.Address,
 		&i.PhoneNumber,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.WhatsappPhoneNumber,
-		&i.WhatsappLink,
-		&i.FacebookLink,
-		&i.InstagramLink,
 	)
 	return i, err
 }
 
 const getShopByDomain = `-- name: GetShopByDomain :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE domain = $1
 `
 
@@ -133,15 +133,15 @@ func (q *Queries) GetShopByDomain(ctx context.Context, domain string) (Shop, err
 		&i.About,
 		&i.Address,
 		&i.PhoneNumber,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.WhatsappPhoneNumber,
-		&i.WhatsappLink,
-		&i.FacebookLink,
-		&i.InstagramLink,
 	)
 	return i, err
 }
@@ -178,7 +178,7 @@ func (q *Queries) GetShopImages(ctx context.Context, shopID int64) (ShopImage, e
 }
 
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE owner_id = $1
 `
 
@@ -202,15 +202,15 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.About,
 			&i.Address,
 			&i.PhoneNumber,
+			&i.WhatsappPhoneNumber,
+			&i.WhatsappLink,
+			&i.FacebookLink,
+			&i.InstagramLink,
 			&i.SeoDescription,
 			&i.SeoKeywords,
 			&i.SeoTitle,
 			&i.UpdatedAt,
 			&i.CreatedAt,
-			&i.WhatsappPhoneNumber,
-			&i.WhatsappLink,
-			&i.FacebookLink,
-			&i.InstagramLink,
 		); err != nil {
 			return nil, err
 		}
@@ -240,7 +240,7 @@ SET
     address = COALESCE($13, address),
     email = COALESCE($14, email)
 WHERE shop_id = $15
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, seo_description, seo_keywords, seo_title, updated_at, created_at, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type UpdateShopParams struct {
@@ -291,15 +291,15 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.About,
 		&i.Address,
 		&i.PhoneNumber,
+		&i.WhatsappPhoneNumber,
+		&i.WhatsappLink,
+		&i.FacebookLink,
+		&i.InstagramLink,
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.WhatsappPhoneNumber,
-		&i.WhatsappLink,
-		&i.FacebookLink,
-		&i.InstagramLink,
 	)
 	return i, err
 }

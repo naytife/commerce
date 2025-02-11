@@ -84,7 +84,7 @@ DO UPDATE SET
     seo_description = EXCLUDED.seo_description,
     seo_keywords = EXCLUDED.seo_keywords,
     seo_title = EXCLUDED.seo_title
-RETURNING product_variation_id, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, sku, status
+RETURNING product_variation_id, sku, slug, description, price, available_quantity, status, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id
 `
 
 type UpsertProductVariationBatchResults struct {
@@ -161,10 +161,12 @@ func (b *UpsertProductVariationBatchResults) Query(f func(int, []ProductVariatio
 				var i ProductVariation
 				if err := rows.Scan(
 					&i.ProductVariationID,
+					&i.Sku,
 					&i.Slug,
 					&i.Description,
 					&i.Price,
 					&i.AvailableQuantity,
+					&i.Status,
 					&i.SeoDescription,
 					&i.SeoKeywords,
 					&i.SeoTitle,
@@ -172,8 +174,6 @@ func (b *UpsertProductVariationBatchResults) Query(f func(int, []ProductVariatio
 					&i.UpdatedAt,
 					&i.ProductID,
 					&i.ShopID,
-					&i.Sku,
-					&i.Status,
 				); err != nil {
 					return err
 				}

@@ -141,14 +141,57 @@ func (ns NullAttributeUnit) Value() (driver.Value, error) {
 	return string(ns.AttributeUnit), nil
 }
 
+type ProductStatus string
+
+const (
+	ProductStatusDRAFT     ProductStatus = "DRAFT"
+	ProductStatusPUBLISHED ProductStatus = "PUBLISHED"
+	ProductStatusARCHIVED  ProductStatus = "ARCHIVED"
+)
+
+func (e *ProductStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProductStatus(s)
+	case string:
+		*e = ProductStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProductStatus: %T", src)
+	}
+	return nil
+}
+
+type NullProductStatus struct {
+	ProductStatus ProductStatus `json:"product_status"`
+	Valid         bool          `json:"valid"` // Valid is true if ProductStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProductStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProductStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProductStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProductStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProductStatus), nil
+}
+
 type Attribute struct {
 	AttributeID int64              `json:"attribute_id"`
 	Title       string             `json:"title"`
+	DataType    AttributeDataType  `json:"data_type"`
 	Unit        NullAttributeUnit  `json:"unit"`
 	Required    bool               `json:"required"`
-	ShopID      int64              `json:"shop_id"`
-	DataType    AttributeDataType  `json:"data_type"`
 	AppliesTo   AttributeAppliesTo `json:"applies_to"`
+	ShopID      int64              `json:"shop_id"`
 }
 
 type AttributeOption struct {
@@ -192,9 +235,9 @@ type Product struct {
 	Description   string             `json:"description"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ProductTypeID int64              `json:"product_type_id"`
 	CategoryID    int64              `json:"category_id"`
 	ShopID        int64              `json:"shop_id"`
-	ProductTypeID int64              `json:"product_type_id"`
 }
 
 type ProductAttributeValue struct {
@@ -224,10 +267,12 @@ type ProductType struct {
 
 type ProductVariation struct {
 	ProductVariationID int64              `json:"product_variation_id"`
+	Sku                string             `json:"sku"`
 	Slug               string             `json:"slug"`
 	Description        string             `json:"description"`
 	Price              pgtype.Numeric     `json:"price"`
 	AvailableQuantity  int64              `json:"available_quantity"`
+	Status             ProductStatus      `json:"status"`
 	SeoDescription     *string            `json:"seo_description"`
 	SeoKeywords        []string           `json:"seo_keywords"`
 	SeoTitle           *string            `json:"seo_title"`
@@ -235,8 +280,6 @@ type ProductVariation struct {
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	ProductID          int64              `json:"product_id"`
 	ShopID             int64              `json:"shop_id"`
-	Sku                string             `json:"sku"`
-	Status             interface{}        `json:"status"`
 }
 
 type ProductVariationAttributeValue struct {
@@ -259,15 +302,15 @@ type Shop struct {
 	About               *string            `json:"about"`
 	Address             *string            `json:"address"`
 	PhoneNumber         *string            `json:"phone_number"`
+	WhatsappPhoneNumber *string            `json:"whatsapp_phone_number"`
+	WhatsappLink        *string            `json:"whatsapp_link"`
+	FacebookLink        *string            `json:"facebook_link"`
+	InstagramLink       *string            `json:"instagram_link"`
 	SeoDescription      *string            `json:"seo_description"`
 	SeoKeywords         []string           `json:"seo_keywords"`
 	SeoTitle            *string            `json:"seo_title"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
-	WhatsappPhoneNumber *string            `json:"whatsapp_phone_number"`
-	WhatsappLink        *string            `json:"whatsapp_link"`
-	FacebookLink        *string            `json:"facebook_link"`
-	InstagramLink       *string            `json:"instagram_link"`
 }
 
 type ShopImage struct {
@@ -295,12 +338,14 @@ type ShoppingCartItem struct {
 
 type User struct {
 	UserID         uuid.UUID        `json:"user_id"`
-	Provider       *string          `json:"provider"`
+	Sub            *string          `json:"sub"`
 	Email          *string          `json:"email"`
+	Provider       *string          `json:"provider"`
+	ProviderID     *string          `json:"provider_id"`
 	Name           *string          `json:"name"`
+	Locale         *string          `json:"locale"`
 	ProfilePicture *string          `json:"profile_picture"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	LastLogin      pgtype.Timestamp `json:"last_login"`
-	ProviderID     *string          `json:"provider_id"`
-	Locale         *string          `json:"locale"`
+	VerifiedEmail  *bool            `json:"verified_email"`
 }
