@@ -91,3 +91,9 @@ oathkeeper:
     mutators:
       noop:
         enabled: true
+      header:
+        enabled: true
+        config:
+          headers:
+            X-User-Id: "{{ print .Subject }}"
+            X-User-Email: "{{ print .Extra.email }}"
