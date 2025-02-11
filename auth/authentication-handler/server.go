@@ -193,6 +193,7 @@ func fetchUserInfo(client *http.Client) (*GoogleUserInfo, error) {
 
 func registerUser(client *http.Client, userInfo *GoogleUserInfo) error {
 	// Marshal userInfo to JSON
+	// TODO: send provider
 	userInfoJSON, err := json.Marshal(userInfo)
 	if err != nil {
 		return err // Handle JSON marshalling error
@@ -214,13 +215,15 @@ func registerUser(client *http.Client, userInfo *GoogleUserInfo) error {
 }
 
 type GoogleUserInfo struct {
-	ID           string `json:"id"`
-	Email        string `json:"email"`
-	VerifieEmail bool   `json:"verified_email"`
-	Name         string `json:"name"`
-	GivenName    string `json:"given_name"`
-	FamilyName   string `json:"family_name"`
-	Picture      string `json:"picture"`
+	ID            string `json:"id"`
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Locale        string `json:"locale"`
 }
 
 func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo) (*hydra.OAuth2RedirectTo, error) {

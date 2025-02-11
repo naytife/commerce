@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT user_id, provider, email, name, profile_picture, created_at, last_login, provider_id, locale FROM users
+SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
 WHERE email = $1
 `
 
@@ -21,20 +21,22 @@ func (q *Queries) GetUser(ctx context.Context, email *string) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.UserID,
-		&i.Provider,
+		&i.Sub,
 		&i.Email,
+		&i.Provider,
+		&i.ProviderID,
 		&i.Name,
+		&i.Locale,
 		&i.ProfilePicture,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.ProviderID,
-		&i.Locale,
+		&i.VerifiedEmail,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT user_id, provider, email, name, profile_picture, created_at, last_login, provider_id, locale FROM users
+SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
 WHERE user_id = $1
 `
 
@@ -43,58 +45,67 @@ func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, erro
 	var i User
 	err := row.Scan(
 		&i.UserID,
-		&i.Provider,
+		&i.Sub,
 		&i.Email,
+		&i.Provider,
+		&i.ProviderID,
 		&i.Name,
+		&i.Locale,
 		&i.ProfilePicture,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.ProviderID,
-		&i.Locale,
+		&i.VerifiedEmail,
 	)
 	return i, err
 }
 
 const upsertUser = `-- name: UpsertUser :one
-INSERT INTO users (provider_id, provider, email, name, locale, profile_picture)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO users (sub, provider_id, provider, email, name, locale, profile_picture, verified_email)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (email)
 DO UPDATE SET
     name = COALESCE(EXCLUDED.name, users.name),
     profile_picture = COALESCE(EXCLUDED.profile_picture, users.profile_picture),
-    locale = COALESCE(EXCLUDED.locale, users.locale)
-RETURNING user_id, provider, email, name, profile_picture, created_at, last_login, provider_id, locale
+    locale = COALESCE(EXCLUDED.locale, users.locale),
+    verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email)
+RETURNING user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email
 `
 
 type UpsertUserParams struct {
+	Sub            *string `json:"sub"`
 	ProviderID     *string `json:"provider_id"`
 	Provider       *string `json:"provider"`
 	Email          *string `json:"email"`
 	Name           *string `json:"name"`
 	Locale         *string `json:"locale"`
 	ProfilePicture *string `json:"profile_picture"`
+	VerifiedEmail  *bool   `json:"verified_email"`
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, upsertUser,
+		arg.Sub,
 		arg.ProviderID,
 		arg.Provider,
 		arg.Email,
 		arg.Name,
 		arg.Locale,
 		arg.ProfilePicture,
+		arg.VerifiedEmail,
 	)
 	var i User
 	err := row.Scan(
 		&i.UserID,
-		&i.Provider,
+		&i.Sub,
 		&i.Email,
+		&i.Provider,
+		&i.ProviderID,
 		&i.Name,
+		&i.Locale,
 		&i.ProfilePicture,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.ProviderID,
-		&i.Locale,
+		&i.VerifiedEmail,
 	)
 	return i, err
 }

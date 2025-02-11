@@ -14,7 +14,7 @@ import (
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products ( title, description, category_id, shop_id)
 VALUES ($1, $2, $3, $4)
-RETURNING product_id, title, description, created_at, updated_at, category_id, shop_id, product_type_id
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id
 `
 
 type CreateProductParams struct {
@@ -38,9 +38,9 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
-		&i.ProductTypeID,
 	)
 	return i, err
 }
@@ -91,7 +91,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 }
 
 const getProductVariations = `-- name: GetProductVariations :many
-SELECT product_variation_id, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, sku, status FROM product_variations
+SELECT product_variation_id, sku, slug, description, price, available_quantity, status, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id
 `
@@ -112,10 +112,12 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 		var i ProductVariation
 		if err := rows.Scan(
 			&i.ProductVariationID,
+			&i.Sku,
 			&i.Slug,
 			&i.Description,
 			&i.Price,
 			&i.AvailableQuantity,
+			&i.Status,
 			&i.SeoDescription,
 			&i.SeoKeywords,
 			&i.SeoTitle,
@@ -123,8 +125,6 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 			&i.UpdatedAt,
 			&i.ProductID,
 			&i.ShopID,
-			&i.Sku,
-			&i.Status,
 		); err != nil {
 			return nil, err
 		}
@@ -263,7 +263,7 @@ SET
     title = COALESCE($1, title),
     description = COALESCE($2, description)
 WHERE product_id = $3
-RETURNING product_id, title, description, created_at, updated_at, category_id, shop_id, product_type_id
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id
 `
 
 type UpdateProductParams struct {
@@ -297,9 +297,9 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
-		&i.ProductTypeID,
 	)
 	return i, err
 }

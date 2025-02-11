@@ -1,11 +1,13 @@
 CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),           
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),     
+    sub VARCHAR(255) UNIQUE,      
     email VARCHAR(255) UNIQUE,          
     provider VARCHAR(255),        
     provider_id VARCHAR(255),        
     name VARCHAR(255),   
     locale VARCHAR(255),                 
-    profile_picture TEXT,             
+    profile_picture TEXT,
+    verified_email BOOLEAN DEFAULT FALSE,             
     created_at TIMESTAMP DEFAULT NOW(),   
     last_login TIMESTAMP                  
 );
@@ -207,3 +209,43 @@ CREATE TABLE order_items(
     CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
     CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
+
+-- SET RLS for categories
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON categories
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for products
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON products
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for shop_images
+ALTER TABLE shop_images ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON shop_images
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for product_images
+ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON product_images
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for product_variations
+ALTER TABLE product_variations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON product_variations
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);

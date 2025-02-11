@@ -6,6 +6,7 @@ import (
 )
 
 type UserResponse struct {
+	// TODO: add sub fields
 	UserID         uuid.UUID        `json:"user_id"`
 	Provider       *string          `json:"provider"`
 	Email          *string          `json:"email"`
@@ -15,4 +16,15 @@ type UserResponse struct {
 	LastLogin      pgtype.Timestamp `json:"last_login" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 	ProviderID     *string          `json:"provider_id"`
 	Locale         *string          `json:"locale"`
+}
+
+type RegisterUserParams struct {
+	Sub            *string `json:"sub"`
+	ProviderID     *string `json:"id"`
+	Provider       *string `json:"provider"`
+	Email          *string `json:"email"`
+	Name           *string `json:"name"`
+	Locale         *string `json:"locale"`
+	ProfilePicture *string `json:"picture"`
+	VerifiedEmail  *bool   `json:"verified_email"`
 }
