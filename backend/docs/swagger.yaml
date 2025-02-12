@@ -1,32 +1,172 @@
 basePath: /api/v1
 definitions:
-  db.UpsertUserParams:
+  db.AttributeAppliesTo:
+    enum:
+    - Product
+    - ProductVariation
+    type: string
+    x-enum-varnames:
+    - AttributeAppliesToProduct
+    - AttributeAppliesToProductVariation
+  db.AttributeDataType:
+    enum:
+    - Text
+    - Number
+    - Date
+    - Option
+    type: string
+    x-enum-varnames:
+    - AttributeDataTypeText
+    - AttributeDataTypeNumber
+    - AttributeDataTypeDate
+    - AttributeDataTypeOption
+  db.AttributeUnit:
+    enum:
+    - KG
+    - GB
+    - INCH
+    type: string
+    x-enum-varnames:
+    - AttributeUnitKG
+    - AttributeUnitGB
+    - AttributeUnitINCH
+  db.NullAttributeUnit:
+    properties:
+      attribute_unit:
+        $ref: '#/definitions/db.AttributeUnit'
+      valid:
+        description: Valid is true if AttributeUnit is not NULL
+        type: boolean
+    type: object
+  models.Attribute:
+    properties:
+      applies_to:
+        $ref: '#/definitions/db.AttributeAppliesTo'
+      data_type:
+        $ref: '#/definitions/db.AttributeDataType'
+      required:
+        type: boolean
+      title:
+        type: string
+      unit:
+        $ref: '#/definitions/db.NullAttributeUnit'
+    type: object
+  models.Meta:
+    description: Meta object
+    properties:
+      timestamp:
+        type: string
+    type: object
+  models.ProductType:
+    properties:
+      digital:
+        type: boolean
+      product_type_id:
+        type: integer
+      shippable:
+        type: boolean
+      shop_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  models.ProductTypeCreate:
+    properties:
+      digital:
+        type: boolean
+      product_type_id:
+        type: integer
+      shippable:
+        type: boolean
+      shop_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  models.ProductTypeUpdate:
+    properties:
+      digital:
+        type: boolean
+      product_type_id:
+        type: integer
+      shippable:
+        type: boolean
+      shop_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  models.RegisterUserParams:
     properties:
       email:
+        type: string
+      id:
         type: string
       locale:
         type: string
       name:
+        maxLength: 255
+        minLength: 3
         type: string
-      profile_picture:
+      picture:
         type: string
       provider:
         type: string
-      provider_id:
+      sub:
         type: string
-    type: object
-  models.ResponseHTTP:
-    description: Generic API response
-    properties:
-      data: {}
-      message:
-        type: string
-      statusCode:
-        type: integer
-      success:
+      verified_email:
         type: boolean
+    required:
+    - email
+    - id
+    - name
     type: object
-  models.ShopCreate:
+  models.Shop:
+    properties:
+      about:
+        type: string
+      address:
+        type: string
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      currency_code:
+        type: string
+      domain:
+        type: string
+      email:
+        type: string
+      facebook_link:
+        type: string
+      instagram_link:
+        type: string
+      phone_number:
+        type: string
+      seo_description:
+        type: string
+      seo_keywords:
+        items:
+          type: string
+        type: array
+      seo_title:
+        type: string
+      shop_id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      whatsapp_link:
+        type: string
+      whatsapp_phone_number:
+        type: string
+    type: object
+  models.ShopCreateParams:
     properties:
       currency_code:
         enum:
@@ -36,8 +176,6 @@ definitions:
       domain:
         maxLength: 255
         minLength: 3
-        type: string
-      owner_id:
         type: string
       status:
         enum:
@@ -51,9 +189,54 @@ definitions:
     required:
     - currency_code
     - domain
-    - owner_id
     - status
     - title
+    type: object
+  models.ShopUpdateParams:
+    properties:
+      about:
+        type: string
+      address:
+        type: string
+      currency_code:
+        type: string
+      email:
+        type: string
+      facebook_link:
+        type: string
+      instagram_link:
+        type: string
+      phone_number:
+        type: string
+      seo_description:
+        type: string
+      seo_keywords:
+        items:
+          type: string
+        type: array
+      seo_title:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      whatsapp_link:
+        type: string
+      whatsapp_phone_number:
+        type: string
+    type: object
+  models.SuccessResponse:
+    description: Generic API response
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/models.Meta'
+      status:
+        type: string
     type: object
   models.UserResponse:
     properties:
@@ -78,6 +261,7 @@ definitions:
       provider_id:
         type: string
       user_id:
+        description: 'TODO: add sub fields'
         type: string
     type: object
 host: 127.0.0.1:8080
@@ -97,7 +281,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/db.UpsertUserParams'
+          $ref: '#/definitions/models.RegisterUserParams'
       produces:
       - application/json
       responses:
@@ -105,7 +289,7 @@ paths:
           description: User created or updated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/models.ResponseHTTP'
+            - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.UserResponse'
@@ -124,7 +308,7 @@ paths:
           description: User fetched successfully
           schema:
             allOf:
-            - $ref: '#/definitions/models.ResponseHTTP'
+            - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
                   $ref: '#/definitions/models.UserResponse'
@@ -140,7 +324,18 @@ paths:
       - application/json
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Shops fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Shop'
+                  type: array
+              type: object
       security:
       - OAuth2AccessCode: []
       summary: Fetch all shops
@@ -155,23 +350,32 @@ paths:
         name: shop
         required: true
         schema:
-          $ref: '#/definitions/models.ShopCreate'
+          $ref: '#/definitions/models.ShopCreateParams'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Shop created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Shop'
+              type: object
       security:
       - OAuth2AccessCode: []
       summary: Create a shop
       tags:
       - shops
-  /shops/{id}:
+  /shops/{shop_id}:
     delete:
       consumes:
       - application/json
       parameters:
       - description: Shop ID
         in: path
-        name: id
+        name: shop_id
         required: true
         type: string
       produces:
@@ -182,6 +386,276 @@ paths:
       summary: Delete a shop
       tags:
       - shops
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a shop
+      tags:
+      - shops
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Shop object that needs to be updated
+        in: body
+        name: shop
+        required: true
+        schema:
+          $ref: '#/definitions/models.ShopUpdateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Shop updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Shop'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Update a shop
+      tags:
+      - shops
+  /shops/{shop_id}/attributes/{attribute_id}/options:
+    post:
+      consumes:
+      - application/json
+      description: Create a new attribute option
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute ID
+        in: path
+        name: attribute_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a new attribute option
+      tags:
+      - Attributes
+  /shops/{shop_id}/product-types:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all product types
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product types fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductType'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all product types
+      tags:
+      - ProductType
+    post:
+      consumes:
+      - application/json
+      description: Create a new product type
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product type object that needs to be created
+        in: body
+        name: productType
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductTypeCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product type created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductType'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a new product type
+      tags:
+      - ProductType
+  /shops/{shop_id}/product-types/{product_type_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product type
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product type deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductType'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete a product type
+      tags:
+      - ProductType
+    get:
+      consumes:
+      - application/json
+      description: Fetch a single product type
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product type fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductType'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a single product type
+      tags:
+      - ProductType
+    put:
+      consumes:
+      - application/json
+      description: Update a product type
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      - description: Product type object that needs to be updated
+        in: body
+        name: productType
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductTypeUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product type updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductType'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Update a product type
+      tags:
+      - ProductType
+  /shops/{shop_id}/product-types/{product_type_id}/attributes:
+    post:
+      consumes:
+      - application/json
+      description: Create a new attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product Type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Attribute'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a new attribute
+      tags:
+      - ProductType
 schemes:
 - http
 securityDefinitions:

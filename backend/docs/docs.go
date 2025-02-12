@@ -34,7 +34,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/db.UpsertUserParams"
+                            "$ref": "#/definitions/models.RegisterUserParams"
                         }
                     }
                 ],
@@ -44,7 +44,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.ResponseHTTP"
+                                    "$ref": "#/definitions/models.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
@@ -83,7 +83,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.ResponseHTTP"
+                                    "$ref": "#/definitions/models.SuccessResponse"
                                 },
                                 {
                                     "type": "object",
@@ -116,7 +116,29 @@ const docTemplate = `{
                     "shops"
                 ],
                 "summary": "Fetch all shops",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Shops fetched successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Shop"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             },
             "post": {
                 "security": [
@@ -141,14 +163,115 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ShopCreate"
+                            "$ref": "#/definitions/models.ShopCreateParams"
                         }
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Shop created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Shop"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         },
-        "/shops/{id}": {
+        "/shops/{shop_id}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shops"
+                ],
+                "summary": "Fetch a shop",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            },
+            "put": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shops"
+                ],
+                "summary": "Update a shop",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Shop object that needs to be updated",
+                        "name": "shop",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ShopUpdateParams"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shop updated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Shop"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -169,61 +292,634 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Shop ID",
-                        "name": "id",
+                        "name": "shop_id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {}
             }
+        },
+        "/shops/{shop_id}/attributes/{attribute_id}/options": {
+            "post": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Create a new attribute option",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attributes"
+                ],
+                "summary": "Create a new attribute option",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Attribute ID",
+                        "name": "attribute_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/shops/{shop_id}/product-types": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Fetch all product types",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Fetch all product types",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product types fetched successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductType"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Create a new product type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Create a new product type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Product type object that needs to be created",
+                        "name": "productType",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductTypeCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product type created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductType"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/shops/{shop_id}/product-types/{product_type_id}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Fetch a single product type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Fetch a single product type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product type ID",
+                        "name": "product_type_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product type fetched successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductType"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Update a product type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Update a product type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product type ID",
+                        "name": "product_type_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Product type object that needs to be updated",
+                        "name": "productType",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProductTypeUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product type updated successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductType"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Delete a product type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Delete a product type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product type ID",
+                        "name": "product_type_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product type deleted successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ProductType"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/shops/{shop_id}/product-types/{product_type_id}/attributes": {
+            "post": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Create a new attribute",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ProductType"
+                ],
+                "summary": "Create a new attribute",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop ID",
+                        "name": "shop_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Product Type ID",
+                        "name": "product_type_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attribute created successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Attribute"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "db.UpsertUserParams": {
+        "db.AttributeAppliesTo": {
+            "type": "string",
+            "enum": [
+                "Product",
+                "ProductVariation"
+            ],
+            "x-enum-varnames": [
+                "AttributeAppliesToProduct",
+                "AttributeAppliesToProductVariation"
+            ]
+        },
+        "db.AttributeDataType": {
+            "type": "string",
+            "enum": [
+                "Text",
+                "Number",
+                "Date",
+                "Option"
+            ],
+            "x-enum-varnames": [
+                "AttributeDataTypeText",
+                "AttributeDataTypeNumber",
+                "AttributeDataTypeDate",
+                "AttributeDataTypeOption"
+            ]
+        },
+        "db.AttributeUnit": {
+            "type": "string",
+            "enum": [
+                "KG",
+                "GB",
+                "INCH"
+            ],
+            "x-enum-varnames": [
+                "AttributeUnitKG",
+                "AttributeUnitGB",
+                "AttributeUnitINCH"
+            ]
+        },
+        "db.NullAttributeUnit": {
             "type": "object",
             "properties": {
+                "attribute_unit": {
+                    "$ref": "#/definitions/db.AttributeUnit"
+                },
+                "valid": {
+                    "description": "Valid is true if AttributeUnit is not NULL",
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.Attribute": {
+            "type": "object",
+            "properties": {
+                "applies_to": {
+                    "$ref": "#/definitions/db.AttributeAppliesTo"
+                },
+                "data_type": {
+                    "$ref": "#/definitions/db.AttributeDataType"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "unit": {
+                    "$ref": "#/definitions/db.NullAttributeUnit"
+                }
+            }
+        },
+        "models.Meta": {
+            "description": "Meta object",
+            "type": "object",
+            "properties": {
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductType": {
+            "type": "object",
+            "properties": {
+                "digital": {
+                    "type": "boolean"
+                },
+                "product_type_id": {
+                    "type": "integer"
+                },
+                "shippable": {
+                    "type": "boolean"
+                },
+                "shop_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductTypeCreate": {
+            "type": "object",
+            "properties": {
+                "digital": {
+                    "type": "boolean"
+                },
+                "product_type_id": {
+                    "type": "integer"
+                },
+                "shippable": {
+                    "type": "boolean"
+                },
+                "shop_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductTypeUpdate": {
+            "type": "object",
+            "properties": {
+                "digital": {
+                    "type": "boolean"
+                },
+                "product_type_id": {
+                    "type": "integer"
+                },
+                "shippable": {
+                    "type": "boolean"
+                },
+                "shop_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.RegisterUserParams": {
+            "type": "object",
+            "required": [
+                "email",
+                "id",
+                "name"
+            ],
+            "properties": {
                 "email": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 },
                 "locale": {
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
                 },
-                "profile_picture": {
+                "picture": {
                     "type": "string"
                 },
                 "provider": {
                     "type": "string"
                 },
-                "provider_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ResponseHTTP": {
-            "description": "Generic API response",
-            "type": "object",
-            "properties": {
-                "data": {},
-                "message": {
+                "sub": {
                     "type": "string"
                 },
-                "statusCode": {
-                    "type": "integer"
-                },
-                "success": {
+                "verified_email": {
                     "type": "boolean"
                 }
             }
         },
-        "models.ShopCreate": {
+        "models.Shop": {
+            "type": "object",
+            "properties": {
+                "about": {
+                    "type": "string"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-02-09T09:38:25Z"
+                },
+                "currency_code": {
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "facebook_link": {
+                    "type": "string"
+                },
+                "instagram_link": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "seo_description": {
+                    "type": "string"
+                },
+                "seo_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "seo_title": {
+                    "type": "string"
+                },
+                "shop_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-02-09T09:38:25Z"
+                },
+                "whatsapp_link": {
+                    "type": "string"
+                },
+                "whatsapp_phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ShopCreateParams": {
             "type": "object",
             "required": [
                 "currency_code",
                 "domain",
-                "owner_id",
                 "status",
                 "title"
             ],
@@ -240,9 +936,6 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3
                 },
-                "owner_id": {
-                    "type": "string"
-                },
                 "status": {
                     "type": "string",
                     "enum": [
@@ -254,6 +947,75 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 3
+                }
+            }
+        },
+        "models.ShopUpdateParams": {
+            "type": "object",
+            "properties": {
+                "about": {
+                    "type": "string"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "currency_code": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "facebook_link": {
+                    "type": "string"
+                },
+                "instagram_link": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "seo_description": {
+                    "type": "string"
+                },
+                "seo_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "seo_title": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "whatsapp_link": {
+                    "type": "string"
+                },
+                "whatsapp_phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SuccessResponse": {
+            "description": "Generic API response",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/models.Meta"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },
@@ -289,6 +1051,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "description": "TODO: add sub fields",
                     "type": "string"
                 }
             }

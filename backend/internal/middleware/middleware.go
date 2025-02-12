@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/db"
 )
 
@@ -39,4 +40,36 @@ func WebMiddlewareFiber() fiber.Handler {
 		c.Locals("user_id", userID)
 		return c.Next()
 	}
+}
+
+func GlobalErrorHandler(c *fiber.Ctx) error {
+	// Proceed to the next middleware/handler
+	err := c.Next()
+
+	// Check if an error occurred
+	if err != nil {
+		// Default error response
+		statusCode := fiber.StatusInternalServerError
+		message := "An unexpected error occurred"
+
+		// Handle specific error types
+		if e, ok := err.(*fiber.Error); ok {
+			statusCode = e.Code
+			switch statusCode {
+			case fiber.StatusBadRequest:
+				message = "Invalid input data"
+			case fiber.StatusNotFound:
+				message = "Resource not found"
+			case fiber.StatusUnauthorized:
+				message = "Authentication required"
+			case fiber.StatusForbidden:
+				message = "Insufficient permissions"
+			}
+		}
+
+		// Send the error response
+		return api.ErrorResponse(c, statusCode, message, nil)
+	}
+
+	return nil
 }

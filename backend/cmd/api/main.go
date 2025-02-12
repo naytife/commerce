@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
 	"github.com/petrejonn/naytife/config"
-	"github.com/petrejonn/naytife/internal/api/models"
+	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/routes"
 	"github.com/petrejonn/naytife/internal/db"
 	admingraph "github.com/petrejonn/naytife/internal/gql/admin"
@@ -45,10 +45,26 @@ func main() {
 		ReadBufferSize: 8192,
 		// Global custom error handler
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusBadRequest).JSON(models.GlobalErrorHandlerResp{
-				Success: false,
-				Message: err.Error(),
-			})
+			// Default error response
+			statusCode := fiber.StatusInternalServerError
+			message := "An unexpected error occurred"
+
+			// Handle specific error types
+			if e, ok := err.(*fiber.Error); ok {
+				statusCode = e.Code
+				switch statusCode {
+				case fiber.StatusBadRequest:
+					message = "Invalid input data"
+				case fiber.StatusNotFound:
+					message = "Resource not found"
+				case fiber.StatusUnauthorized:
+					message = "Authentication required"
+				case fiber.StatusForbidden:
+					message = "Insufficient permissions"
+				}
+			}
+
+			return api.ErrorResponse(c, statusCode, message, nil)
 		},
 	})
 

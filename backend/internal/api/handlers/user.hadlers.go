@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	"github.com/jinzhu/copier"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 )
@@ -14,7 +14,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        user body models.RegisterUserParams true "User object that needs to be created or updated"
-// @Success      200  {object}   models.ResponseHTTP{data=models.UserResponse} "User created or updated successfully"
+// @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User created or updated successfully"
 // @Router       /auth/register [post]
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param models.RegisterUserParams
@@ -24,23 +24,27 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 			"error": "Invalid request body",
 		})
 	}
-	objDB, err := h.Repository.UpsertUser(c.Context(), db.UpsertUserParams{
-		Sub:            param.Email,
-		ProviderID:     param.ProviderID,
-		Provider:       param.Provider,
-		Email:          param.Email,
-		Name:           param.Name,
-		ProfilePicture: param.ProfilePicture,
-		Locale:         param.Locale,
-		VerifiedEmail:  param.VerifiedEmail,
-	})
+	validator := &models.XValidator{}
+	if errs := validator.Validate(&param); len(errs) > 0 {
+		errMsgs := models.FormatValidationErrors(errs)
+
+		return &fiber.Error{
+			Code:    fiber.ErrBadRequest.Code,
+			Message: errMsgs,
+		}
+	}
+	var userParam db.UpsertUserParams
+	copier.Copy(&userParam, &param)
+	userParam.Sub = param.Email
+	objDB, err := h.Repository.UpsertUser(c.Context(), userParam)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err,
 		})
 	}
-
-	return c.JSON(objDB)
+	var resp models.UserResponse
+	copier.Copy(&resp, &objDB)
+	return c.JSON(resp)
 }
 
 // GetMe fetches the currently authenticated user
@@ -49,24 +53,18 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 // @Tags         user
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}   models.ResponseHTTP{data=models.UserResponse} "User fetched successfully"
+// @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User fetched successfully"
 // @Security     OAuth2AccessCode
 // @Router       /me [get]
 func (h *Handler) GetMe(c *fiber.Ctx) error {
 	userIDStr, _ := c.Locals("user_id").(string)
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid user ID",
-		})
-	}
-
-	objDB, err := h.Repository.GetUserById(c.Context(), userID)
+	objDB, err := h.Repository.GetUserBySub(c.Context(), &userIDStr)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err,
 		})
 	}
-
-	return c.JSON(objDB)
+	var resp models.UserResponse
+	copier.Copy(&resp, &objDB)
+	return c.JSON(resp)
 }

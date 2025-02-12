@@ -16,3 +16,7 @@ WHERE email = $1;
 -- name: GetUserById :one
 SELECT * FROM users
 WHERE user_id = $1;
+
+-- name: GetUserBySub :one
+SELECT * FROM users
+WHERE sub = $1;

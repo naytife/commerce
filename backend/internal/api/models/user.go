@@ -20,10 +20,10 @@ type UserResponse struct {
 
 type RegisterUserParams struct {
 	Sub            *string `json:"sub"`
-	ProviderID     *string `json:"id"`
+	ProviderID     *string `json:"id" validate:"required"`
 	Provider       *string `json:"provider"`
-	Email          *string `json:"email"`
-	Name           *string `json:"name"`
+	Email          *string `json:"email" validate:"required,email"`
+	Name           *string `json:"name" validate:"required,min=3,max=255"`
 	Locale         *string `json:"locale"`
 	ProfilePicture *string `json:"picture"`
 	VerifiedEmail  *bool   `json:"verified_email"`
