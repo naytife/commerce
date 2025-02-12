@@ -1,32 +1,61 @@
 package models
 
-type ErrorResponse struct {
-	Error       bool
-	FailedField string
-	Tag         string
-	Value       interface{}
+// Error is a struct that holds the error response
+// @Schema ErrorResponse
+// @description Error response object
+// @property code {string} "VALIDATION_ERROR" "The error code"
+// @property field {string} "Field name" "The field name that caused the error"
+// @property message {string} "Error message" "The error message"
+type Error struct {
+	Code    string `json:"code"`
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
 // @Schema GlobalErrorHandlerResp
 // @description Generic API error response
-// @property success {boolean} false "Indicates if the request was successful"
-// @property message {string} "Invalid request body" "A human-readable message"
-// @property statusCode {integer} 400 "The HTTP status code"
+// @property status {string} "error" "Indicates the status of the response"
+// @property message {string} "An error occurred" "A human-readable message"
+// @property code {integer} 500 "The HTTP status code"
 type GlobalErrorHandlerResp struct {
-	Success    bool   `json:"success"`
-	Message    string `json:"message"`
-	StatusCode int    `json:"statusCode"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
 
 // @Schema Response
 // @description Generic API response
-// @property success {boolean} true "Indicates if the request was successful"
-// @property message {string} "User fetched successfully" "A human-readable message"
-// @property data {object} db.User "The data returned by the API"
-// @property statusCode {integer} 200 "The HTTP status code"
-type ResponseHTTP struct {
-	Success    bool        `json:"success"`
-	Data       interface{} `json:"data"`
-	Message    string      `json:"message"`
-	StatusCode int         `json:"statusCode"`
+// @property status {string} "success" "Indicates the status of the response"
+// @property data {object} "The data object"
+// @property message {string} "A human-readable message"
+// @property code {integer} 200 "The HTTP status code"
+// @property meta {object} "The meta object"
+type SuccessResponse struct {
+	Status  string      `json:"status"`
+	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message"`
+	Code    int         `json:"code"`
+	Meta    Meta        `json:"meta,omitempty"`
+}
+
+// @Schema ErrorResponse
+// @description Generic API error response
+// @property status {string} "error" "Indicates the status of the response"
+// @property message {string} "An error occurred" "A human-readable message"
+// @property code {integer} 500 "The HTTP status code"
+// @property errors {array} "An array of errors"
+// @property meta {object} "The meta object"
+type ErrorResponse struct {
+	Status  string  `json:"status"`
+	Message string  `json:"message"`
+	Code    int     `json:"code"`
+	Errors  []Error `json:"errors,omitempty"`
+	Meta    Meta    `json:"meta,omitempty"`
+}
+
+// @Schema Meta
+// @description Meta object
+// @property timestamp {string} "2021-01-01T00:00:00Z" "The timestamp of the response"
+type Meta struct {
+	Timestamp string `json:"timestamp"`
 }

@@ -59,6 +59,30 @@ func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, erro
 	return i, err
 }
 
+const getUserBySub = `-- name: GetUserBySub :one
+SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
+WHERE sub = $1
+`
+
+func (q *Queries) GetUserBySub(ctx context.Context, sub *string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserBySub, sub)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Sub,
+		&i.Email,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.VerifiedEmail,
+	)
+	return i, err
+}
+
 const upsertUser = `-- name: UpsertUser :one
 INSERT INTO users (sub, provider_id, provider, email, name, locale, profile_picture, verified_email)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)

@@ -15,19 +15,18 @@ func init() {
 
 type XValidator struct{}
 
-func (v XValidator) Validate(data interface{}) []ErrorResponse {
-	validationErrors := []ErrorResponse{}
+func (v XValidator) Validate(data interface{}) []Error {
+	validationErrors := []Error{}
 
 	errs := validate.Struct(data)
 	if errs != nil {
 		for _, err := range errs.(validator.ValidationErrors) {
 			// In this case data object is actually holding the User struct
-			var elem ErrorResponse
+			var elem Error
 
-			elem.FailedField = err.Field() // Export struct field name
-			elem.Tag = err.Tag()           // Export struct tag
-			elem.Value = err.Value()       // Export field value
-			elem.Error = true
+			elem.Field = err.Field()   // Export struct field name
+			elem.Message = err.Error() // Export struct tag
+			elem.Code = "VALIDATION_ERROR"
 
 			validationErrors = append(validationErrors, elem)
 		}
@@ -36,10 +35,10 @@ func (v XValidator) Validate(data interface{}) []ErrorResponse {
 	return validationErrors
 }
 
-func FormatValidationErrors(errs []ErrorResponse) string {
+func FormatValidationErrors(errs []Error) string {
 	var errMsgs []string
 	for _, err := range errs {
-		errMsgs = append(errMsgs, fmt.Sprintf("[%s]: '%v' | Needs to implement '%s'", err.FailedField, err.Value, err.Tag))
+		errMsgs = append(errMsgs, fmt.Sprintf("[%s]: '%v' | Needs to implement '%s'", err.Field, err.Message, err.Message))
 	}
 	return strings.Join(errMsgs, " and ")
 }

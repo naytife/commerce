@@ -42,6 +42,7 @@ type Repository interface {
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error)
 	GetUser(ctx context.Context, email *string) (User, error)
 	GetUserById(ctx context.Context, userID uuid.UUID) (User, error)
+	GetUserBySub(ctx context.Context, sub *string) (User, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)

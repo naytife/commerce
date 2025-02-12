@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jinzhu/copier"
+	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 )
@@ -27,38 +28,28 @@ const (
 // @Tags         shops
 // @Accept       json
 // @Produce      json
-// @Param        shop body models.ShopCreate true "Shop object that needs to be created"
+// @Param        shop body models.ShopCreateParams true "Shop object that needs to be created"
+// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop created successfully"
 // @Security     OAuth2AccessCode
 // @Router       /shops [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// TODO: verify user exist
-	userIDStr, ok := c.Locals("user_id").(string)
-	if !ok || userIDStr == "" {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to retrieve user ID")
-	}
-
+	userSub, _ := c.Locals("user_id").(string)
 	param := db.CreateShopParams{}
-	var shop models.ShopCreate
+	var shop models.ShopCreateParams
 	c.BodyParser(&shop)
-	userID, err := uuid.Parse(userIDStr)
+	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Invalid user ID format",
-		}
+		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
-	shop.OwnerID = userID
-	shop.Status = string(DRAFT)
+	shop.Status = string(db.ProductStatusDRAFT)
 	shop.CurrencyCode = "NGN"
 	if !slug.IsSlug(shop.Domain) {
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Invalid domain format",
-		}
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid domain format", nil)
 	}
 
 	validator := &models.XValidator{}
-	if errs := validator.Validate(&shop); len(errs) > 0 && errs[0].Error {
+	if errs := validator.Validate(&shop); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
 
 		return &fiber.Error{
@@ -67,27 +58,20 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		}
 	}
 	copier.Copy(&param, &shop)
+	param.OwnerID = user.UserID
 	objDB, err := h.Repository.CreateShop(c.Context(), param)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 
 			if pgErr.Code == "23505" {
-				return &fiber.Error{
-					Code:    fiber.ErrConflict.Code,
-					Message: "Shop already exists",
-				}
+				return api.ErrorResponse(c, fiber.StatusConflict, "Shop already exist", nil)
 			}
 		}
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Failed to create shop",
-		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create shop", nil)
 	}
-	return c.JSON(models.ResponseHTTP{
-		Success: true,
-		Data:    objDB,
-		Message: "Shop created",
-	})
+	var resp models.Shop
+	copier.Copy(&resp, &objDB)
+	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Shop created")
 }
 
 // GetShops fetches auth user shop
@@ -96,28 +80,22 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 // @Tags         shops
 // @Accept       json
 // @Produce      json
+// @Success      200  {object}   models.SuccessResponse{data=[]models.Shop} "Shops fetched successfully"
 // @Security     OAuth2AccessCode
 // @Router       /shops [get]
 func (h *Handler) GetShops(c *fiber.Ctx) error {
-	userIDStr, ok := c.Locals("user_id").(string)
-	if !ok || userIDStr == "" {
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to retrieve user ID")
-	}
-	objsDB, err := h.Repository.GetShopsByOwner(c.Context(), uuid.MustParse(userIDStr))
+	userSub, _ := c.Locals("user_id").(string)
+	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Failed to get shops",
-		}
+		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
-	if len(objsDB) == 0 {
-		objsDB = []db.Shop{}
+	objsDB, err := h.Repository.GetShopsByOwner(c.Context(), user.UserID)
+	if err != nil {
+		api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get shops", nil)
 	}
-	return c.JSON(models.ResponseHTTP{
-		Success: true,
-		Data:    objsDB,
-		Message: "Shops retrieved",
-	})
+	var resp []models.Shop
+	copier.Copy(&resp, &objsDB)
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shops retrieved")
 }
 
 // DeleteShop deletes a shop
@@ -126,28 +104,43 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 // @Tags         shops
 // @Accept       json
 // @Produce      json
-// @Param        id path string true "Shop ID"
+// @Param        shop_id path string true "Shop ID"
 // @Security     OAuth2AccessCode
-// @Router       /shops/{id} [delete]
+// @Router       /shops/{shop_id} [delete]
 func (h *Handler) DeleteShop(c *fiber.Ctx) error {
-	shopID := c.Params("id")
-	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)
-	if err != nil {
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Invalid shop ID format",
-		}
-	}
+	shopID := c.Params("shop_id", "0")
+	shopIDInt, _ := strconv.ParseInt(shopID, 10, 64)
 	dberr := h.Repository.DeleteShop(c.Context(), shopIDInt)
 	if dberr != nil {
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: "Failed to delete shop",
-		}
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to delete shop", nil)
 	}
-	return c.JSON(models.ResponseHTTP{
-		Success: true,
-		Data:    nil,
-		Message: "Shop deleted",
-	})
+	return api.SuccessResponse(c, fiber.StatusOK, nil, fmt.Sprintf("Deleted Shop {%s}", shopID))
+}
+
+// GetShop fetches a shop
+// @Summary      Fetch a shop
+// @Description
+// @Tags         shops
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id} [get]
+func (h *Handler) GetShop(c *fiber.Ctx) error {
+	panic("not implemented") // TODO: Implement
+}
+
+// UpdateShop updates a shop
+// @Summary      Update a shop
+// @Description
+// @Tags         shops
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        shop body models.ShopUpdateParams true "Shop object that needs to be updated"
+// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop updated successfully"
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id} [put]
+func (h *Handler) UpdateShop(c *fiber.Ctx) error {
+	panic("not implemented") // TODO: Implement
 }
