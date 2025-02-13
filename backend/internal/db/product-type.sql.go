@@ -118,17 +118,20 @@ func (q *Queries) GetProductTypes(ctx context.Context, shopID int64) ([]ProductT
 
 const updateProductType = `-- name: UpdateProductType :one
 UPDATE product_types
-SET title = $1, shippable = $2, digital = $3
+SET 
+    title = COALESCE($1, title),
+    shippable = COALESCE($2, shippable),
+    digital = COALESCE($3, digital)
 WHERE product_type_id = $4 AND shop_id = $5
 RETURNING product_type_id, title, shippable, digital, shop_id
 `
 
 type UpdateProductTypeParams struct {
-	Title         string `json:"title"`
-	Shippable     bool   `json:"shippable"`
-	Digital       bool   `json:"digital"`
-	ProductTypeID int64  `json:"product_type_id"`
-	ShopID        int64  `json:"shop_id"`
+	Title         *string `json:"title"`
+	Shippable     *bool   `json:"shippable"`
+	Digital       *bool   `json:"digital"`
+	ProductTypeID int64   `json:"product_type_id"`
+	ShopID        int64   `json:"shop_id"`
 }
 
 func (q *Queries) UpdateProductType(ctx context.Context, arg UpdateProductTypeParams) (ProductType, error) {

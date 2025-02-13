@@ -11,8 +11,11 @@ SELECT * FROM product_types WHERE product_type_id = $1 AND shop_id = $2;
 
 -- name: UpdateProductType :one
 UPDATE product_types
-SET title = $1, shippable = $2, digital = $3
-WHERE product_type_id = $4 AND shop_id = $5
+SET 
+    title = COALESCE(sqlc.narg('title'), title),
+    shippable = COALESCE(sqlc.narg('shippable'), shippable),
+    digital = COALESCE(sqlc.narg('digital'), digital)
+WHERE product_type_id = sqlc.arg('product_type_id') AND shop_id = sqlc.arg('shop_id')
 RETURNING *;
 
 -- name: DeleteProductType :one

@@ -15,19 +15,19 @@ type Shop struct {
 	ShopID              int64              `json:"shop_id"`
 	Title               string             `json:"title"`
 	Domain              string             `json:"domain"`
-	Email               string             `json:"email"`
+	Email               string             `json:"email,omitempty"`
 	CurrencyCode        string             `json:"currency_code"`
 	Status              string             `json:"status"`
-	About               *string            `json:"about"`
-	Address             *string            `json:"address"`
-	PhoneNumber         *string            `json:"phone_number"`
-	WhatsappPhoneNumber *string            `json:"whatsapp_phone_number"`
-	WhatsappLink        *string            `json:"whatsapp_link"`
-	FacebookLink        *string            `json:"facebook_link"`
-	InstagramLink       *string            `json:"instagram_link"`
-	SeoDescription      *string            `json:"seo_description"`
-	SeoKeywords         []string           `json:"seo_keywords"`
-	SeoTitle            *string            `json:"seo_title"`
+	About               *string            `json:"about,omitempty"`
+	Address             *string            `json:"address,omitempty"`
+	PhoneNumber         *string            `json:"phone_number,omitempty"`
+	WhatsappPhoneNumber *string            `json:"whatsapp_phone_number,omitempty"`
+	WhatsappLink        *string            `json:"whatsapp_link,omitempty"`
+	FacebookLink        *string            `json:"facebook_link,omitempty"`
+	InstagramLink       *string            `json:"instagram_link,omitempty"`
+	SeoDescription      *string            `json:"seo_description,omitempty"`
+	SeoKeywords         []string           `json:"seo_keywords,omitempty"`
+	SeoTitle            *string            `json:"seo_title,omitempty"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 }

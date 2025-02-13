@@ -14,7 +14,7 @@ type ProductTypeCreateParams struct {
 }
 
 type ProductTypeUpdateParams struct {
-	Title     string `json:"title" example:"Book"`
-	Shippable bool   `json:"shippable"`
-	Digital   bool   `json:"digital" example:"false"`
+	Title     *string `json:"title" example:"Book"`
+	Shippable *bool   `json:"shippable"`
+	Digital   *bool   `json:"digital" example:"false"`
 }

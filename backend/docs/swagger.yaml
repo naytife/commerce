@@ -30,26 +30,102 @@ definitions:
     - AttributeUnitKG
     - AttributeUnitGB
     - AttributeUnitINCH
-  db.NullAttributeUnit:
-    properties:
-      attribute_unit:
-        $ref: '#/definitions/db.AttributeUnit'
-      valid:
-        description: Valid is true if AttributeUnit is not NULL
-        type: boolean
-    type: object
   models.Attribute:
     properties:
       applies_to:
         $ref: '#/definitions/db.AttributeAppliesTo'
+      attribute_id:
+        type: integer
       data_type:
         $ref: '#/definitions/db.AttributeDataType'
+      product_type_id:
+        type: integer
       required:
         type: boolean
       title:
         type: string
       unit:
-        $ref: '#/definitions/db.NullAttributeUnit'
+        $ref: '#/definitions/db.AttributeUnit'
+    type: object
+  models.AttributeCreateParams:
+    properties:
+      applies_to:
+        allOf:
+        - $ref: '#/definitions/db.AttributeAppliesTo'
+        enum:
+        - Product
+        - ProductVariation
+      data_type:
+        allOf:
+        - $ref: '#/definitions/db.AttributeDataType'
+        enum:
+        - Text
+        - Number
+        - Date
+        example: Text
+      required:
+        type: boolean
+      title:
+        example: Size
+        maxLength: 255
+        minLength: 3
+        type: string
+      unit:
+        allOf:
+        - $ref: '#/definitions/db.AttributeUnit'
+        example: KG
+    required:
+    - applies_to
+    - data_type
+    - required
+    - title
+    type: object
+  models.AttributeOption:
+    properties:
+      attribute_id:
+        type: integer
+      attribute_option_id:
+        type: integer
+      value:
+        type: string
+    type: object
+  models.AttributeUpdateParams:
+    properties:
+      applies_to:
+        allOf:
+        - $ref: '#/definitions/db.AttributeAppliesTo'
+        enum:
+        - Product
+        - ProductVariation
+      data_type:
+        allOf:
+        - $ref: '#/definitions/db.AttributeDataType'
+        enum:
+        - Text
+        - Number
+        - Date
+        example: Text
+      required:
+        type: boolean
+      title:
+        example: Size
+        maxLength: 255
+        minLength: 3
+        type: string
+      unit:
+        allOf:
+        - $ref: '#/definitions/db.AttributeUnit'
+        example: KG
+    type: object
+  models.CreateAttributeOptionParams:
+    properties:
+      value:
+        example: XL
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - value
     type: object
   models.Error:
     description: Error response object
@@ -261,6 +337,14 @@ definitions:
         $ref: '#/definitions/models.Meta'
       status:
         example: success
+        type: string
+    type: object
+  models.UpdateAttributeOptionParams:
+    properties:
+      value:
+        example: XL
+        maxLength: 255
+        minLength: 1
         type: string
     type: object
   models.UserResponse:
@@ -525,7 +609,267 @@ paths:
       summary: Update a shop
       tags:
       - shops
+  /shops/{shop_id}/attribute-options/{attribute_option_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an attribute option
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute Option ID
+        in: path
+        name: attribute_option_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute option deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AttributeOption'
+              type: object
+        "404":
+          description: Attribute option not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to delete attribute option
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete an attribute option
+      tags:
+      - Attributes
+    put:
+      consumes:
+      - application/json
+      description: Update an attribute option
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute Option ID
+        in: path
+        name: attribute_option_id
+        required: true
+        type: string
+      - description: Attribute Option
+        in: body
+        name: option
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateAttributeOptionParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute option updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AttributeOption'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Attribute option not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to update attribute option
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update an attribute option
+      tags:
+      - Attributes
+  /shops/{shop_id}/attributes/{attribute_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute ID
+        in: path
+        name: attribute_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Attribute'
+              type: object
+        "404":
+          description: Attribute not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to delete attribute
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete an attribute
+      tags:
+      - Attributes
+    get:
+      consumes:
+      - application/json
+      description: Fetch a single attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute ID
+        in: path
+        name: attribute_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Attribute'
+              type: object
+        "404":
+          description: Attribute not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to fetch attribute
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a single attribute
+      tags:
+      - Attributes
+    put:
+      consumes:
+      - application/json
+      description: Update an attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute ID
+        in: path
+        name: attribute_id
+        required: true
+        type: string
+      - description: Attribute
+        in: body
+        name: attribute
+        required: true
+        schema:
+          $ref: '#/definitions/models.AttributeUpdateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Attribute'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Attribute not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to update attribute
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update an attribute
+      tags:
+      - Attributes
   /shops/{shop_id}/attributes/{attribute_id}/options:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all attribute options
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Attribute ID
+        in: path
+        name: attribute_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute options fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.AttributeOption'
+                  type: array
+              type: object
+        "500":
+          description: Failed to fetch attribute options
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all attribute options
+      tags:
+      - Attributes
     post:
       consumes:
       - application/json
@@ -541,9 +885,44 @@ paths:
         name: attribute_id
         required: true
         type: string
+      - description: Attribute Option
+        in: body
+        name: option
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAttributeOptionParams'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Attribute option created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.AttributeOption'
+              type: object
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Create a new attribute option
@@ -762,10 +1141,10 @@ paths:
       tags:
       - ProductType
   /shops/{shop_id}/product-types/{product_type_id}/attributes:
-    post:
+    get:
       consumes:
       - application/json
-      description: Create a new attribute
+      description: Fetch all attributes
       parameters:
       - description: Shop ID
         in: path
@@ -781,6 +1160,50 @@ paths:
       - application/json
       responses:
         "200":
+          description: Attributes fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Attribute'
+                  type: array
+              type: object
+        "500":
+          description: Failed to fetch attributes
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all attributes
+      tags:
+      - ProductType
+    post:
+      consumes:
+      - application/json
+      description: Create a new attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product Type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      - description: Attribute
+        in: body
+        name: attribute
+        required: true
+        schema:
+          $ref: '#/definitions/models.AttributeCreateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
           description: Attribute created successfully
           schema:
             allOf:
@@ -789,6 +1212,26 @@ paths:
                 data:
                   $ref: '#/definitions/models.Attribute'
               type: object
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Create a new attribute
