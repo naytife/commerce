@@ -91,7 +91,8 @@ DO UPDATE SET
     name = COALESCE(EXCLUDED.name, users.name),
     profile_picture = COALESCE(EXCLUDED.profile_picture, users.profile_picture),
     locale = COALESCE(EXCLUDED.locale, users.locale),
-    verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email)
+    verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email),
+    last_login = NOW()
 RETURNING user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email
 `
 

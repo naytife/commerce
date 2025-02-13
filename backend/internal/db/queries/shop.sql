@@ -37,7 +37,8 @@ SET
     seo_keywords = COALESCE(sqlc.narg('seo_keywords'), seo_keywords),
     seo_title = COALESCE(sqlc.narg('seo_title'), seo_title),
     address = COALESCE(sqlc.narg('address'), address),
-    email = COALESCE(sqlc.narg('email'), email)
+    email = COALESCE(sqlc.narg('email'), email),
+    updated_at = NOW()
 WHERE shop_id = sqlc.arg('shop_id')
 RETURNING *;
 

@@ -6,7 +6,8 @@ DO UPDATE SET
     name = COALESCE(EXCLUDED.name, users.name),
     profile_picture = COALESCE(EXCLUDED.profile_picture, users.profile_picture),
     locale = COALESCE(EXCLUDED.locale, users.locale),
-    verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email)
+    verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email),
+    last_login = NOW()
 RETURNING *;
 
 -- name: GetUser :one

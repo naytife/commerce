@@ -185,13 +185,14 @@ func (ns NullProductStatus) Value() (driver.Value, error) {
 }
 
 type Attribute struct {
-	AttributeID int64              `json:"attribute_id"`
-	Title       string             `json:"title"`
-	DataType    AttributeDataType  `json:"data_type"`
-	Unit        NullAttributeUnit  `json:"unit"`
-	Required    bool               `json:"required"`
-	AppliesTo   AttributeAppliesTo `json:"applies_to"`
-	ShopID      int64              `json:"shop_id"`
+	AttributeID   int64              `json:"attribute_id"`
+	Title         string             `json:"title"`
+	DataType      AttributeDataType  `json:"data_type"`
+	Unit          NullAttributeUnit  `json:"unit"`
+	Required      bool               `json:"required"`
+	AppliesTo     AttributeAppliesTo `json:"applies_to"`
+	ShopID        int64              `json:"shop_id"`
+	ProductTypeID int64              `json:"product_type_id"`
 }
 
 type AttributeOption struct {

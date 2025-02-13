@@ -6,11 +6,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jinzhu/copier"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/db/errors"
 )
 
 type ShopStatus string
@@ -30,6 +32,9 @@ const (
 // @Produce      json
 // @Param        shop body models.ShopCreateParams true "Shop object that needs to be created"
 // @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop created successfully"
+// @Failure      400  {object}   models.ErrorResponse "Invalid request body"
+// @Failure      409  {object}   models.ErrorResponse "Conflict"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
 // @Router       /shops [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
@@ -63,7 +68,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 
-			if pgErr.Code == "23505" {
+			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Shop already exist", nil)
 			}
 		}
@@ -81,6 +86,8 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}   models.SuccessResponse{data=[]models.Shop} "Shops fetched successfully"
+// @Failure      401  {object}   models.ErrorResponse "Unauthorized"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
 // @Router       /shops [get]
 func (h *Handler) GetShops(c *fiber.Ctx) error {
@@ -105,13 +112,20 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
+// @Success      200  {object}   models.SuccessResponse "Shop deleted successfully"
+// @Failure      400  {object}   models.ErrorResponse "Invalid request body"
+// @Failure      401  {object}   models.ErrorResponse "Unauthorized"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id} [delete]
 func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 	shopID := c.Params("shop_id", "0")
 	shopIDInt, _ := strconv.ParseInt(shopID, 10, 64)
-	dberr := h.Repository.DeleteShop(c.Context(), shopIDInt)
-	if dberr != nil {
+	err := h.Repository.DeleteShop(c.Context(), shopIDInt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to delete shop", nil)
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, nil, fmt.Sprintf("Deleted Shop {%s}", shopID))
@@ -124,10 +138,24 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 // @Accept       json
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
+// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop fetched successfully"
+// @Failure      404  {object}   models.ErrorResponse "Shop not found"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id} [get]
 func (h *Handler) GetShop(c *fiber.Ctx) error {
-	panic("not implemented") // TODO: Implement
+	shopIDStr := c.Params("shop_id", "0")
+	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
+	objDB, err := h.Repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+	}
+	var resp models.Shop
+	copier.Copy(&resp, &objDB)
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
 }
 
 // UpdateShop updates a shop
@@ -139,8 +167,43 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 // @Param        shop_id path string true "Shop ID"
 // @Param        shop body models.ShopUpdateParams true "Shop object that needs to be updated"
 // @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop updated successfully"
+// @Failure      400  {object}   models.ErrorResponse "Invalid request body"
+// @Failure      404  {object}   models.ErrorResponse "Shop not found"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id} [put]
 func (h *Handler) UpdateShop(c *fiber.Ctx) error {
-	panic("not implemented") // TODO: Implement
+	shopIDStr := c.Params("shop_id", "0")
+	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
+
+	var shop models.ShopUpdateParams
+	if err := c.BodyParser(&shop); err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	validator := &models.XValidator{}
+	if errs := validator.Validate(&shop); len(errs) > 0 {
+		errMsgs := models.FormatValidationErrors(errs)
+		return &fiber.Error{
+			Code:    fiber.ErrBadRequest.Code,
+			Message: errMsgs,
+		}
+	}
+
+	param := db.UpdateShopParams{
+		ShopID: shopID,
+	}
+	copier.Copy(&param, &shop)
+
+	objDB, err := h.Repository.UpdateShop(c.Context(), param)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop", nil)
+	}
+
+	var resp models.Shop
+	copier.Copy(&resp, &objDB)
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
 }

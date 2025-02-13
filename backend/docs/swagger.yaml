@@ -51,10 +51,38 @@ definitions:
       unit:
         $ref: '#/definitions/db.NullAttributeUnit'
     type: object
+  models.Error:
+    description: Error response object
+    properties:
+      code:
+        example: "404"
+        type: string
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  models.ErrorResponse:
+    description: Generic API error response
+    properties:
+      code:
+        type: integer
+      errors:
+        items:
+          $ref: '#/definitions/models.Error'
+        type: array
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/models.Meta'
+      status:
+        type: string
+    type: object
   models.Meta:
     description: Meta object
     properties:
       timestamp:
+        example: "2025-02-12T18:31:40Z"
         type: string
     type: object
   models.ProductType:
@@ -65,35 +93,29 @@ definitions:
         type: integer
       shippable:
         type: boolean
-      shop_id:
-        type: integer
       title:
         type: string
     type: object
-  models.ProductTypeCreate:
+  models.ProductTypeCreateParams:
     properties:
       digital:
+        example: false
         type: boolean
-      product_type_id:
-        type: integer
       shippable:
         type: boolean
-      shop_id:
-        type: integer
       title:
+        example: Book
         type: string
     type: object
-  models.ProductTypeUpdate:
+  models.ProductTypeUpdateParams:
     properties:
       digital:
+        example: false
         type: boolean
-      product_type_id:
-        type: integer
       shippable:
         type: boolean
-      shop_id:
-        type: integer
       title:
+        example: Book
         type: string
     type: object
   models.RegisterUserParams:
@@ -229,13 +251,16 @@ definitions:
     description: Generic API response
     properties:
       code:
+        example: 200
         type: integer
       data: {}
       message:
+        example: Object updated successfully
         type: string
       meta:
         $ref: '#/definitions/models.Meta'
       status:
+        example: success
         type: string
     type: object
   models.UserResponse:
@@ -336,6 +361,14 @@ paths:
                     $ref: '#/definitions/models.Shop'
                   type: array
               type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Fetch all shops
@@ -363,6 +396,18 @@ paths:
                 data:
                   $ref: '#/definitions/models.Shop'
               type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Create a shop
@@ -380,7 +425,23 @@ paths:
         type: string
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Shop deleted successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Delete a shop
@@ -397,7 +458,24 @@ paths:
         type: string
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: Shop fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Shop'
+              type: object
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Fetch a shop
@@ -430,6 +508,18 @@ paths:
                 data:
                   $ref: '#/definitions/models.Shop'
               type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Update a shop
@@ -482,6 +572,10 @@ paths:
                 data:
                   $ref: '#/definitions/models.ProductType'
               type: object
+        "500":
+          description: Failed to fetch product types
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Fetch all product types
@@ -502,7 +596,7 @@ paths:
         name: productType
         required: true
         schema:
-          $ref: '#/definitions/models.ProductTypeCreate'
+          $ref: '#/definitions/models.ProductTypeCreateParams'
       produces:
       - application/json
       responses:
@@ -515,6 +609,18 @@ paths:
                 data:
                   $ref: '#/definitions/models.ProductType'
               type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Product type already exists
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to create product type
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Create a new product type
@@ -548,6 +654,14 @@ paths:
                 data:
                   $ref: '#/definitions/models.ProductType'
               type: object
+        "404":
+          description: Product type not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to delete product type
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Delete a product type
@@ -580,6 +694,14 @@ paths:
                 data:
                   $ref: '#/definitions/models.ProductType'
               type: object
+        "404":
+          description: Product type not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to fetch product type
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Fetch a single product type
@@ -605,7 +727,7 @@ paths:
         name: productType
         required: true
         schema:
-          $ref: '#/definitions/models.ProductTypeUpdate'
+          $ref: '#/definitions/models.ProductTypeUpdateParams'
       produces:
       - application/json
       responses:
@@ -618,12 +740,61 @@ paths:
                 data:
                   $ref: '#/definitions/models.ProductType'
               type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Product type not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: Product type already exists
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to update product type
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
       summary: Update a product type
       tags:
       - ProductType
   /shops/{shop_id}/product-types/{product_type_id}/attributes:
+    post:
+      consumes:
+      - application/json
+      description: Create a new attribute
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product Type ID
+        in: path
+        name: product_type_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attribute created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Attribute'
+              type: object
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a new attribute
+      tags:
+      - ProductType
+  /shops/{shop_id}/product-types/{product_type_id}/product:
     post:
       consumes:
       - application/json

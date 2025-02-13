@@ -52,6 +52,12 @@ type Repository interface {
 	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
 	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
 	GetShopImages(ctx context.Context, shopID int64) (ShopImage, error)
+	// PRODUCT-TYPE
+	CreateProductType(ctx context.Context, arg CreateProductTypeParams) (ProductType, error)
+	DeleteProductType(ctx context.Context, arg DeleteProductTypeParams) (ProductType, error)
+	GetProductType(ctx context.Context, arg GetProductTypeParams) (ProductType, error)
+	GetProductTypes(ctx context.Context, shopID int64) ([]ProductType, error)
+	UpdateProductType(ctx context.Context, arg UpdateProductTypeParams) (ProductType, error)
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
