@@ -126,6 +126,7 @@ CREATE TABLE attributes(
     applies_to attribute_applies_to NOT NULL DEFAULT 'Product'::attribute_applies_to,
     product_type_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    UNIQUE (title, product_type_id),
     CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES product_types(product_type_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
@@ -135,6 +136,7 @@ CREATE TABLE attribute_options(
     value VARCHAR(50) NOT NULL,
     shop_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
+    UNIQUE (value, attribute_id),
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
@@ -146,7 +148,7 @@ CREATE TABLE product_attribute_values(
     product_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
-    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE CASCADE,
+    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE SET NULL,
     CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
@@ -159,7 +161,7 @@ CREATE TABLE product_variation_attribute_values(
     product_variation_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
-    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE CASCADE,
+    CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE SET NULL,
     CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE

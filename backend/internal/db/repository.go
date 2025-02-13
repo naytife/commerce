@@ -58,6 +58,18 @@ type Repository interface {
 	GetProductType(ctx context.Context, arg GetProductTypeParams) (ProductType, error)
 	GetProductTypes(ctx context.Context, shopID int64) ([]ProductType, error)
 	UpdateProductType(ctx context.Context, arg UpdateProductTypeParams) (ProductType, error)
+	// ATTRIBUTE
+	CreateAttribute(ctx context.Context, arg CreateAttributeParams) (Attribute, error)
+	DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) (Attribute, error)
+	GetAttribute(ctx context.Context, arg GetAttributeParams) (Attribute, error)
+	GetAttributes(ctx context.Context, arg GetAttributesParams) ([]Attribute, error)
+	UpdateAttribute(ctx context.Context, arg UpdateAttributeParams) (Attribute, error)
+	// ATTRIBUTE-OPTION
+	CreateAttributeOption(ctx context.Context, arg CreateAttributeOptionParams) (AttributeOption, error)
+	DeleteAttributeOption(ctx context.Context, arg DeleteAttributeOptionParams) (AttributeOption, error)
+	GetAttributeOption(ctx context.Context, arg GetAttributeOptionParams) (AttributeOption, error)
+	GetAttributeOptions(ctx context.Context, arg GetAttributeOptionsParams) ([]AttributeOption, error)
+	UpdateAttributeOption(ctx context.Context, arg UpdateAttributeOptionParams) (AttributeOption, error)
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
