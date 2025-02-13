@@ -9,7 +9,7 @@ CREATE TABLE users (
     profile_picture TEXT,
     verified_email BOOLEAN DEFAULT FALSE,             
     created_at TIMESTAMP DEFAULT NOW(),   
-    last_login TIMESTAMP                  
+    last_login TIMESTAMP DEFAULT NOW()                 
 );
 
 CREATE TABLE shops (
@@ -124,7 +124,9 @@ CREATE TABLE attributes(
     unit attribute_unit,
     required BOOLEAN NOT NULL DEFAULT FALSE,
     applies_to attribute_applies_to NOT NULL DEFAULT 'Product'::attribute_applies_to,
+    product_type_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES product_types(product_type_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 

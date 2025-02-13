@@ -238,7 +238,8 @@ SET
     seo_keywords = COALESCE($11, seo_keywords),
     seo_title = COALESCE($12, seo_title),
     address = COALESCE($13, address),
-    email = COALESCE($14, email)
+    email = COALESCE($14, email),
+    updated_at = NOW()
 WHERE shop_id = $15
 RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
 `

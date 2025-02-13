@@ -99,6 +99,7 @@ func main() {
 	api := v1.Group("/", middleware.WebMiddlewareFiber())
 	routes.AuthRouter(v1, repo)
 	routes.ShopRouter(api, repo)
+	routes.ProductTypeRouter(api, repo)
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)
 

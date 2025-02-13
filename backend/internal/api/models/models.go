@@ -7,7 +7,7 @@ package models
 // @property field {string} "Field name" "The field name that caused the error"
 // @property message {string} "Error message" "The error message"
 type Error struct {
-	Code    string `json:"code"`
+	Code    string `json:"code" example:"404"`
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
@@ -31,10 +31,10 @@ type GlobalErrorHandlerResp struct {
 // @property code {integer} 200 "The HTTP status code"
 // @property meta {object} "The meta object"
 type SuccessResponse struct {
-	Status  string      `json:"status"`
+	Status  string      `json:"status" example:"success"`
 	Data    interface{} `json:"data,omitempty"`
-	Message string      `json:"message"`
-	Code    int         `json:"code"`
+	Message string      `json:"message" example:"Object updated successfully"`
+	Code    int         `json:"code" example:"200"`
 	Meta    Meta        `json:"meta,omitempty"`
 }
 
@@ -57,5 +57,5 @@ type ErrorResponse struct {
 // @description Meta object
 // @property timestamp {string} "2021-01-01T00:00:00Z" "The timestamp of the response"
 type Meta struct {
-	Timestamp string `json:"timestamp"`
+	Timestamp string `json:"timestamp" example:"2025-02-12T18:31:40Z"`
 }
