@@ -6,6 +6,12 @@ RETURNING *;
 -- name: GetAttributes :many
 SELECT * FROM attributes WHERE product_type_id = $1 AND shop_id = $2;
 
+-- name: GetProductsAttributes :many
+SELECT * FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2;
+
+-- name: GetVariationsAttributes :many
+SELECT * FROM attributes WHERE applies_to = 'ProductVariation' AND product_type_id = $1 AND shop_id = $2;
+
 -- name: GetAttribute :one
 SELECT * FROM attributes WHERE attribute_id = $1 AND shop_id = $2;
 
@@ -47,3 +53,20 @@ RETURNING *;
 DELETE FROM attribute_options
 WHERE attribute_option_id = $1 AND shop_id = $2
 RETURNING *;
+
+-- name: BatchUpsertProductAttributeValues :batchmany
+INSERT INTO product_attribute_values (value, attribute_option_id, product_id, attribute_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (product_id, attribute_id, shop_id) 
+DO UPDATE SET 
+    value = EXCLUDED.value,
+    attribute_option_id = EXCLUDED.attribute_option_id
+WHERE product_attribute_values.value IS DISTINCT FROM EXCLUDED.value  
+   OR product_attribute_values.attribute_option_id IS DISTINCT FROM EXCLUDED.attribute_option_id
+RETURNING *;
+
+-- name: BatchDeleteProductAttributeValues :batchexec
+DELETE FROM product_attribute_values 
+WHERE product_id = $1 
+AND shop_id = $2
+AND attribute_id NOT IN (SELECT UNNEST($3::int[]));

@@ -23,10 +23,10 @@ import (
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, product model.CreateProductInput) (model.CreateProductPayload, error) {
 	shopID := ctx.Value("shop_id").(int64)
-	_, catID, err := decodeRelayID(product.CategoryID)
-	if err != nil {
-		return nil, errors.New("invalid category ID")
-	}
+	// _, catID, err := decodeRelayID(product.CategoryID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid category ID")
+	// }
 	// cat, err := r.Repository.GetCategory(ctx, db.GetCategoryParams{ShopID: shopID, CategoryID: *catID})
 	// if err != nil {
 	// 	return &model.CategoryNotFoundError{Message: "category not found", Code: model.ErrorCodeNotFoundCategory}, nil
@@ -35,7 +35,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, product model.Crea
 		Title:       product.Title,
 		Description: product.Description,
 		ShopID:      shopID,
-		CategoryID:  *catID,
+		// CategoryID:  *catID,
 		// AllowedAttributes: cat.CategoryAttributes,
 		// Status:            model.ProductStatusDraft.String(),
 	}

@@ -100,6 +100,7 @@ func main() {
 	routes.AuthRouter(v1, repo)
 	routes.ShopRouter(api, repo)
 	routes.ProductTypeRouter(api, repo)
+	routes.ProductRouter(api, repo)
 	routes.AttributeRouter(api, repo)
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)

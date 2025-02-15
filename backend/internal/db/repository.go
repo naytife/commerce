@@ -17,7 +17,7 @@ type repoSvc struct {
 	db *pgxpool.Pool
 }
 
-func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
+func (r *repoSvc) WithTx(ctx context.Context, txFn func(*Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -37,6 +37,7 @@ func (r *repoSvc) withTx(ctx context.Context, txFn func(*Queries) error) error {
 }
 
 type Repository interface {
+	WithTx(ctx context.Context, txFn func(*Queries) error) error
 	SetShopIDInSession(ctx context.Context, shopID int64) error
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error)
@@ -64,12 +65,15 @@ type Repository interface {
 	GetAttribute(ctx context.Context, arg GetAttributeParams) (Attribute, error)
 	GetAttributes(ctx context.Context, arg GetAttributesParams) ([]Attribute, error)
 	UpdateAttribute(ctx context.Context, arg UpdateAttributeParams) (Attribute, error)
+	GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]Attribute, error)
+	GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]Attribute, error)
 	// ATTRIBUTE-OPTION
 	CreateAttributeOption(ctx context.Context, arg CreateAttributeOptionParams) (AttributeOption, error)
 	DeleteAttributeOption(ctx context.Context, arg DeleteAttributeOptionParams) (AttributeOption, error)
 	GetAttributeOption(ctx context.Context, arg GetAttributeOptionParams) (AttributeOption, error)
 	GetAttributeOptions(ctx context.Context, arg GetAttributeOptionsParams) ([]AttributeOption, error)
 	UpdateAttributeOption(ctx context.Context, arg UpdateAttributeOptionParams) (AttributeOption, error)
+	// ATTRIBUTE-VALUE
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
@@ -83,9 +87,10 @@ type Repository interface {
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
+	DeleteProduct(ctx context.Context, arg DeleteProductParams) (Product, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
 	// GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
-	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	// CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
 	// DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
 	UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error)
@@ -159,7 +164,7 @@ func (r *repoSvc) CreateShop(ctx context.Context, shopArg CreateShopParams) (Sho
 	defer cancel()
 
 	shop := Shop{}
-	err := r.withTx(ctx, func(q *Queries) error {
+	err := r.WithTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.CreateShop(ctx, shopArg)
 		return err
@@ -172,7 +177,7 @@ func (r *repoSvc) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 	defer cancel()
 
 	shop := Shop{}
-	err := r.withTx(ctx, func(q *Queries) error {
+	err := r.WithTx(ctx, func(q *Queries) error {
 		var err error
 		shop, err = q.UpdateShop(ctx, arg)
 		return err
@@ -184,7 +189,7 @@ func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	category := Category{}
-	err := r.withTx(ctx, func(q *Queries) error {
+	err := r.WithTx(ctx, func(q *Queries) error {
 		var err error
 		category, err = q.CreateCategory(ctx, arg)
 		return err
@@ -193,41 +198,43 @@ func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 }
 
 func (r *repoSvc) UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error) {
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	objsDB := []ProductVariation{}
-	objsID := []int64{}
+	var objsDB []ProductVariation
+	var objsID []int64
 
-	err := r.withTx(ctx, func(q *Queries) error {
-		// Batch upsert product variations
+	err := r.WithTx(ctx, func(q *Queries) error {
 		batch := q.UpsertProductVariation(ctx, variations)
 
-		// Process upserts
+		var batchErr error
 		batch.Query(func(i int, result []ProductVariation, err error) {
 			if err != nil {
-				fmt.Errorf("failed to upsert product variation: %w", err)
+				batchErr = fmt.Errorf("failed to upsert product variation: %w", err)
 				return
 			}
-
 			for _, objDB := range result {
 				objsID = append(objsID, objDB.ProductVariationID)
 				objsDB = append(objsDB, objDB)
 			}
 		})
 
+		if batchErr != nil {
+			return batchErr
+		}
+
 		if err := batch.Close(); err != nil {
 			return fmt.Errorf("batch execution failed: %w", err)
 		}
 
-		// Batch delete the old variations with batchexec
-		deleteBatch := q.DeleteProductVariations(ctx, []DeleteProductVariationsParams{
-			{ShopID: shopID, ProductID: productID, ProductVariationIds: objsID},
-		})
+		if len(objsID) > 0 {
+			deleteBatch := q.DeleteProductVariations(ctx, []DeleteProductVariationsParams{
+				{ShopID: shopID, ProductID: productID, ProductVariationIds: objsID},
+			})
 
-		// No need to process results here since :batchexec doesn’t return rows
-		if err := deleteBatch.Close(); err != nil {
-			return fmt.Errorf("batch delete failed: %w", err)
+			if err := deleteBatch.Close(); err != nil {
+				return fmt.Errorf("batch delete failed: %w", err)
+			}
 		}
 
 		return nil

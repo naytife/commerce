@@ -237,8 +237,9 @@ type Product struct {
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 	ProductTypeID int64              `json:"product_type_id"`
-	CategoryID    int64              `json:"category_id"`
+	CategoryID    *int64             `json:"category_id"`
 	ShopID        int64              `json:"shop_id"`
+	Status        ProductStatus      `json:"status"`
 }
 
 type ProductAttributeValue struct {
@@ -273,7 +274,6 @@ type ProductVariation struct {
 	Description        string             `json:"description"`
 	Price              pgtype.Numeric     `json:"price"`
 	AvailableQuantity  int64              `json:"available_quantity"`
-	Status             ProductStatus      `json:"status"`
 	SeoDescription     *string            `json:"seo_description"`
 	SeoKeywords        []string           `json:"seo_keywords"`
 	SeoTitle           *string            `json:"seo_title"`

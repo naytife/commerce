@@ -12,23 +12,25 @@ import (
 )
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products ( title, description, category_id, shop_id)
-VALUES ($1, $2, $3, $4)
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id
+INSERT INTO products ( title, description, status, product_type_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
 `
 
 type CreateProductParams struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	CategoryID  int64  `json:"category_id"`
-	ShopID      int64  `json:"shop_id"`
+	Title         string        `json:"title"`
+	Description   string        `json:"description"`
+	Status        ProductStatus `json:"status"`
+	ProductTypeID int64         `json:"product_type_id"`
+	ShopID        int64         `json:"shop_id"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
 	row := q.db.QueryRow(ctx, createProduct,
 		arg.Title,
 		arg.Description,
-		arg.CategoryID,
+		arg.Status,
+		arg.ProductTypeID,
 		arg.ShopID,
 	)
 	var i Product
@@ -41,6 +43,35 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
+		&i.Status,
+	)
+	return i, err
+}
+
+const deleteProduct = `-- name: DeleteProduct :one
+DELETE FROM products
+WHERE product_id = $1 AND shop_id = $2
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
+`
+
+type DeleteProductParams struct {
+	ProductID int64 `json:"product_id"`
+	ShopID    int64 `json:"shop_id"`
+}
+
+func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, deleteProduct, arg.ProductID, arg.ShopID)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductTypeID,
+		&i.CategoryID,
+		&i.ShopID,
+		&i.Status,
 	)
 	return i, err
 }
@@ -52,7 +83,8 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.category_id
+    p.category_id,
+    p.status
 FROM 
     products p
 LEFT JOIN 
@@ -73,7 +105,8 @@ type GetProductRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CategoryID  int64              `json:"category_id"`
+	CategoryID  *int64             `json:"category_id"`
+	Status      ProductStatus      `json:"status"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -86,12 +119,13 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CategoryID,
+		&i.Status,
 	)
 	return i, err
 }
 
 const getProductVariations = `-- name: GetProductVariations :many
-SELECT product_variation_id, sku, slug, description, price, available_quantity, status, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
+SELECT product_variation_id, sku, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id
 `
@@ -117,7 +151,6 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 			&i.Description,
 			&i.Price,
 			&i.AvailableQuantity,
-			&i.Status,
 			&i.SeoDescription,
 			&i.SeoKeywords,
 			&i.SeoTitle,
@@ -143,7 +176,7 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.category_id
+    p.status
 FROM 
     products p
 LEFT JOIN 
@@ -166,7 +199,7 @@ type GetProductsRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CategoryID  int64              `json:"category_id"`
+	Status      ProductStatus      `json:"status"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -184,7 +217,7 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CategoryID,
+			&i.Status,
 		); err != nil {
 			return nil, err
 		}
@@ -197,6 +230,7 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 }
 
 const getProductsByCategory = `-- name: GetProductsByCategory :many
+
 SELECT 
     p.product_id, 
     p.title, 
@@ -215,9 +249,9 @@ LIMIT $3
 `
 
 type GetProductsByCategoryParams struct {
-	CategoryID int64 `json:"category_id"`
-	After      int64 `json:"after"`
-	Limit      int32 `json:"limit"`
+	CategoryID *int64 `json:"category_id"`
+	After      int64  `json:"after"`
+	Limit      int32  `json:"limit"`
 }
 
 type GetProductsByCategoryRow struct {
@@ -226,9 +260,32 @@ type GetProductsByCategoryRow struct {
 	Description string             `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CategoryID  int64              `json:"category_id"`
+	CategoryID  *int64             `json:"category_id"`
 }
 
+// SELECT
+//
+//	p.product_id,
+//	p.title,
+//	p.description,
+//	p.created_at,
+//	p.updated_at,
+//	p.category_id
+//
+// FROM
+//
+//	products p
+//
+// LEFT JOIN
+//
+//	categories c ON p.category_id = c.category_id
+//
+// WHERE
+//
+//	p.shop_id = sqlc.arg('shop_id')
+//	AND p.product_id > sqlc.arg('after')
+//
+// LIMIT sqlc.arg('limit');
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {
 	rows, err := q.db.Query(ctx, getProductsByCategory, arg.CategoryID, arg.After, arg.Limit)
 	if err != nil {
@@ -261,15 +318,17 @@ const updateProduct = `-- name: UpdateProduct :one
 UPDATE products
 SET 
     title = COALESCE($1, title),
-    description = COALESCE($2, description)
-WHERE product_id = $3
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id
+    description = COALESCE($2, description),
+    updated_at = NOW()
+WHERE product_id = $3 AND shop_id = $4
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
 `
 
 type UpdateProductParams struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
 	ProductID   int64   `json:"product_id"`
+	ShopID      int64   `json:"shop_id"`
 }
 
 // xname: GetProductAllowedAttributes :one
@@ -289,7 +348,12 @@ type UpdateProductParams struct {
 //
 //	p.product_id = sqlc.arg('product_id');
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, updateProduct, arg.Title, arg.Description, arg.ProductID)
+	row := q.db.QueryRow(ctx, updateProduct,
+		arg.Title,
+		arg.Description,
+		arg.ProductID,
+		arg.ShopID,
+	)
 	var i Product
 	err := row.Scan(
 		&i.ProductID,
@@ -300,6 +364,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
+		&i.Status,
 	)
 	return i, err
 }

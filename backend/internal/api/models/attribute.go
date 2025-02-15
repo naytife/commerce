@@ -34,10 +34,10 @@ type AttributeOption struct {
 	AttributeID       int64  `json:"attribute_id"`
 }
 
-type CreateAttributeOptionParams struct {
+type AttributeOptionCreateParams struct {
 	Value string `json:"value" validate:"required,min=1,max=255" example:"XL"`
 }
 
-type UpdateAttributeOptionParams struct {
+type AttributeOptionUpdateParams struct {
 	Value *string `json:"value,omitempty" validate:"omitempty,min=1,max=255" example:"XL"`
 }
