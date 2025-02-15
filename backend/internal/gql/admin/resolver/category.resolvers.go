@@ -86,72 +86,73 @@ func (r *categoryResolver) Children(ctx context.Context, obj *model.Category, fi
 
 // Products is the resolver for the products field.
 func (r *categoryResolver) Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error) {
-	catID, err := strconv.Atoi(obj.ID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid category id %v", obj.ID)
-	}
-	limit := 20
-	if first != nil {
-		limit = *first
-	}
-	afterID := int64(0)
-	if after != nil {
-		decodedType, id, err := decodeRelayID(*after)
-		if err != nil {
-			return nil, fmt.Errorf("invalid after cursor: %w", err)
-		}
-		if decodedType != "Product" {
-			return nil, fmt.Errorf("expected after cursor type 'Product', got '%s'", decodedType)
-		}
-		if id != nil {
-			afterID = *id
-		}
-	}
-	productsDB, err := r.Repository.GetProductsByCategory(ctx, db.GetProductsByCategoryParams{CategoryID: int64(catID), After: afterID, Limit: int32(limit) + 1})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch products: %w", err)
-	}
-	hasNextPage := len(productsDB) > limit
-	if hasNextPage {
-		productsDB = productsDB[:limit]
-	}
-	edges := make([]model.ProductEdge, len(productsDB))
-	for i, prod := range productsDB {
-		relayID := encodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
-		edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
-			ID:          strconv.FormatInt(prod.ProductID, 10),
-			Title:       prod.Title,
-			Description: prod.Description,
-			CreatedAt:   prod.CreatedAt.Time,
-			UpdatedAt:   prod.UpdatedAt.Time,
-			// Status:      (*model.ProductStatus)(&prod.Status),
-		}}
-		// if prod.AllowedAttributes != nil {
-		// 	attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
-		// 	if err != nil {
-		// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
-		// 	}
-		// 	edges[i].Node.AllowedAttributes = attributes
-		// }
-	}
-	var startCursor, endCursor *string
-	if len(productsDB) > 0 {
-		firstCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[0].ProductID, 10))
-		lastCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[len(productsDB)-1].ProductID, 10))
-		startCursor, endCursor = &firstCursor, &lastCursor
-	}
+	// catID, err := strconv.Atoi(obj.ID)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("invalid category id %v", obj.ID)
+	// }
+	// limit := 20
+	// if first != nil {
+	// 	limit = *first
+	// }
+	// afterID := int64(0)
+	// if after != nil {
+	// 	decodedType, id, err := decodeRelayID(*after)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("invalid after cursor: %w", err)
+	// 	}
+	// 	if decodedType != "Product" {
+	// 		return nil, fmt.Errorf("expected after cursor type 'Product', got '%s'", decodedType)
+	// 	}
+	// 	if id != nil {
+	// 		afterID = *id
+	// 	}
+	// }
+	// productsDB, err := r.Repository.GetProductsByCategory(ctx, db.GetProductsByCategoryParams{CategoryID: int64(catID), After: afterID, Limit: int32(limit) + 1})
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to fetch products: %w", err)
+	// }
+	// hasNextPage := len(productsDB) > limit
+	// if hasNextPage {
+	// 	productsDB = productsDB[:limit]
+	// }
+	// edges := make([]model.ProductEdge, len(productsDB))
+	// for i, prod := range productsDB {
+	// 	relayID := encodeRelayID("Product", strconv.FormatInt(prod.ProductID, 10))
+	// 	edges[i] = model.ProductEdge{Cursor: relayID, Node: &model.Product{
+	// 		ID:          strconv.FormatInt(prod.ProductID, 10),
+	// 		Title:       prod.Title,
+	// 		Description: prod.Description,
+	// 		CreatedAt:   prod.CreatedAt.Time,
+	// 		UpdatedAt:   prod.UpdatedAt.Time,
+	// 		// Status:      (*model.ProductStatus)(&prod.Status),
+	// 	}}
+	// 	// if prod.AllowedAttributes != nil {
+	// 	// 	attributes, err := unmarshalAllowedProductAttributes(prod.AllowedAttributes)
+	// 	// 	if err != nil {
+	// 	// 		return nil, fmt.Errorf("failed to unmarshal allowed attributes: %w", err)
+	// 	// 	}
+	// 	// 	edges[i].Node.AllowedAttributes = attributes
+	// 	// }
+	// }
+	// var startCursor, endCursor *string
+	// if len(productsDB) > 0 {
+	// 	firstCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[0].ProductID, 10))
+	// 	lastCursor := encodeRelayID("Product", strconv.FormatInt(productsDB[len(productsDB)-1].ProductID, 10))
+	// 	startCursor, endCursor = &firstCursor, &lastCursor
+	// }
 
-	pageInfo := &model.PageInfo{
-		HasNextPage: hasNextPage,
-		StartCursor: safeStringDereference(startCursor),
-		EndCursor:   safeStringDereference(endCursor),
-	}
+	// pageInfo := &model.PageInfo{
+	// 	HasNextPage: hasNextPage,
+	// 	StartCursor: safeStringDereference(startCursor),
+	// 	EndCursor:   safeStringDereference(endCursor),
+	// }
 
-	return &model.ProductConnection{
-		Edges:      edges,
-		PageInfo:   pageInfo,
-		TotalCount: len(productsDB),
-	}, nil
+	// return &model.ProductConnection{
+	// 	Edges:      edges,
+	// 	PageInfo:   pageInfo,
+	// 	TotalCount: len(productsDB),
+	// }, nil
+	panic(fmt.Errorf("not implemented: Images - images"))
 }
 
 // Images is the resolver for the images field.

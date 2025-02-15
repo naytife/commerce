@@ -1,7 +1,7 @@
 
 -- name: CreateProduct :one
-INSERT INTO products ( title, description, category_id, shop_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO products ( title, description, status, product_type_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetProducts :many
@@ -11,7 +11,7 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.category_id
+    p.status
 FROM 
     products p
 LEFT JOIN 
@@ -20,6 +20,23 @@ WHERE
     p.shop_id = sqlc.arg('shop_id')
     AND p.product_id > sqlc.arg('after')
 LIMIT sqlc.arg('limit');
+
+
+-- SELECT 
+--     p.product_id, 
+--     p.title, 
+--     p.description, 
+--     p.created_at, 
+--     p.updated_at, 
+--     p.category_id
+-- FROM 
+--     products p
+-- LEFT JOIN 
+--     categories c ON p.category_id = c.category_id
+-- WHERE 
+--     p.shop_id = sqlc.arg('shop_id')
+--     AND p.product_id > sqlc.arg('after')
+-- LIMIT sqlc.arg('limit');
 
 -- name: GetProductsByCategory :many
 SELECT 
@@ -45,7 +62,8 @@ SELECT
     p.description, 
     p.created_at, 
     p.updated_at, 
-    p.category_id
+    p.category_id,
+    p.status
 FROM 
     products p
 LEFT JOIN 
@@ -68,8 +86,14 @@ WHERE
 UPDATE products
 SET 
     title = COALESCE(sqlc.narg('title'), title),
-    description = COALESCE(sqlc.narg('description'), description)
-WHERE product_id = sqlc.arg('product_id')
+    description = COALESCE(sqlc.narg('description'), description),
+    updated_at = NOW()
+WHERE product_id = sqlc.arg('product_id') AND shop_id = sqlc.arg('shop_id')
+RETURNING *;
+
+-- name: DeleteProduct :one
+DELETE FROM products
+WHERE product_id = $1 AND shop_id = $2
 RETURNING *;
 
 -- xname: CreateProductAllowedAttribute :one

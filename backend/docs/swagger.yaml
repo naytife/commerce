@@ -30,6 +30,16 @@ definitions:
     - AttributeUnitKG
     - AttributeUnitGB
     - AttributeUnitINCH
+  db.ProductStatus:
+    enum:
+    - DRAFT
+    - PUBLISHED
+    - ARCHIVED
+    type: string
+    x-enum-varnames:
+    - ProductStatusDRAFT
+    - ProductStatusPUBLISHED
+    - ProductStatusARCHIVED
   models.Attribute:
     properties:
       applies_to:
@@ -89,6 +99,24 @@ definitions:
       value:
         type: string
     type: object
+  models.AttributeOptionCreateParams:
+    properties:
+      value:
+        example: XL
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - value
+    type: object
+  models.AttributeOptionUpdateParams:
+    properties:
+      value:
+        example: XL
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
   models.AttributeUpdateParams:
     properties:
       applies_to:
@@ -116,16 +144,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/db.AttributeUnit'
         example: KG
-    type: object
-  models.CreateAttributeOptionParams:
-    properties:
-      value:
-        example: XL
-        maxLength: 255
-        minLength: 1
-        type: string
-    required:
-    - value
     type: object
   models.Error:
     description: Error response object
@@ -161,6 +179,60 @@ definitions:
         example: "2025-02-12T18:31:40Z"
         type: string
     type: object
+  models.Product:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttribute'
+        type: array
+      category_id:
+        type: integer
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      description:
+        type: string
+      product_id:
+        type: integer
+      status:
+        $ref: '#/definitions/db.ProductStatus'
+      title:
+        type: string
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+    type: object
+  models.ProductAttribute:
+    properties:
+      attribute_id:
+        type: integer
+      attribute_option_id:
+        type: integer
+      value:
+        type: string
+    type: object
+  models.ProductAttributeValuesBatchUpsertParams:
+    properties:
+      attribute_id:
+        type: integer
+      attribute_option_id:
+        type: integer
+      value:
+        type: string
+    type: object
+  models.ProductCreateParams:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttributeValuesBatchUpsertParams'
+        type: array
+      description:
+        type: string
+      title:
+        type: string
+    type: object
   models.ProductType:
     properties:
       digital:
@@ -192,6 +264,13 @@ definitions:
         type: boolean
       title:
         example: Book
+        type: string
+    type: object
+  models.ProductUpdateParams:
+    properties:
+      description:
+        type: string
+      title:
         type: string
     type: object
   models.RegisterUserParams:
@@ -337,14 +416,6 @@ definitions:
         $ref: '#/definitions/models.Meta'
       status:
         example: success
-        type: string
-    type: object
-  models.UpdateAttributeOptionParams:
-    properties:
-      value:
-        example: XL
-        maxLength: 255
-        minLength: 1
         type: string
     type: object
   models.UserResponse:
@@ -670,7 +741,7 @@ paths:
         name: option
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateAttributeOptionParams'
+          $ref: '#/definitions/models.AttributeOptionUpdateParams'
       produces:
       - application/json
       responses:
@@ -890,7 +961,7 @@ paths:
         name: option
         required: true
         schema:
-          $ref: '#/definitions/models.CreateAttributeOptionParams'
+          $ref: '#/definitions/models.AttributeOptionCreateParams'
       produces:
       - application/json
       responses:
@@ -1237,11 +1308,11 @@ paths:
       summary: Create a new attribute
       tags:
       - ProductType
-  /shops/{shop_id}/product-types/{product_type_id}/product:
+  /shops/{shop_id}/product-types/{product_type_id}/products:
     post:
       consumes:
       - application/json
-      description: Create a new attribute
+      description: Create a new product
       parameters:
       - description: Shop ID
         in: path
@@ -1253,23 +1324,214 @@ paths:
         name: product_type_id
         required: true
         type: string
+      - description: Product
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductCreateParams'
       produces:
       - application/json
       responses:
         "200":
-          description: Attribute created successfully
+          description: Product created successfully
           schema:
             allOf:
             - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.Attribute'
+                  $ref: '#/definitions/models.Product'
               type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
-      summary: Create a new attribute
+      summary: Create a new product
       tags:
       - ProductType
+  /shops/{shop_id}/products:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all products
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: After product ID
+        in: query
+        name: after
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Products fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Product'
+                  type: array
+              type: object
+        "500":
+          description: Failed to fetch products
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all products
+      tags:
+      - Product
+  /shops/{shop_id}/products/{product_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Product'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to delete product
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete a product
+      tags:
+      - Product
+    get:
+      consumes:
+      - application/json
+      description: Fetch a single product
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Product'
+              type: object
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to fetch product
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a single product
+      tags:
+      - Product
+    put:
+      consumes:
+      - application/json
+      description: Update a product
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      - description: Product
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductUpdateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Product'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to update product
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update a product
+      tags:
+      - Product
 schemes:
 - http
 securityDefinitions:

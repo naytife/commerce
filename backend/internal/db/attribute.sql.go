@@ -241,6 +241,82 @@ func (q *Queries) GetAttributes(ctx context.Context, arg GetAttributesParams) ([
 	return items, nil
 }
 
+const getProductsAttributes = `-- name: GetProductsAttributes :many
+SELECT attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2
+`
+
+type GetProductsAttributesParams struct {
+	ProductTypeID int64 `json:"product_type_id"`
+	ShopID        int64 `json:"shop_id"`
+}
+
+func (q *Queries) GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]Attribute, error) {
+	rows, err := q.db.Query(ctx, getProductsAttributes, arg.ProductTypeID, arg.ShopID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attribute
+	for rows.Next() {
+		var i Attribute
+		if err := rows.Scan(
+			&i.AttributeID,
+			&i.Title,
+			&i.DataType,
+			&i.Unit,
+			&i.Required,
+			&i.AppliesTo,
+			&i.ShopID,
+			&i.ProductTypeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getVariationsAttributes = `-- name: GetVariationsAttributes :many
+SELECT attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id FROM attributes WHERE applies_to = 'ProductVariation' AND product_type_id = $1 AND shop_id = $2
+`
+
+type GetVariationsAttributesParams struct {
+	ProductTypeID int64 `json:"product_type_id"`
+	ShopID        int64 `json:"shop_id"`
+}
+
+func (q *Queries) GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]Attribute, error) {
+	rows, err := q.db.Query(ctx, getVariationsAttributes, arg.ProductTypeID, arg.ShopID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attribute
+	for rows.Next() {
+		var i Attribute
+		if err := rows.Scan(
+			&i.AttributeID,
+			&i.Title,
+			&i.DataType,
+			&i.Unit,
+			&i.Required,
+			&i.AppliesTo,
+			&i.ShopID,
+			&i.ProductTypeID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAttribute = `-- name: UpdateAttribute :one
 UPDATE attributes
 SET 

@@ -68,14 +68,16 @@ CREATE TABLE product_types (
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
+CREATE TYPE product_status AS ENUM('DRAFT','PUBLISHED', 'ARCHIVED');
 CREATE TABLE products(
     product_id BIGSERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
     description VARCHAR(255) NOT NULL,
+    status product_status NOT NULL DEFAULT 'DRAFT'::product_status,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     product_type_id BIGINT NOT NULL,
-    category_id BIGINT NOT NULL,
+    category_id BIGINT,
     shop_id BIGINT NOT NULL,
     UNIQUE (title, shop_id),
     CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES product_types(product_type_id) ON DELETE CASCADE,
@@ -93,7 +95,6 @@ CREATE TABLE product_images(
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
-CREATE TYPE product_status AS ENUM('DRAFT','PUBLISHED', 'ARCHIVED');
 CREATE TABLE product_variations(
     product_variation_id BIGSERIAL PRIMARY KEY,
     sku VARCHAR(50) NOT NULL,
@@ -101,7 +102,6 @@ CREATE TABLE product_variations(
     description VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     available_quantity BIGINT NOT NULL,
-    status product_status NOT NULL DEFAULT 'DRAFT'::product_status,
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
@@ -148,6 +148,7 @@ CREATE TABLE product_attribute_values(
     product_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    UNIQUE (product_id, attribute_id, shop_id),
     CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE SET NULL,
     CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
@@ -161,6 +162,7 @@ CREATE TABLE product_variation_attribute_values(
     product_variation_id BIGINT NOT NULL,
     attribute_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    UNIQUE (product_variation_id, attribute_id, shop_id),
     CONSTRAINT fk_attribute_option FOREIGN KEY (attribute_option_id) REFERENCES attribute_options(attribute_option_id) ON DELETE SET NULL,
     CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,

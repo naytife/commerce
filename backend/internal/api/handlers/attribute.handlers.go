@@ -250,7 +250,7 @@ func (h *Handler) DeleteAttribute(c *fiber.Ctx) error {
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param attribute_id path string true "Attribute ID"
-// @Param option body models.CreateAttributeOptionParams true "Attribute Option"
+// @Param option body models.AttributeOptionCreateParams true "Attribute Option"
 // @Success 200 {object} models.SuccessResponse{data=models.AttributeOption} "Attribute option created successfully"
 // @Failure 400 {object} models.ErrorResponse "Invalid input"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized"
@@ -265,7 +265,7 @@ func (h *Handler) CreateAttributeOption(c *fiber.Ctx) error {
 	attributeIDStr := c.Params("attribute_id", "0")
 	attributeID, _ := strconv.ParseInt(attributeIDStr, 10, 64)
 
-	var option models.CreateAttributeOptionParams
+	var option models.AttributeOptionCreateParams
 	if err := c.BodyParser(&option); err != nil {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
@@ -341,7 +341,7 @@ func (h *Handler) GetAttributeOptions(c *fiber.Ctx) error {
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param attribute_option_id path string true "Attribute Option ID"
-// @Param option body models.UpdateAttributeOptionParams true "Attribute Option"
+// @Param option body models.AttributeOptionUpdateParams true "Attribute Option"
 // @Success 200 {object} models.SuccessResponse{data=models.AttributeOption} "Attribute option updated successfully"
 // @Failure 400 {object} models.ErrorResponse "Invalid request body"
 // @Failure 404 {object} models.ErrorResponse "Attribute option not found"
@@ -354,7 +354,7 @@ func (h *Handler) UpdateAttributeOption(c *fiber.Ctx) error {
 	attributeOptionIDStr := c.Params("attribute_option_id", "0")
 	attributeOptionID, _ := strconv.ParseInt(attributeOptionIDStr, 10, 64)
 
-	var option models.UpdateAttributeOptionParams
+	var option models.AttributeOptionUpdateParams
 	if err := c.BodyParser(&option); err != nil {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
