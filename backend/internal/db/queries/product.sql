@@ -136,3 +136,27 @@ AND product_variation_id != ALL(sqlc.arg('product_variation_ids')::bigint[]);
 SELECT * FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id;
+
+-- name: GetProductWithAttributes :one
+SELECT 
+    p.product_id,
+    p.title,
+    p.description,
+    p.status,
+    p.category_id,
+    p.updated_at,
+    p.created_at,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'attribute_id', pa.attribute_id,
+                'attribute_option_id', pa.attribute_option_id,
+                'value', pa.value
+            )
+        ) FILTER (WHERE pa.attribute_id IS NOT NULL),
+        '[]'::json
+    ) AS attributes
+FROM products p
+LEFT JOIN product_attribute_values pa ON p.product_id = pa.product_id
+WHERE p.product_id = $1
+GROUP BY p.product_id;

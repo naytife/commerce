@@ -197,8 +197,20 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product", nil)
 	}
 
+	attributeValuesParams := db.GetProductAttributeValuesParams{
+		ProductID: productID,
+		ShopID:    shopID,
+	}
+
+	attributeValues, err := h.Repository.GetProductAttributeValues(c.Context(), attributeValuesParams)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product attribute values", nil)
+	}
+
 	var resp models.Product
 	copier.Copy(&resp, &objDB)
+	copier.Copy(&resp.Attributes, &attributeValues)
+
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product fetched successfully")
 }
 

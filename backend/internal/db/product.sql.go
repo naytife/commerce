@@ -169,6 +169,58 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 	return items, nil
 }
 
+const getProductWithAttributes = `-- name: GetProductWithAttributes :one
+SELECT 
+    p.product_id,
+    p.title,
+    p.description,
+    p.status,
+    p.category_id,
+    p.updated_at,
+    p.created_at,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'attribute_id', pa.attribute_id,
+                'attribute_option_id', pa.attribute_option_id,
+                'value', pa.value
+            )
+        ) FILTER (WHERE pa.attribute_id IS NOT NULL),
+        '[]'::json
+    ) AS attributes
+FROM products p
+LEFT JOIN product_attribute_values pa ON p.product_id = pa.product_id
+WHERE p.product_id = $1
+GROUP BY p.product_id
+`
+
+type GetProductWithAttributesRow struct {
+	ProductID   int64              `json:"product_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Status      ProductStatus      `json:"status"`
+	CategoryID  *int64             `json:"category_id"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Attributes  interface{}        `json:"attributes"`
+}
+
+func (q *Queries) GetProductWithAttributes(ctx context.Context, productID int64) (GetProductWithAttributesRow, error) {
+	row := q.db.QueryRow(ctx, getProductWithAttributes, productID)
+	var i GetProductWithAttributesRow
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.Status,
+		&i.CategoryID,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+		&i.Attributes,
+	)
+	return i, err
+}
+
 const getProducts = `-- name: GetProducts :many
 SELECT 
     p.product_id, 
