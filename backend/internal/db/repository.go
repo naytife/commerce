@@ -88,15 +88,14 @@ type Repository interface {
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
-	DeleteProduct(ctx context.Context, arg DeleteProductParams) (Product, error)
-	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
-	GetProductWithAttributes(ctx context.Context, productID int64) (GetProductWithAttributesRow, error)
+	DeleteProduct(ctx context.Context, arg DeleteProductParams) error
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
+	GetProductsByType(ctx context.Context, arg GetProductsByTypeParams) ([]GetProductsByTypeRow, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
 	// GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
 	// CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
 	// DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
-	UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error)
-	GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error)
+	UpsertProductVariants(ctx context.Context, arg []UpsertProductVariantsParams) *UpsertProductVariantsBatchResults
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -197,50 +196,4 @@ func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		return err
 	})
 	return category, err
-}
-
-func (r *repoSvc) UpsertProductVariations(ctx context.Context, shopID int64, productID int64, variations []UpsertProductVariationParams) ([]ProductVariation, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	var objsDB []ProductVariation
-	var objsID []int64
-
-	err := r.WithTx(ctx, func(q *Queries) error {
-		batch := q.UpsertProductVariation(ctx, variations)
-
-		var batchErr error
-		batch.Query(func(i int, result []ProductVariation, err error) {
-			if err != nil {
-				batchErr = fmt.Errorf("failed to upsert product variation: %w", err)
-				return
-			}
-			for _, objDB := range result {
-				objsID = append(objsID, objDB.ProductVariationID)
-				objsDB = append(objsDB, objDB)
-			}
-		})
-
-		if batchErr != nil {
-			return batchErr
-		}
-
-		if err := batch.Close(); err != nil {
-			return fmt.Errorf("batch execution failed: %w", err)
-		}
-
-		if len(objsID) > 0 {
-			deleteBatch := q.DeleteProductVariations(ctx, []DeleteProductVariationsParams{
-				{ShopID: shopID, ProductID: productID, ProductVariationIds: objsID},
-			})
-
-			if err := deleteBatch.Close(); err != nil {
-				return fmt.Errorf("batch delete failed: %w", err)
-			}
-		}
-
-		return nil
-	})
-
-	return objsDB, err
 }
