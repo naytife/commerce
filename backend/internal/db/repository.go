@@ -74,6 +74,7 @@ type Repository interface {
 	GetAttributeOptions(ctx context.Context, arg GetAttributeOptionsParams) ([]AttributeOption, error)
 	UpdateAttributeOption(ctx context.Context, arg UpdateAttributeOptionParams) (AttributeOption, error)
 	// ATTRIBUTE-VALUE
+	GetProductAttributeValues(ctx context.Context, arg GetProductAttributeValuesParams) ([]GetProductAttributeValuesRow, error)
 	// CATEGORY
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	GetCategory(ctx context.Context, arg GetCategoryParams) (GetCategoryRow, error)
@@ -89,6 +90,7 @@ type Repository interface {
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
 	DeleteProduct(ctx context.Context, arg DeleteProductParams) (Product, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	GetProductWithAttributes(ctx context.Context, productID int64) (GetProductWithAttributesRow, error)
 	GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error)
 	// GetProductAllowedAttributes(ctx context.Context, productID int64) ([]byte, error)
 	// CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)

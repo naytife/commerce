@@ -18,8 +18,8 @@ type Product struct {
 
 type ProductAttribute struct {
 	AttributeID       int64   `json:"attribute_id"`
-	AttributeOptionID *int64  `json:"attribute_option_id,omitempty"`
-	Value             *string `json:"value,omitempty"`
+	AttributeOptionID *int64  `json:"attribute_option_id"`
+	Value             *string `json:"value"`
 }
 
 type ProductCreateParams struct {

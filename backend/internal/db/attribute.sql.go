@@ -241,6 +241,57 @@ func (q *Queries) GetAttributes(ctx context.Context, arg GetAttributesParams) ([
 	return items, nil
 }
 
+const getProductAttributeValues = `-- name: GetProductAttributeValues :many
+SELECT 
+    pav.product_id,
+    pav.attribute_id,
+    pav.shop_id,
+    pav.attribute_option_id,
+    COALESCE(ao.value, pav.value) as value
+FROM product_attribute_values pav
+LEFT JOIN attribute_options ao ON ao.attribute_option_id = pav.attribute_option_id
+WHERE pav.product_id = $1 AND pav.shop_id = $2
+`
+
+type GetProductAttributeValuesParams struct {
+	ProductID int64 `json:"product_id"`
+	ShopID    int64 `json:"shop_id"`
+}
+
+type GetProductAttributeValuesRow struct {
+	ProductID         int64  `json:"product_id"`
+	AttributeID       int64  `json:"attribute_id"`
+	ShopID            int64  `json:"shop_id"`
+	AttributeOptionID *int64 `json:"attribute_option_id"`
+	Value             string `json:"value"`
+}
+
+func (q *Queries) GetProductAttributeValues(ctx context.Context, arg GetProductAttributeValuesParams) ([]GetProductAttributeValuesRow, error) {
+	rows, err := q.db.Query(ctx, getProductAttributeValues, arg.ProductID, arg.ShopID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductAttributeValuesRow
+	for rows.Next() {
+		var i GetProductAttributeValuesRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.AttributeID,
+			&i.ShopID,
+			&i.AttributeOptionID,
+			&i.Value,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProductsAttributes = `-- name: GetProductsAttributes :many
 SELECT attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2
 `

@@ -70,3 +70,14 @@ DELETE FROM product_attribute_values
 WHERE product_id = $1 
 AND shop_id = $2
 AND attribute_id NOT IN (SELECT UNNEST($3::int[]));
+
+-- name: GetProductAttributeValues :many
+SELECT 
+    pav.product_id,
+    pav.attribute_id,
+    pav.shop_id,
+    pav.attribute_option_id,
+    COALESCE(ao.value, pav.value) as value
+FROM product_attribute_values pav
+LEFT JOIN attribute_options ao ON ao.attribute_option_id = pav.attribute_option_id
+WHERE pav.product_id = $1 AND pav.shop_id = $2;
