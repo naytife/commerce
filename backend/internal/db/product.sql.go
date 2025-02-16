@@ -48,7 +48,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	return i, err
 }
 
-const deleteProduct = `-- name: DeleteProduct :one
+const deleteProduct = `-- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = $1 AND shop_id = $2
 RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
@@ -59,84 +59,106 @@ type DeleteProductParams struct {
 	ShopID    int64 `json:"shop_id"`
 }
 
-func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, deleteProduct, arg.ProductID, arg.ShopID)
-	var i Product
-	err := row.Scan(
-		&i.ProductID,
-		&i.Title,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.ProductTypeID,
-		&i.CategoryID,
-		&i.ShopID,
-		&i.Status,
-	)
-	return i, err
+func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) error {
+	_, err := q.db.Exec(ctx, deleteProduct, arg.ProductID, arg.ShopID)
+	return err
 }
 
 const getProduct = `-- name: GetProduct :one
 SELECT 
-    p.product_id, 
-    p.title, 
-    p.description, 
-    p.created_at, 
-    p.updated_at, 
+    p.product_id,
+    p.title,
+    p.description,
+    p.status,
     p.category_id,
-    p.status
-FROM 
-    products p
-LEFT JOIN 
-    categories c ON p.category_id = c.category_id
-WHERE 
-    p.shop_id = $1 
-    AND p.product_id = $2
+    p.updated_at,
+    p.created_at,
+
+    -- Aggregate attributes separately to prevent duplication
+    (
+        SELECT COALESCE(
+            json_agg(
+                json_build_object(
+                    'attribute_id', pa.attribute_id,
+                    'attribute_option_id', pa.attribute_option_id,
+                    'value', COALESCE(ao.value, pa.value)
+                )
+            ) FILTER (WHERE pa.attribute_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_attribute_values pa
+        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pa.attribute_option_id
+        WHERE pa.product_id = p.product_id
+    ) AS attributes,
+
+    -- Aggregate variants separately to prevent duplication
+    (
+        SELECT COALESCE(
+            json_agg(DISTINCT jsonb_build_object(
+                'variation_id', pv.product_variation_id,
+                'slug', pv.slug,
+                'description', pv.description,
+                'price', pv.price,
+                'sku', pv.sku,
+                'available_quantity', pv.available_quantity
+            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_variations pv
+        WHERE pv.product_id = p.product_id
+    ) AS variants
+
+FROM products p
+WHERE p.product_id = $1 AND p.shop_id = $2
 `
 
 type GetProductParams struct {
-	ShopID    int64 `json:"shop_id"`
 	ProductID int64 `json:"product_id"`
+	ShopID    int64 `json:"shop_id"`
 }
 
 type GetProductRow struct {
 	ProductID   int64              `json:"product_id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CategoryID  *int64             `json:"category_id"`
 	Status      ProductStatus      `json:"status"`
+	CategoryID  *int64             `json:"category_id"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Attributes  interface{}        `json:"attributes"`
+	Variants    interface{}        `json:"variants"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
-	row := q.db.QueryRow(ctx, getProduct, arg.ShopID, arg.ProductID)
+	row := q.db.QueryRow(ctx, getProduct, arg.ProductID, arg.ShopID)
 	var i GetProductRow
 	err := row.Scan(
 		&i.ProductID,
 		&i.Title,
 		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CategoryID,
 		&i.Status,
+		&i.CategoryID,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+		&i.Attributes,
+		&i.Variants,
 	)
 	return i, err
 }
 
-const getProductVariations = `-- name: GetProductVariations :many
+const getProductVariants = `-- name: GetProductVariants :many
 SELECT product_variation_id, sku, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id
 `
 
-type GetProductVariationsParams struct {
+type GetProductVariantsParams struct {
 	ShopID    int64 `json:"shop_id"`
 	ProductID int64 `json:"product_id"`
 }
 
-func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariationsParams) ([]ProductVariation, error) {
-	rows, err := q.db.Query(ctx, getProductVariations, arg.ShopID, arg.ProductID)
+func (q *Queries) GetProductVariants(ctx context.Context, arg GetProductVariantsParams) ([]ProductVariation, error) {
+	rows, err := q.db.Query(ctx, getProductVariants, arg.ShopID, arg.ProductID)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +191,7 @@ func (q *Queries) GetProductVariations(ctx context.Context, arg GetProductVariat
 	return items, nil
 }
 
-const getProductWithAttributes = `-- name: GetProductWithAttributes :one
+const getProducts = `-- name: GetProducts :many
 SELECT 
     p.product_id,
     p.title,
@@ -178,64 +200,47 @@ SELECT
     p.category_id,
     p.updated_at,
     p.created_at,
-    COALESCE(
-        json_agg(
-            json_build_object(
-                'attribute_id', pa.attribute_id,
-                'attribute_option_id', pa.attribute_option_id,
-                'value', pa.value
-            )
-        ) FILTER (WHERE pa.attribute_id IS NOT NULL),
-        '[]'::json
-    ) AS attributes
+
+    -- Aggregate attributes separately to prevent duplication
+    (
+        SELECT COALESCE(
+            json_agg(
+                json_build_object(
+                    'attribute_id', pa.attribute_id,
+                    'attribute_title', a.title,
+                    'attribute_option_id', pa.attribute_option_id,
+                    'value', COALESCE(ao.value, pa.value)
+                )
+            ) FILTER (WHERE pa.attribute_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_attribute_values pa
+        LEFT JOIN attributes a ON a.attribute_id = pa.attribute_id
+        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pa.attribute_option_id
+        WHERE pa.product_id = p.product_id
+    ) AS attributes,
+
+    -- Aggregate variants separately to prevent duplication
+    (
+        SELECT COALESCE(
+            json_agg(DISTINCT jsonb_build_object(
+                'variation_id', pv.product_variation_id,
+                'slug', pv.slug,
+                'description', pv.description,
+                'price', pv.price,
+                'sku', pv.sku,
+                'available_quantity', pv.available_quantity
+            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_variations pv
+        WHERE pv.product_id = p.product_id
+    ) AS variants
+
 FROM products p
-LEFT JOIN product_attribute_values pa ON p.product_id = pa.product_id
-WHERE p.product_id = $1
-GROUP BY p.product_id
-`
-
-type GetProductWithAttributesRow struct {
-	ProductID   int64              `json:"product_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Status      ProductStatus      `json:"status"`
-	CategoryID  *int64             `json:"category_id"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  interface{}        `json:"attributes"`
-}
-
-func (q *Queries) GetProductWithAttributes(ctx context.Context, productID int64) (GetProductWithAttributesRow, error) {
-	row := q.db.QueryRow(ctx, getProductWithAttributes, productID)
-	var i GetProductWithAttributesRow
-	err := row.Scan(
-		&i.ProductID,
-		&i.Title,
-		&i.Description,
-		&i.Status,
-		&i.CategoryID,
-		&i.UpdatedAt,
-		&i.CreatedAt,
-		&i.Attributes,
-	)
-	return i, err
-}
-
-const getProducts = `-- name: GetProducts :many
-SELECT 
-    p.product_id, 
-    p.title, 
-    p.description, 
-    p.created_at, 
-    p.updated_at, 
-    p.status
-FROM 
-    products p
-LEFT JOIN 
-    categories c ON p.category_id = c.category_id
-WHERE 
-    p.shop_id = $1
-    AND p.product_id > $2
+WHERE p.shop_id = $1 
+AND p.product_id > $2
+ORDER BY p.product_id
 LIMIT $3
 `
 
@@ -249,9 +254,12 @@ type GetProductsRow struct {
 	ProductID   int64              `json:"product_id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	Status      ProductStatus      `json:"status"`
+	CategoryID  *int64             `json:"category_id"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Attributes  interface{}        `json:"attributes"`
+	Variants    interface{}        `json:"variants"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -267,9 +275,12 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 			&i.ProductID,
 			&i.Title,
 			&i.Description,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.Status,
+			&i.CategoryID,
+			&i.UpdatedAt,
+			&i.CreatedAt,
+			&i.Attributes,
+			&i.Variants,
 		); err != nil {
 			return nil, err
 		}
@@ -282,7 +293,6 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 }
 
 const getProductsByCategory = `-- name: GetProductsByCategory :many
-
 SELECT 
     p.product_id, 
     p.title, 
@@ -315,29 +325,6 @@ type GetProductsByCategoryRow struct {
 	CategoryID  *int64             `json:"category_id"`
 }
 
-// SELECT
-//
-//	p.product_id,
-//	p.title,
-//	p.description,
-//	p.created_at,
-//	p.updated_at,
-//	p.category_id
-//
-// FROM
-//
-//	products p
-//
-// LEFT JOIN
-//
-//	categories c ON p.category_id = c.category_id
-//
-// WHERE
-//
-//	p.shop_id = sqlc.arg('shop_id')
-//	AND p.product_id > sqlc.arg('after')
-//
-// LIMIT sqlc.arg('limit');
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {
 	rows, err := q.db.Query(ctx, getProductsByCategory, arg.CategoryID, arg.After, arg.Limit)
 	if err != nil {
@@ -365,8 +352,115 @@ func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCa
 	return items, nil
 }
 
-const updateProduct = `-- name: UpdateProduct :one
+const getProductsByType = `-- name: GetProductsByType :many
+SELECT 
+    p.product_id,
+    p.title,
+    p.description,
+    p.status,
+    p.category_id,
+    p.updated_at,
+    p.created_at,
 
+    -- Aggregate attributes separately
+    (
+        SELECT COALESCE(
+            json_agg(
+                json_build_object(
+                    'attribute_id', pa.attribute_id,
+                    'attribute_title', a.title,
+                    'attribute_option_id', pa.attribute_option_id,
+                    'value', COALESCE(ao.value, pa.value)
+                )
+            ) FILTER (WHERE pa.attribute_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_attribute_values pa
+        LEFT JOIN attributes a ON a.attribute_id = pa.attribute_id
+        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pa.attribute_option_id
+        WHERE pa.product_id = p.product_id
+    ) AS attributes,
+
+    -- Aggregate variants separately
+    (
+        SELECT COALESCE(
+            json_agg(DISTINCT jsonb_build_object(
+                'variation_id', pv.product_variation_id,
+                'slug', pv.slug,
+                'description', pv.description,
+                'price', pv.price,
+                'sku', pv.sku,
+                'available_quantity', pv.available_quantity
+            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            '[]'::json
+        )
+        FROM product_variations pv
+        WHERE pv.product_id = p.product_id
+    ) AS variants
+
+FROM products p
+WHERE p.shop_id = $1 
+AND p.product_type_id = $2
+AND p.product_id > $3
+ORDER BY p.product_id
+LIMIT $4
+`
+
+type GetProductsByTypeParams struct {
+	ShopID        int64 `json:"shop_id"`
+	ProductTypeID int64 `json:"product_type_id"`
+	After         int64 `json:"after"`
+	Limit         int32 `json:"limit"`
+}
+
+type GetProductsByTypeRow struct {
+	ProductID   int64              `json:"product_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Status      ProductStatus      `json:"status"`
+	CategoryID  *int64             `json:"category_id"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Attributes  interface{}        `json:"attributes"`
+	Variants    interface{}        `json:"variants"`
+}
+
+func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypeParams) ([]GetProductsByTypeRow, error) {
+	rows, err := q.db.Query(ctx, getProductsByType,
+		arg.ShopID,
+		arg.ProductTypeID,
+		arg.After,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductsByTypeRow
+	for rows.Next() {
+		var i GetProductsByTypeRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.Title,
+			&i.Description,
+			&i.Status,
+			&i.CategoryID,
+			&i.UpdatedAt,
+			&i.CreatedAt,
+			&i.Attributes,
+			&i.Variants,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateProduct = `-- name: UpdateProduct :exec
 UPDATE products
 SET 
     title = COALESCE($1, title),
@@ -383,40 +477,12 @@ type UpdateProductParams struct {
 	ShopID      int64   `json:"shop_id"`
 }
 
-// xname: GetProductAllowedAttributes :one
-// SELECT
-//
-//	(p.allowed_attributes || COALESCE(c.category_attributes, '{}'))::jsonb AS allowed_attributes
-//
-// FROM
-//
-//	products p
-//
-// LEFT JOIN
-//
-//	categories c ON p.category_id = c.category_id
-//
-// WHERE
-//
-//	p.product_id = sqlc.arg('product_id');
-func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, updateProduct,
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
+	_, err := q.db.Exec(ctx, updateProduct,
 		arg.Title,
 		arg.Description,
 		arg.ProductID,
 		arg.ShopID,
 	)
-	var i Product
-	err := row.Scan(
-		&i.ProductID,
-		&i.Title,
-		&i.Description,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.ProductTypeID,
-		&i.CategoryID,
-		&i.ShopID,
-		&i.Status,
-	)
-	return i, err
+	return err
 }

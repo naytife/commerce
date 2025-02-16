@@ -71,7 +71,7 @@ func (b *BatchDeleteProductAttributeValuesBatchResults) Close() error {
 	return b.br.Close()
 }
 
-const batchUpsertProductAttributeValues = `-- name: BatchUpsertProductAttributeValues :batchmany
+const batchUpsertProductAttributeValues = `-- name: BatchUpsertProductAttributeValues :batchexec
 INSERT INTO product_attribute_values (value, attribute_option_id, product_id, attribute_id, shop_id)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (product_id, attribute_id, shop_id) 
@@ -113,82 +113,7 @@ func (q *Queries) BatchUpsertProductAttributeValues(ctx context.Context, arg []B
 	return &BatchUpsertProductAttributeValuesBatchResults{br, len(arg), false}
 }
 
-func (b *BatchUpsertProductAttributeValuesBatchResults) Query(f func(int, []ProductAttributeValue, error)) {
-	defer b.br.Close()
-	for t := 0; t < b.tot; t++ {
-		var items []ProductAttributeValue
-		if b.closed {
-			if f != nil {
-				f(t, items, ErrBatchAlreadyClosed)
-			}
-			continue
-		}
-		err := func() error {
-			rows, err := b.br.Query()
-			if err != nil {
-				return err
-			}
-			defer rows.Close()
-			for rows.Next() {
-				var i ProductAttributeValue
-				if err := rows.Scan(
-					&i.ProductAttributeValueID,
-					&i.Value,
-					&i.AttributeOptionID,
-					&i.ProductID,
-					&i.AttributeID,
-					&i.ShopID,
-				); err != nil {
-					return err
-				}
-				items = append(items, i)
-			}
-			return rows.Err()
-		}()
-		if f != nil {
-			f(t, items, err)
-		}
-	}
-}
-
-func (b *BatchUpsertProductAttributeValuesBatchResults) Close() error {
-	b.closed = true
-	return b.br.Close()
-}
-
-const deleteProductVariations = `-- name: DeleteProductVariations :batchexec
-DELETE FROM product_variations
-WHERE shop_id = $1 AND product_id = $2
-AND product_variation_id != ALL($3::bigint[])
-`
-
-type DeleteProductVariationsBatchResults struct {
-	br     pgx.BatchResults
-	tot    int
-	closed bool
-}
-
-type DeleteProductVariationsParams struct {
-	ShopID              int64   `json:"shop_id"`
-	ProductID           int64   `json:"product_id"`
-	ProductVariationIds []int64 `json:"product_variation_ids"`
-}
-
-func (q *Queries) DeleteProductVariations(ctx context.Context, arg []DeleteProductVariationsParams) *DeleteProductVariationsBatchResults {
-	batch := &pgx.Batch{}
-	for _, a := range arg {
-		vals := []interface{}{
-			a.ShopID,
-			a.ProductID,
-			a.ProductVariationIds,
-		}
-		batch.Queue(deleteProductVariations, vals...)
-	}
-	br := q.db.SendBatch(ctx, batch)
-	return &DeleteProductVariationsBatchResults{br, len(arg), false}
-}
-
-func (b *DeleteProductVariationsBatchResults) Exec(f func(int, error)) {
+func (b *BatchUpsertProductAttributeValuesBatchResults) Exec(f func(int, error)) {
 	defer b.br.Close()
 	for t := 0; t < b.tot; t++ {
 		if b.closed {
@@ -204,38 +129,90 @@ func (b *DeleteProductVariationsBatchResults) Exec(f func(int, error)) {
 	}
 }
 
-func (b *DeleteProductVariationsBatchResults) Close() error {
+func (b *BatchUpsertProductAttributeValuesBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }
 
-const upsertProductVariation = `-- name: UpsertProductVariation :batchmany
+const deleteProductVariants = `-- name: DeleteProductVariants :batchexec
+DELETE FROM product_variations
+WHERE shop_id = $1 AND product_id = $2
+AND product_variation_id != ALL($3::bigint[])
+`
 
+type DeleteProductVariantsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
 
-INSERT INTO product_variations (slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+type DeleteProductVariantsParams struct {
+	ShopID              int64   `json:"shop_id"`
+	ProductID           int64   `json:"product_id"`
+	ProductVariationIds []int64 `json:"product_variation_ids"`
+}
+
+func (q *Queries) DeleteProductVariants(ctx context.Context, arg []DeleteProductVariantsParams) *DeleteProductVariantsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ShopID,
+			a.ProductID,
+			a.ProductVariationIds,
+		}
+		batch.Queue(deleteProductVariants, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &DeleteProductVariantsBatchResults{br, len(arg), false}
+}
+
+func (b *DeleteProductVariantsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *DeleteProductVariantsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
+const upsertProductVariants = `-- name: UpsertProductVariants :batchexec
+INSERT INTO product_variations (slug, description, price,sku, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 ON CONFLICT (slug, shop_id)
 DO UPDATE SET
     description = EXCLUDED.description,
     price = EXCLUDED.price,
+    sku = EXCLUDED.sku,
     available_quantity = EXCLUDED.available_quantity,
-    attributes = EXCLUDED.attributes,
     seo_description = EXCLUDED.seo_description,
     seo_keywords = EXCLUDED.seo_keywords,
     seo_title = EXCLUDED.seo_title
 RETURNING product_variation_id, sku, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id
 `
 
-type UpsertProductVariationBatchResults struct {
+type UpsertProductVariantsBatchResults struct {
 	br     pgx.BatchResults
 	tot    int
 	closed bool
 }
 
-type UpsertProductVariationParams struct {
+type UpsertProductVariantsParams struct {
 	Slug              string         `json:"slug"`
 	Description       string         `json:"description"`
 	Price             pgtype.Numeric `json:"price"`
+	Sku               string         `json:"sku"`
 	AvailableQuantity int64          `json:"available_quantity"`
 	SeoDescription    *string        `json:"seo_description"`
 	SeoKeywords       []string       `json:"seo_keywords"`
@@ -244,29 +221,14 @@ type UpsertProductVariationParams struct {
 	ShopID            int64          `json:"shop_id"`
 }
 
-// xname: CreateProductAllowedAttribute :one
-// UPDATE products
-// SET allowed_attributes = jsonb_set(
-//
-//	COALESCE(allowed_attributes, '{}'),
-//	ARRAY[UPPER(sqlc.arg('title'))::text],
-//	to_jsonb(sqlc.arg('data_type')::text)
-//
-// )
-// WHERE product_id = sqlc.arg('product_id')
-// RETURNING allowed_attributes;
-// xname: DeleteProductAllowedAttribute :one
-// UPDATE products
-// SET allowed_attributes = allowed_attributes - UPPER(sqlc.arg('attribute')::text)
-// WHERE product_id = sqlc.arg('product_id')
-// RETURNING allowed_attributes;
-func (q *Queries) UpsertProductVariation(ctx context.Context, arg []UpsertProductVariationParams) *UpsertProductVariationBatchResults {
+func (q *Queries) UpsertProductVariants(ctx context.Context, arg []UpsertProductVariantsParams) *UpsertProductVariantsBatchResults {
 	batch := &pgx.Batch{}
 	for _, a := range arg {
 		vals := []interface{}{
 			a.Slug,
 			a.Description,
 			a.Price,
+			a.Sku,
 			a.AvailableQuantity,
 			a.SeoDescription,
 			a.SeoKeywords,
@@ -274,58 +236,29 @@ func (q *Queries) UpsertProductVariation(ctx context.Context, arg []UpsertProduc
 			a.ProductID,
 			a.ShopID,
 		}
-		batch.Queue(upsertProductVariation, vals...)
+		batch.Queue(upsertProductVariants, vals...)
 	}
 	br := q.db.SendBatch(ctx, batch)
-	return &UpsertProductVariationBatchResults{br, len(arg), false}
+	return &UpsertProductVariantsBatchResults{br, len(arg), false}
 }
 
-func (b *UpsertProductVariationBatchResults) Query(f func(int, []ProductVariation, error)) {
+func (b *UpsertProductVariantsBatchResults) Exec(f func(int, error)) {
 	defer b.br.Close()
 	for t := 0; t < b.tot; t++ {
-		var items []ProductVariation
 		if b.closed {
 			if f != nil {
-				f(t, items, ErrBatchAlreadyClosed)
+				f(t, ErrBatchAlreadyClosed)
 			}
 			continue
 		}
-		err := func() error {
-			rows, err := b.br.Query()
-			if err != nil {
-				return err
-			}
-			defer rows.Close()
-			for rows.Next() {
-				var i ProductVariation
-				if err := rows.Scan(
-					&i.ProductVariationID,
-					&i.Sku,
-					&i.Slug,
-					&i.Description,
-					&i.Price,
-					&i.AvailableQuantity,
-					&i.SeoDescription,
-					&i.SeoKeywords,
-					&i.SeoTitle,
-					&i.CreatedAt,
-					&i.UpdatedAt,
-					&i.ProductID,
-					&i.ShopID,
-				); err != nil {
-					return err
-				}
-				items = append(items, i)
-			}
-			return rows.Err()
-		}()
+		_, err := b.br.Exec()
 		if f != nil {
-			f(t, items, err)
+			f(t, err)
 		}
 	}
 }
 
-func (b *UpsertProductVariationBatchResults) Close() error {
+func (b *UpsertProductVariantsBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }

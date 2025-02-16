@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/petrejonn/naytife/internal/db"
@@ -28,37 +27,38 @@ func (r *productResolver) DefaultVariant(ctx context.Context, obj *model.Product
 
 // Variants is the resolver for the variants field.
 func (r *productResolver) Variants(ctx context.Context, obj *model.Product) ([]model.ProductVariant, error) {
-	shopID := ctx.Value("shop_id").(int64)
-	objID, err := strconv.Atoi(obj.ID)
-	if err != nil {
-		return nil, errors.New("invalid product id")
-	}
-	objsDB, err := r.Repository.GetProductVariations(ctx, db.GetProductVariationsParams{ShopID: shopID, ProductID: int64(objID)})
-	if err != nil {
-		return nil, errors.New("could not fetch objects")
-	}
-	objs := make([]model.ProductVariant, 0, len(objsDB))
-	for _, objDB := range objsDB {
-		priceFloat64, err := objDB.Price.Float64Value()
-		if err != nil {
-			log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
-		}
-		// attributes, err := unmarshalProductAttributes(objDB.Attributes)
-		if err != nil {
-			log.Fatalf("Failed to unmarshal product attributes: %v", err)
-		}
-		objs = append(objs, model.ProductVariant{
-			ID:                encodeRelayID("Variant", strconv.FormatInt(objDB.ProductVariationID, 10)),
-			Slug:              objDB.Slug,
-			Description:       objDB.Description,
-			Price:             priceFloat64.Float64,
-			AvailableQuantity: int(objDB.AvailableQuantity),
-			// Attributes:        attributes,
-			UpdatedAt: objDB.UpdatedAt.Time,
-			CreatedAt: objDB.CreatedAt.Time,
-		})
-	}
-	return objs, nil
+	// shopID := ctx.Value("shop_id").(int64)
+	// objID, err := strconv.Atoi(obj.ID)
+	// if err != nil {
+	// 	return nil, errors.New("invalid product id")
+	// }
+	// objsDB, err := r.Repository.GetProductVariations(ctx, db.GetProductVariationsParams{ShopID: shopID, ProductID: int64(objID)})
+	// if err != nil {
+	// 	return nil, errors.New("could not fetch objects")
+	// }
+	// objs := make([]model.ProductVariant, 0, len(objsDB))
+	// for _, objDB := range objsDB {
+	// 	priceFloat64, err := objDB.Price.Float64Value()
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to convert pgtype.Numeric to float64: %v", err)
+	// 	}
+	// 	// attributes, err := unmarshalProductAttributes(objDB.Attributes)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to unmarshal product attributes: %v", err)
+	// 	}
+	// 	objs = append(objs, model.ProductVariant{
+	// 		ID:                encodeRelayID("Variant", strconv.FormatInt(objDB.ProductVariationID, 10)),
+	// 		Slug:              objDB.Slug,
+	// 		Description:       objDB.Description,
+	// 		Price:             priceFloat64.Float64,
+	// 		AvailableQuantity: int(objDB.AvailableQuantity),
+	// 		// Attributes:        attributes,
+	// 		UpdatedAt: objDB.UpdatedAt.Time,
+	// 		CreatedAt: objDB.CreatedAt.Time,
+	// 	})
+	// }
+	// return objs, nil
+	panic("NOT IMPL")
 }
 
 // Images is the resolver for the images field.

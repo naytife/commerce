@@ -54,7 +54,7 @@ DELETE FROM attribute_options
 WHERE attribute_option_id = $1 AND shop_id = $2
 RETURNING *;
 
--- name: BatchUpsertProductAttributeValues :batchmany
+-- name: BatchUpsertProductAttributeValues :batchexec
 INSERT INTO product_attribute_values (value, attribute_option_id, product_id, attribute_id, shop_id)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (product_id, attribute_id, shop_id) 

@@ -10,6 +10,7 @@ func ProductRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
 
 	app.Post("/shops/:shop_id/product-types/:product_type_id/products", handler.CreateProduct)
+	app.Get("/shops/:shop_id/product-types/:product_type_id/products", handler.GetProductsByType)
 	app.Get("/shops/:shop_id/products", handler.GetProducts)
 	app.Get("/shops/:shop_id/products/:product_id", handler.GetProduct)
 	app.Put("/shops/:shop_id/products/:product_id", handler.UpdateProduct)
