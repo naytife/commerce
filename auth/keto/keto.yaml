@@ -1,0 +1,5 @@
+keto:
+  config:
+    dsn: postgres://postgres:bdQGszmfyR@postgres-postgresql.default.svc.cluster.local:5432/naytifedb?search_path=keto&sslmode=disable
+  automigration:
+    enabled: true
