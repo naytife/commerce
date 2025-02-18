@@ -73,7 +73,11 @@
       }
     ],
     "authorizer": {
-      "handler": "allow"
+      "handler": "keto_engine_acp_ory",
+      "config": {
+        "required_action": "read",
+        "required_resource": "admin_panel"
+      }
     },
     "mutators": [
       {
