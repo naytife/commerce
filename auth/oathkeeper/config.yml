@@ -84,9 +84,9 @@ oathkeeper:
       allow:
         enabled: true
       keto_engine_acp_ory:
-        enabled: false
+        enabled: true
         config:
-          base_url: http://keto:4466/engines/acp/ory/exact
+          base_url: http://keto-read.naytife-ory.svc.cluster.local:4466
 
     mutators:
       noop:
