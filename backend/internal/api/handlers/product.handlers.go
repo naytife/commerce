@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -185,7 +186,6 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid limit parameter", nil)
 	}
 
-	// Query products with attributes in ONE SQL query
 	param := db.GetProductsParams{
 		ShopID: shopID,
 		After:  after,
@@ -196,9 +196,31 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products", nil)
 	}
+	products := make([]models.Product, len(objsDB))
+	for i, prod := range objsDB {
+		var attributes []models.ProductAttribute
+		var variants []models.ProductVariant
+
+		if err := json.Unmarshal(prod.Attributes, &attributes); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
+		}
+
+		if err := json.Unmarshal(prod.Variants, &variants); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+		}
+		products[i] = models.Product{
+			ID:          prod.ProductID,
+			Title:       prod.Title,
+			Description: prod.Description,
+			CreatedAt:   prod.CreatedAt,
+			UpdatedAt:   prod.UpdatedAt,
+			Attributes:  attributes,
+			Variants:    variants,
+		}
+	}
 
 	// No need for extra queries per product. SQL already includes attributes.
-	return api.SuccessResponse(c, fiber.StatusOK, objsDB, "Products fetched successfully")
+	return api.SuccessResponse(c, fiber.StatusOK, products, "Products fetched successfully")
 }
 
 // GetProduct fetches a single product
@@ -240,9 +262,29 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product", nil)
 	}
+	var attributes []models.ProductAttribute
+	var variants []models.ProductVariant
+
+	if err := json.Unmarshal(objDB.Attributes, &attributes); err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
+	}
+
+	if err := json.Unmarshal(objDB.Variants, &variants); err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+	}
 
 	// Return the single query result directly
-	return api.SuccessResponse(c, fiber.StatusOK, objDB, "Product fetched successfully")
+	return api.SuccessResponse(c, fiber.StatusOK, models.Product{
+		ID:          objDB.ProductID,
+		Title:       objDB.Title,
+		Description: objDB.Description,
+		Status:      objDB.Status,
+		// CategoryID:  *objDB.CategoryID,
+		Attributes: attributes,
+		Variants:   variants,
+		UpdatedAt:  objDB.UpdatedAt,
+		CreatedAt:  objDB.CreatedAt,
+	}, "Product fetched successfully")
 }
 
 // UpdateProduct updates a product

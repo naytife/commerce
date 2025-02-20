@@ -77,24 +77,26 @@ SELECT
     -- Aggregate attributes separately to prevent duplication
     (
         SELECT COALESCE(
-            json_agg(
-                json_build_object(
+            jsonb_agg(
+                jsonb_build_object(
                     'attribute_id', pa.attribute_id,
+                    'attribute_title', a.title,
                     'attribute_option_id', pa.attribute_option_id,
                     'value', COALESCE(ao.value, pa.value)
                 )
             ) FILTER (WHERE pa.attribute_id IS NOT NULL),
-            '[]'::json
+            '[]'::jsonb
         )
         FROM product_attribute_values pa
+        LEFT JOIN attributes a ON a.attribute_id = pa.attribute_id
         LEFT JOIN attribute_options ao ON ao.attribute_option_id = pa.attribute_option_id
         WHERE pa.product_id = p.product_id
-    ) AS attributes,
+    )::jsonb AS attributes,
 
     -- Aggregate variants separately to prevent duplication
     (
         SELECT COALESCE(
-            json_agg(DISTINCT jsonb_build_object(
+            jsonb_agg(DISTINCT jsonb_build_object(
                 'variation_id', pv.product_variation_id,
                 'slug', pv.slug,
                 'description', pv.description,
@@ -102,11 +104,11 @@ SELECT
                 'sku', pv.sku,
                 'available_quantity', pv.available_quantity
             )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
-            '[]'::json
+            '[]'::jsonb
         )
         FROM product_variations pv
         WHERE pv.product_id = p.product_id
-    ) AS variants
+    )::jsonb AS variants
 
 FROM products p
 WHERE p.product_id = $1 AND p.shop_id = $2
@@ -125,8 +127,8 @@ type GetProductRow struct {
 	CategoryID  *int64             `json:"category_id"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  interface{}        `json:"attributes"`
-	Variants    interface{}        `json:"variants"`
+	Attributes  []byte             `json:"attributes"`
+	Variants    []byte             `json:"variants"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -204,26 +206,26 @@ SELECT
     -- Aggregate attributes separately to prevent duplication
     (
         SELECT COALESCE(
-            json_agg(
-                json_build_object(
+            jsonb_agg(
+                jsonb_build_object(
                     'attribute_id', pa.attribute_id,
                     'attribute_title', a.title,
                     'attribute_option_id', pa.attribute_option_id,
                     'value', COALESCE(ao.value, pa.value)
                 )
             ) FILTER (WHERE pa.attribute_id IS NOT NULL),
-            '[]'::json
+            '[]'::jsonb
         )
         FROM product_attribute_values pa
         LEFT JOIN attributes a ON a.attribute_id = pa.attribute_id
         LEFT JOIN attribute_options ao ON ao.attribute_option_id = pa.attribute_option_id
         WHERE pa.product_id = p.product_id
-    ) AS attributes,
+    )::jsonb AS attributes,
 
     -- Aggregate variants separately to prevent duplication
     (
         SELECT COALESCE(
-            json_agg(DISTINCT jsonb_build_object(
+            jsonb_agg(DISTINCT jsonb_build_object(
                 'variation_id', pv.product_variation_id,
                 'slug', pv.slug,
                 'description', pv.description,
@@ -231,11 +233,11 @@ SELECT
                 'sku', pv.sku,
                 'available_quantity', pv.available_quantity
             )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
-            '[]'::json
+            '[]'::jsonb
         )
         FROM product_variations pv
         WHERE pv.product_id = p.product_id
-    ) AS variants
+    )::jsonb AS variants
 
 FROM products p
 WHERE p.shop_id = $1 
@@ -258,8 +260,8 @@ type GetProductsRow struct {
 	CategoryID  *int64             `json:"category_id"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  interface{}        `json:"attributes"`
-	Variants    interface{}        `json:"variants"`
+	Attributes  []byte             `json:"attributes"`
+	Variants    []byte             `json:"variants"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {

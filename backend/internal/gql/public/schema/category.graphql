@@ -25,16 +25,10 @@ type Category implements Node {
   title: String!
   description: String
   products(first: Int = 20, after: ID): ProductConnection
-  allowedAttributes: [AllowedCategoryAttributes!]!
   images: CategoryImages
   updatedAt: DateTime!
   createdAt: DateTime!
 }
-type AllowedCategoryAttributes {
-  title: String!
-  dataType: ProductAttributeDataType!
-}
-
 type CategoryImages {
   banner: Image!
 }

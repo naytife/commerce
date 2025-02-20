@@ -50,16 +50,6 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
-	AllowedCategoryAttributes struct {
-		DataType func(childComplexity int) int
-		Title    func(childComplexity int) int
-	}
-
-	AllowedProductAttributes struct {
-		DataType func(childComplexity int) int
-		Title    func(childComplexity int) int
-	}
-
 	Cart struct {
 		ID    func(childComplexity int) int
 		Items func(childComplexity int) int
@@ -80,15 +70,14 @@ type ComplexityRoot struct {
 	}
 
 	Category struct {
-		AllowedAttributes func(childComplexity int) int
-		CreatedAt         func(childComplexity int) int
-		Description       func(childComplexity int) int
-		ID                func(childComplexity int) int
-		Images            func(childComplexity int) int
-		Products          func(childComplexity int, first *int, after *string) int
-		Slug              func(childComplexity int) int
-		Title             func(childComplexity int) int
-		UpdatedAt         func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Images      func(childComplexity int) int
+		Products    func(childComplexity int, first *int, after *string) int
+		Slug        func(childComplexity int) int
+		Title       func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	CategoryConnection struct {
@@ -131,6 +120,7 @@ type ComplexityRoot struct {
 	}
 
 	Product struct {
+		Attributes     func(childComplexity int) int
 		CreatedAt      func(childComplexity int) int
 		DefaultVariant func(childComplexity int) int
 		Description    func(childComplexity int) int
@@ -142,13 +132,8 @@ type ComplexityRoot struct {
 	}
 
 	ProductAttribute struct {
-		Key   func(childComplexity int) int
-		Value func(childComplexity int) int
-	}
-
-	ProductAttributeValue struct {
-		IntValue    func(childComplexity int) int
-		StringValue func(childComplexity int) int
+		AttributeTitle func(childComplexity int) int
+		Value          func(childComplexity int) int
 	}
 
 	ProductConnection struct {
@@ -171,13 +156,11 @@ type ComplexityRoot struct {
 	ProductVariant struct {
 		Attributes        func(childComplexity int) int
 		AvailableQuantity func(childComplexity int) int
-		CreatedAt         func(childComplexity int) int
 		Description       func(childComplexity int) int
 		ID                func(childComplexity int) int
 		Price             func(childComplexity int) int
 		Slug              func(childComplexity int) int
 		StockStatus       func(childComplexity int) int
-		UpdatedAt         func(childComplexity int) int
 	}
 
 	Query struct {
@@ -228,7 +211,6 @@ type CategoryResolver interface {
 	ID(ctx context.Context, obj *model.Category) (string, error)
 
 	Products(ctx context.Context, obj *model.Category, first *int, after *string) (*model.ProductConnection, error)
-
 	Images(ctx context.Context, obj *model.Category) (*model.CategoryImages, error)
 }
 type MutationResolver interface {
@@ -240,7 +222,7 @@ type ProductResolver interface {
 	ID(ctx context.Context, obj *model.Product) (string, error)
 
 	DefaultVariant(ctx context.Context, obj *model.Product) (*model.ProductVariant, error)
-	Variants(ctx context.Context, obj *model.Product) ([]model.ProductVariant, error)
+
 	Images(ctx context.Context, obj *model.Product) ([]model.Image, error)
 }
 type QueryResolver interface {
@@ -275,38 +257,10 @@ func (e *executableSchema) Schema() *ast.Schema {
 	return parsedSchema
 }
 
-func (e *executableSchema) Complexity(typeName, field string, childComplexity int, rawArgs map[string]interface{}) (int, bool) {
+func (e *executableSchema) Complexity(typeName, field string, childComplexity int, rawArgs map[string]any) (int, bool) {
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
-
-	case "AllowedCategoryAttributes.dataType":
-		if e.complexity.AllowedCategoryAttributes.DataType == nil {
-			break
-		}
-
-		return e.complexity.AllowedCategoryAttributes.DataType(childComplexity), true
-
-	case "AllowedCategoryAttributes.title":
-		if e.complexity.AllowedCategoryAttributes.Title == nil {
-			break
-		}
-
-		return e.complexity.AllowedCategoryAttributes.Title(childComplexity), true
-
-	case "AllowedProductAttributes.dataType":
-		if e.complexity.AllowedProductAttributes.DataType == nil {
-			break
-		}
-
-		return e.complexity.AllowedProductAttributes.DataType(childComplexity), true
-
-	case "AllowedProductAttributes.title":
-		if e.complexity.AllowedProductAttributes.Title == nil {
-			break
-		}
-
-		return e.complexity.AllowedProductAttributes.Title(childComplexity), true
 
 	case "Cart.id":
 		if e.complexity.Cart.ID == nil {
@@ -377,13 +331,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CartProduct.Title(childComplexity), true
-
-	case "Category.allowedAttributes":
-		if e.complexity.Category.AllowedAttributes == nil {
-			break
-		}
-
-		return e.complexity.Category.AllowedAttributes(childComplexity), true
 
 	case "Category.createdAt":
 		if e.complexity.Category.CreatedAt == nil {
@@ -587,6 +534,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
+	case "Product.attributes":
+		if e.complexity.Product.Attributes == nil {
+			break
+		}
+
+		return e.complexity.Product.Attributes(childComplexity), true
+
 	case "Product.createdAt":
 		if e.complexity.Product.CreatedAt == nil {
 			break
@@ -643,12 +597,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Product.Variants(childComplexity), true
 
-	case "ProductAttribute.key":
-		if e.complexity.ProductAttribute.Key == nil {
+	case "ProductAttribute.attribute_title":
+		if e.complexity.ProductAttribute.AttributeTitle == nil {
 			break
 		}
 
-		return e.complexity.ProductAttribute.Key(childComplexity), true
+		return e.complexity.ProductAttribute.AttributeTitle(childComplexity), true
 
 	case "ProductAttribute.value":
 		if e.complexity.ProductAttribute.Value == nil {
@@ -656,20 +610,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProductAttribute.Value(childComplexity), true
-
-	case "ProductAttributeValue.intValue":
-		if e.complexity.ProductAttributeValue.IntValue == nil {
-			break
-		}
-
-		return e.complexity.ProductAttributeValue.IntValue(childComplexity), true
-
-	case "ProductAttributeValue.stringValue":
-		if e.complexity.ProductAttributeValue.StringValue == nil {
-			break
-		}
-
-		return e.complexity.ProductAttributeValue.StringValue(childComplexity), true
 
 	case "ProductConnection.edges":
 		if e.complexity.ProductConnection.Edges == nil {
@@ -741,13 +681,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ProductVariant.AvailableQuantity(childComplexity), true
 
-	case "ProductVariant.createdAt":
-		if e.complexity.ProductVariant.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.ProductVariant.CreatedAt(childComplexity), true
-
 	case "ProductVariant.description":
 		if e.complexity.ProductVariant.Description == nil {
 			break
@@ -782,13 +715,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProductVariant.StockStatus(childComplexity), true
-
-	case "ProductVariant.updatedAt":
-		if e.complexity.ProductVariant.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.ProductVariant.UpdatedAt(childComplexity), true
 
 	case "Query.cart":
 		if e.complexity.Query.Cart == nil {
@@ -1221,16 +1147,10 @@ type Category implements Node {
   title: String!
   description: String
   products(first: Int = 20, after: ID): ProductConnection
-  allowedAttributes: [AllowedCategoryAttributes!]!
   images: CategoryImages
   updatedAt: DateTime!
   createdAt: DateTime!
 }
-type AllowedCategoryAttributes {
-  title: String!
-  dataType: ProductAttributeDataType!
-}
-
 type CategoryImages {
   banner: Image!
 }
@@ -1240,12 +1160,6 @@ extend type Query {
   products(first: Int = 20, after: ID): ProductConnection!
   product(id: ID!): Product
 }
-
-enum ProductAttributeDataType {
-  STRING
-  INTEGER
-}
-
 type ProductConnection {
   edges: [ProductEdge!]!
   pageInfo: PageInfo!
@@ -1265,19 +1179,12 @@ type Product implements Node {
   id: ID!
   title: String!
   description: String!
+  attributes: [ProductAttribute!]!
   defaultVariant: ProductVariant!
   variants: [ProductVariant!]!
   images: [Image!]!
   updatedAt: DateTime!
   createdAt: DateTime!
-}
-type AllowedProductAttributes {
-  title: String!
-  dataType: ProductAttributeDataType!
-}
-type ProductAttributeValue {
-  intValue: Int
-  stringValue: String
 }
 
 # ======== ProductVariant ========
@@ -1294,13 +1201,12 @@ type ProductVariant implements Node {
   description: String!
   attributes: [ProductAttribute!]!
   stockStatus: ProductStockStatus!
-  updatedAt: DateTime!
-  createdAt: DateTime!
 }
 type ProductAttribute {
-  key: String!
-  value: String
+  attribute_title: String!
+  value: String!
 }
+
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphql", Input: `scalar DateTime
 
@@ -1388,9 +1294,9 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Category_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Category_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Category_products_argsFirst(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1405,13 +1311,9 @@ func (ec *executionContext) field_Category_products_args(ctx context.Context, ra
 }
 func (ec *executionContext) field_Category_products_argsFirst(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*int, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["first"]
-	if !ok {
+	if _, ok := rawArgs["first"]; !ok {
 		var zeroVal *int
 		return zeroVal, nil
 	}
@@ -1427,13 +1329,9 @@ func (ec *executionContext) field_Category_products_argsFirst(
 
 func (ec *executionContext) field_Category_products_argsAfter(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["after"]
-	if !ok {
+	if _, ok := rawArgs["after"]; !ok {
 		var zeroVal *string
 		return zeroVal, nil
 	}
@@ -1447,9 +1345,9 @@ func (ec *executionContext) field_Category_products_argsAfter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_addCartItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_addCartItem_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Mutation_addCartItem_argsInput(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1459,13 +1357,9 @@ func (ec *executionContext) field_Mutation_addCartItem_args(ctx context.Context,
 }
 func (ec *executionContext) field_Mutation_addCartItem_argsInput(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (model.AddCartItemInput, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["input"]
-	if !ok {
+	if _, ok := rawArgs["input"]; !ok {
 		var zeroVal model.AddCartItemInput
 		return zeroVal, nil
 	}
@@ -1479,9 +1373,9 @@ func (ec *executionContext) field_Mutation_addCartItem_argsInput(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_removeCartItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_removeCartItem_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Mutation_removeCartItem_argsInput(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1491,13 +1385,9 @@ func (ec *executionContext) field_Mutation_removeCartItem_args(ctx context.Conte
 }
 func (ec *executionContext) field_Mutation_removeCartItem_argsInput(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (model.RemoveCartItemInput, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["input"]
-	if !ok {
+	if _, ok := rawArgs["input"]; !ok {
 		var zeroVal model.RemoveCartItemInput
 		return zeroVal, nil
 	}
@@ -1511,9 +1401,9 @@ func (ec *executionContext) field_Mutation_removeCartItem_argsInput(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_updateCartItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_updateCartItem_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Mutation_updateCartItem_argsInput(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1523,13 +1413,9 @@ func (ec *executionContext) field_Mutation_updateCartItem_args(ctx context.Conte
 }
 func (ec *executionContext) field_Mutation_updateCartItem_argsInput(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (model.UpdateCartItemInput, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["input"]
-	if !ok {
+	if _, ok := rawArgs["input"]; !ok {
 		var zeroVal model.UpdateCartItemInput
 		return zeroVal, nil
 	}
@@ -1543,9 +1429,9 @@ func (ec *executionContext) field_Mutation_updateCartItem_argsInput(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query___type_argsName(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1555,13 +1441,9 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 func (ec *executionContext) field_Query___type_argsName(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["name"]
-	if !ok {
+	if _, ok := rawArgs["name"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
@@ -1575,9 +1457,9 @@ func (ec *executionContext) field_Query___type_argsName(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_categories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_categories_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query_categories_argsFirst(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1592,13 +1474,9 @@ func (ec *executionContext) field_Query_categories_args(ctx context.Context, raw
 }
 func (ec *executionContext) field_Query_categories_argsFirst(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*int, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["first"]
-	if !ok {
+	if _, ok := rawArgs["first"]; !ok {
 		var zeroVal *int
 		return zeroVal, nil
 	}
@@ -1614,13 +1492,9 @@ func (ec *executionContext) field_Query_categories_argsFirst(
 
 func (ec *executionContext) field_Query_categories_argsAfter(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["after"]
-	if !ok {
+	if _, ok := rawArgs["after"]; !ok {
 		var zeroVal *string
 		return zeroVal, nil
 	}
@@ -1634,9 +1508,9 @@ func (ec *executionContext) field_Query_categories_argsAfter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_category_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_category_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query_category_argsID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1646,13 +1520,9 @@ func (ec *executionContext) field_Query_category_args(ctx context.Context, rawAr
 }
 func (ec *executionContext) field_Query_category_argsID(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["id"]
-	if !ok {
+	if _, ok := rawArgs["id"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
@@ -1666,9 +1536,9 @@ func (ec *executionContext) field_Query_category_argsID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query_node_argsID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1678,13 +1548,9 @@ func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs m
 }
 func (ec *executionContext) field_Query_node_argsID(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["id"]
-	if !ok {
+	if _, ok := rawArgs["id"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
@@ -1698,9 +1564,9 @@ func (ec *executionContext) field_Query_node_argsID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query_product_argsID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1710,13 +1576,9 @@ func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArg
 }
 func (ec *executionContext) field_Query_product_argsID(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["id"]
-	if !ok {
+	if _, ok := rawArgs["id"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
@@ -1730,9 +1592,9 @@ func (ec *executionContext) field_Query_product_argsID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Query_products_argsFirst(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1747,13 +1609,9 @@ func (ec *executionContext) field_Query_products_args(ctx context.Context, rawAr
 }
 func (ec *executionContext) field_Query_products_argsFirst(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*int, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["first"]
-	if !ok {
+	if _, ok := rawArgs["first"]; !ok {
 		var zeroVal *int
 		return zeroVal, nil
 	}
@@ -1769,13 +1627,9 @@ func (ec *executionContext) field_Query_products_argsFirst(
 
 func (ec *executionContext) field_Query_products_argsAfter(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["after"]
-	if !ok {
+	if _, ok := rawArgs["after"]; !ok {
 		var zeroVal *string
 		return zeroVal, nil
 	}
@@ -1789,9 +1643,9 @@ func (ec *executionContext) field_Query_products_argsAfter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Shop_categories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Shop_categories_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Shop_categories_argsFirst(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1806,13 +1660,9 @@ func (ec *executionContext) field_Shop_categories_args(ctx context.Context, rawA
 }
 func (ec *executionContext) field_Shop_categories_argsFirst(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*int, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["first"]
-	if !ok {
+	if _, ok := rawArgs["first"]; !ok {
 		var zeroVal *int
 		return zeroVal, nil
 	}
@@ -1828,13 +1678,9 @@ func (ec *executionContext) field_Shop_categories_argsFirst(
 
 func (ec *executionContext) field_Shop_categories_argsAfter(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["after"]
-	if !ok {
+	if _, ok := rawArgs["after"]; !ok {
 		var zeroVal *string
 		return zeroVal, nil
 	}
@@ -1848,9 +1694,9 @@ func (ec *executionContext) field_Shop_categories_argsAfter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Shop_products_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Shop_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field_Shop_products_argsFirst(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1865,13 +1711,9 @@ func (ec *executionContext) field_Shop_products_args(ctx context.Context, rawArg
 }
 func (ec *executionContext) field_Shop_products_argsFirst(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*int, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["first"]
-	if !ok {
+	if _, ok := rawArgs["first"]; !ok {
 		var zeroVal *int
 		return zeroVal, nil
 	}
@@ -1887,13 +1729,9 @@ func (ec *executionContext) field_Shop_products_argsFirst(
 
 func (ec *executionContext) field_Shop_products_argsAfter(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (*string, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["after"]
-	if !ok {
+	if _, ok := rawArgs["after"]; !ok {
 		var zeroVal *string
 		return zeroVal, nil
 	}
@@ -1907,9 +1745,65 @@ func (ec *executionContext) field_Shop_products_argsAfter(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field___Directive_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
+	arg0, err := ec.field___Directive_args_argsIncludeDeprecated(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["includeDeprecated"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field___Directive_args_argsIncludeDeprecated(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*bool, error) {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
+		var zeroVal *bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
+	if tmp, ok := rawArgs["includeDeprecated"]; ok {
+		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	}
+
+	var zeroVal *bool
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field___Field_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field___Field_args_argsIncludeDeprecated(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["includeDeprecated"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field___Field_args_argsIncludeDeprecated(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*bool, error) {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
+		var zeroVal *bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("includeDeprecated"))
+	if tmp, ok := rawArgs["includeDeprecated"]; ok {
+		return ec.unmarshalOBoolean2ᚖbool(ctx, tmp)
+	}
+
+	var zeroVal *bool
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
 	arg0, err := ec.field___Type_enumValues_argsIncludeDeprecated(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1919,13 +1813,9 @@ func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, ra
 }
 func (ec *executionContext) field___Type_enumValues_argsIncludeDeprecated(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (bool, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["includeDeprecated"]
-	if !ok {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
 		var zeroVal bool
 		return zeroVal, nil
 	}
@@ -1939,9 +1829,9 @@ func (ec *executionContext) field___Type_enumValues_argsIncludeDeprecated(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
-	args := map[string]interface{}{}
+	args := map[string]any{}
 	arg0, err := ec.field___Type_fields_argsIncludeDeprecated(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -1951,13 +1841,9 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 }
 func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 	ctx context.Context,
-	rawArgs map[string]interface{},
+	rawArgs map[string]any,
 ) (bool, error) {
-	// We won't call the directive if the argument is null.
-	// Set call_argument_directives_with_null to true to call directives
-	// even if the argument is null.
-	_, ok := rawArgs["includeDeprecated"]
-	if !ok {
+	if _, ok := rawArgs["includeDeprecated"]; !ok {
 		var zeroVal bool
 		return zeroVal, nil
 	}
@@ -1979,182 +1865,6 @@ func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _AllowedCategoryAttributes_title(ctx context.Context, field graphql.CollectedField, obj *model.AllowedCategoryAttributes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AllowedCategoryAttributes_title(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AllowedCategoryAttributes_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AllowedCategoryAttributes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AllowedCategoryAttributes_dataType(ctx context.Context, field graphql.CollectedField, obj *model.AllowedCategoryAttributes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AllowedCategoryAttributes_dataType(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DataType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ProductAttributeDataType)
-	fc.Result = res
-	return ec.marshalNProductAttributeDataType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductAttributeDataType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AllowedCategoryAttributes_dataType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AllowedCategoryAttributes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ProductAttributeDataType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AllowedProductAttributes_title(ctx context.Context, field graphql.CollectedField, obj *model.AllowedProductAttributes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AllowedProductAttributes_title(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AllowedProductAttributes_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AllowedProductAttributes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AllowedProductAttributes_dataType(ctx context.Context, field graphql.CollectedField, obj *model.AllowedProductAttributes) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AllowedProductAttributes_dataType(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DataType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ProductAttributeDataType)
-	fc.Result = res
-	return ec.marshalNProductAttributeDataType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductAttributeDataType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_AllowedProductAttributes_dataType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AllowedProductAttributes",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ProductAttributeDataType does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Cart_id(ctx context.Context, field graphql.CollectedField, obj *model.Cart) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Cart_id(ctx, field)
 	if err != nil {
@@ -2167,7 +1877,7 @@ func (ec *executionContext) _Cart_id(ctx context.Context, field graphql.Collecte
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ID, nil
 	})
@@ -2211,7 +1921,7 @@ func (ec *executionContext) _Cart_items(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Items, nil
 	})
@@ -2263,7 +1973,7 @@ func (ec *executionContext) _Cart_total(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Total, nil
 	})
@@ -2307,7 +2017,7 @@ func (ec *executionContext) _CartItem_id(ctx context.Context, field graphql.Coll
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ID, nil
 	})
@@ -2351,7 +2061,7 @@ func (ec *executionContext) _CartItem_product(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Product, nil
 	})
@@ -2405,7 +2115,7 @@ func (ec *executionContext) _CartItem_quantity(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Quantity, nil
 	})
@@ -2449,7 +2159,7 @@ func (ec *executionContext) _CartProduct_id(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ID, nil
 	})
@@ -2493,7 +2203,7 @@ func (ec *executionContext) _CartProduct_title(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Title, nil
 	})
@@ -2537,7 +2247,7 @@ func (ec *executionContext) _CartProduct_price(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Price, nil
 	})
@@ -2581,7 +2291,7 @@ func (ec *executionContext) _CartProduct_image(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Image, nil
 	})
@@ -2625,7 +2335,7 @@ func (ec *executionContext) _Category_id(ctx context.Context, field graphql.Coll
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Category().ID(rctx, obj)
 	})
@@ -2669,7 +2379,7 @@ func (ec *executionContext) _Category_slug(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Slug, nil
 	})
@@ -2713,7 +2423,7 @@ func (ec *executionContext) _Category_title(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Title, nil
 	})
@@ -2757,7 +2467,7 @@ func (ec *executionContext) _Category_description(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
@@ -2798,7 +2508,7 @@ func (ec *executionContext) _Category_products(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Category().Products(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
@@ -2846,56 +2556,6 @@ func (ec *executionContext) fieldContext_Category_products(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_allowedAttributes(ctx context.Context, field graphql.CollectedField, obj *model.Category) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Category_allowedAttributes(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AllowedAttributes, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]model.AllowedCategoryAttributes)
-	fc.Result = res
-	return ec.marshalNAllowedCategoryAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAllowedCategoryAttributesᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Category_allowedAttributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Category",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "title":
-				return ec.fieldContext_AllowedCategoryAttributes_title(ctx, field)
-			case "dataType":
-				return ec.fieldContext_AllowedCategoryAttributes_dataType(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AllowedCategoryAttributes", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Category_images(ctx context.Context, field graphql.CollectedField, obj *model.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_images(ctx, field)
 	if err != nil {
@@ -2908,7 +2568,7 @@ func (ec *executionContext) _Category_images(ctx context.Context, field graphql.
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Category().Images(rctx, obj)
 	})
@@ -2953,7 +2613,7 @@ func (ec *executionContext) _Category_updatedAt(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.UpdatedAt, nil
 	})
@@ -2997,7 +2657,7 @@ func (ec *executionContext) _Category_createdAt(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.CreatedAt, nil
 	})
@@ -3041,7 +2701,7 @@ func (ec *executionContext) _CategoryConnection_edges(ctx context.Context, field
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Edges, nil
 	})
@@ -3091,7 +2751,7 @@ func (ec *executionContext) _CategoryConnection_pageInfo(ctx context.Context, fi
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.PageInfo, nil
 	})
@@ -3145,7 +2805,7 @@ func (ec *executionContext) _CategoryConnection_totalCount(ctx context.Context, 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.TotalCount, nil
 	})
@@ -3189,7 +2849,7 @@ func (ec *executionContext) _CategoryEdge_cursor(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Cursor, nil
 	})
@@ -3233,7 +2893,7 @@ func (ec *executionContext) _CategoryEdge_node(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Node, nil
 	})
@@ -3270,8 +2930,6 @@ func (ec *executionContext) fieldContext_CategoryEdge_node(_ context.Context, fi
 				return ec.fieldContext_Category_description(ctx, field)
 			case "products":
 				return ec.fieldContext_Category_products(ctx, field)
-			case "allowedAttributes":
-				return ec.fieldContext_Category_allowedAttributes(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			case "updatedAt":
@@ -3297,7 +2955,7 @@ func (ec *executionContext) _CategoryImages_banner(ctx context.Context, field gr
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Banner, nil
 	})
@@ -3347,7 +3005,7 @@ func (ec *executionContext) _CategoryNotFoundError_message(ctx context.Context, 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Message, nil
 	})
@@ -3391,7 +3049,7 @@ func (ec *executionContext) _CategoryNotFoundError_code(ctx context.Context, fie
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Code, nil
 	})
@@ -3435,7 +3093,7 @@ func (ec *executionContext) _CategoryNotFoundError_path(ctx context.Context, fie
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Path, nil
 	})
@@ -3479,7 +3137,7 @@ func (ec *executionContext) _Image_url(ctx context.Context, field graphql.Collec
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.URL, nil
 	})
@@ -3523,7 +3181,7 @@ func (ec *executionContext) _Image_altText(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.AltText, nil
 	})
@@ -3564,7 +3222,7 @@ func (ec *executionContext) _Mutation_addCartItem(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddCartItem(rctx, fc.Args["input"].(model.AddCartItemInput))
 	})
@@ -3624,7 +3282,7 @@ func (ec *executionContext) _Mutation_removeCartItem(ctx context.Context, field 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().RemoveCartItem(rctx, fc.Args["input"].(model.RemoveCartItemInput))
 	})
@@ -3684,7 +3342,7 @@ func (ec *executionContext) _Mutation_updateCartItem(ctx context.Context, field 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UpdateCartItem(rctx, fc.Args["input"].(model.UpdateCartItemInput))
 	})
@@ -3744,7 +3402,7 @@ func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.StartCursor, nil
 	})
@@ -3788,7 +3446,7 @@ func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.EndCursor, nil
 	})
@@ -3832,7 +3490,7 @@ func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.HasNextPage, nil
 	})
@@ -3876,7 +3534,7 @@ func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.HasPreviousPage, nil
 	})
@@ -3920,7 +3578,7 @@ func (ec *executionContext) _Product_id(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Product().ID(rctx, obj)
 	})
@@ -3964,7 +3622,7 @@ func (ec *executionContext) _Product_title(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Title, nil
 	})
@@ -4008,7 +3666,7 @@ func (ec *executionContext) _Product_description(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
@@ -4040,6 +3698,56 @@ func (ec *executionContext) fieldContext_Product_description(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Product_attributes(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Product_attributes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Attributes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.ProductAttribute)
+	fc.Result = res
+	return ec.marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductAttributeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Product_attributes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Product",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "attribute_title":
+				return ec.fieldContext_ProductAttribute_attribute_title(ctx, field)
+			case "value":
+				return ec.fieldContext_ProductAttribute_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProductAttribute", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Product_defaultVariant(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Product_defaultVariant(ctx, field)
 	if err != nil {
@@ -4052,7 +3760,7 @@ func (ec *executionContext) _Product_defaultVariant(ctx context.Context, field g
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Product().DefaultVariant(rctx, obj)
 	})
@@ -4093,10 +3801,6 @@ func (ec *executionContext) fieldContext_Product_defaultVariant(_ context.Contex
 				return ec.fieldContext_ProductVariant_attributes(ctx, field)
 			case "stockStatus":
 				return ec.fieldContext_ProductVariant_stockStatus(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_ProductVariant_updatedAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_ProductVariant_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProductVariant", field.Name)
 		},
@@ -4116,9 +3820,9 @@ func (ec *executionContext) _Product_variants(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Product().Variants(rctx, obj)
+		return obj.Variants, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4139,8 +3843,8 @@ func (ec *executionContext) fieldContext_Product_variants(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "Product",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -4157,10 +3861,6 @@ func (ec *executionContext) fieldContext_Product_variants(_ context.Context, fie
 				return ec.fieldContext_ProductVariant_attributes(ctx, field)
 			case "stockStatus":
 				return ec.fieldContext_ProductVariant_stockStatus(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_ProductVariant_updatedAt(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_ProductVariant_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProductVariant", field.Name)
 		},
@@ -4180,7 +3880,7 @@ func (ec *executionContext) _Product_images(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Product().Images(rctx, obj)
 	})
@@ -4230,7 +3930,7 @@ func (ec *executionContext) _Product_updatedAt(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.UpdatedAt, nil
 	})
@@ -4274,7 +3974,7 @@ func (ec *executionContext) _Product_createdAt(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.CreatedAt, nil
 	})
@@ -4306,8 +4006,8 @@ func (ec *executionContext) fieldContext_Product_createdAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductAttribute_key(ctx context.Context, field graphql.CollectedField, obj *model.ProductAttribute) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductAttribute_key(ctx, field)
+func (ec *executionContext) _ProductAttribute_attribute_title(ctx context.Context, field graphql.CollectedField, obj *model.ProductAttribute) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProductAttribute_attribute_title(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -4318,9 +4018,9 @@ func (ec *executionContext) _ProductAttribute_key(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Key, nil
+		return obj.AttributeTitle, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4337,7 +4037,7 @@ func (ec *executionContext) _ProductAttribute_key(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_ProductAttribute_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ProductAttribute_attribute_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProductAttribute",
 		Field:      field,
@@ -4362,7 +4062,7 @@ func (ec *executionContext) _ProductAttribute_value(ctx context.Context, field g
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Value, nil
 	})
@@ -4371,98 +4071,19 @@ func (ec *executionContext) _ProductAttribute_value(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProductAttribute_value(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProductAttribute",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProductAttributeValue_intValue(ctx context.Context, field graphql.CollectedField, obj *model.ProductAttributeValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductAttributeValue_intValue(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IntValue, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*int)
-	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProductAttributeValue_intValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProductAttributeValue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProductAttributeValue_stringValue(ctx context.Context, field graphql.CollectedField, obj *model.ProductAttributeValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductAttributeValue_stringValue(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.StringValue, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProductAttributeValue_stringValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProductAttributeValue",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -4485,7 +4106,7 @@ func (ec *executionContext) _ProductConnection_edges(ctx context.Context, field 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Edges, nil
 	})
@@ -4535,7 +4156,7 @@ func (ec *executionContext) _ProductConnection_pageInfo(ctx context.Context, fie
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.PageInfo, nil
 	})
@@ -4589,7 +4210,7 @@ func (ec *executionContext) _ProductConnection_totalCount(ctx context.Context, f
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.TotalCount, nil
 	})
@@ -4633,7 +4254,7 @@ func (ec *executionContext) _ProductEdge_cursor(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Cursor, nil
 	})
@@ -4677,7 +4298,7 @@ func (ec *executionContext) _ProductEdge_node(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Node, nil
 	})
@@ -4710,6 +4331,8 @@ func (ec *executionContext) fieldContext_ProductEdge_node(_ context.Context, fie
 				return ec.fieldContext_Product_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
+			case "attributes":
+				return ec.fieldContext_Product_attributes(ctx, field)
 			case "defaultVariant":
 				return ec.fieldContext_Product_defaultVariant(ctx, field)
 			case "variants":
@@ -4739,7 +4362,7 @@ func (ec *executionContext) _ProductNotFoundError_message(ctx context.Context, f
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Message, nil
 	})
@@ -4783,7 +4406,7 @@ func (ec *executionContext) _ProductNotFoundError_code(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Code, nil
 	})
@@ -4827,7 +4450,7 @@ func (ec *executionContext) _ProductNotFoundError_path(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Path, nil
 	})
@@ -4871,7 +4494,7 @@ func (ec *executionContext) _ProductVariant_id(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ID, nil
 	})
@@ -4915,7 +4538,7 @@ func (ec *executionContext) _ProductVariant_slug(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Slug, nil
 	})
@@ -4959,7 +4582,7 @@ func (ec *executionContext) _ProductVariant_price(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Price, nil
 	})
@@ -5003,7 +4626,7 @@ func (ec *executionContext) _ProductVariant_availableQuantity(ctx context.Contex
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.AvailableQuantity, nil
 	})
@@ -5047,7 +4670,7 @@ func (ec *executionContext) _ProductVariant_description(ctx context.Context, fie
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description, nil
 	})
@@ -5091,7 +4714,7 @@ func (ec *executionContext) _ProductVariant_attributes(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Attributes, nil
 	})
@@ -5118,8 +4741,8 @@ func (ec *executionContext) fieldContext_ProductVariant_attributes(_ context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "key":
-				return ec.fieldContext_ProductAttribute_key(ctx, field)
+			case "attribute_title":
+				return ec.fieldContext_ProductAttribute_attribute_title(ctx, field)
 			case "value":
 				return ec.fieldContext_ProductAttribute_value(ctx, field)
 			}
@@ -5141,7 +4764,7 @@ func (ec *executionContext) _ProductVariant_stockStatus(ctx context.Context, fie
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.StockStatus, nil
 	})
@@ -5173,94 +4796,6 @@ func (ec *executionContext) fieldContext_ProductVariant_stockStatus(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ProductVariant_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.ProductVariant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductVariant_updatedAt(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProductVariant_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProductVariant",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProductVariant_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.ProductVariant) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ProductVariant_createdAt(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CreatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ProductVariant_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProductVariant",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_node(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_node(ctx, field)
 	if err != nil {
@@ -5273,7 +4808,7 @@ func (ec *executionContext) _Query_node(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Node(rctx, fc.Args["id"].(string))
 	})
@@ -5325,7 +4860,7 @@ func (ec *executionContext) _Query_cart(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Cart(rctx)
 	})
@@ -5374,7 +4909,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Categories(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
@@ -5434,7 +4969,7 @@ func (ec *executionContext) _Query_category(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Category(rctx, fc.Args["id"].(string))
 	})
@@ -5468,8 +5003,6 @@ func (ec *executionContext) fieldContext_Query_category(ctx context.Context, fie
 				return ec.fieldContext_Category_description(ctx, field)
 			case "products":
 				return ec.fieldContext_Category_products(ctx, field)
-			case "allowedAttributes":
-				return ec.fieldContext_Category_allowedAttributes(ctx, field)
 			case "images":
 				return ec.fieldContext_Category_images(ctx, field)
 			case "updatedAt":
@@ -5506,7 +5039,7 @@ func (ec *executionContext) _Query_products(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Products(rctx, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
@@ -5569,7 +5102,7 @@ func (ec *executionContext) _Query_product(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Product(rctx, fc.Args["id"].(string))
 	})
@@ -5599,6 +5132,8 @@ func (ec *executionContext) fieldContext_Query_product(ctx context.Context, fiel
 				return ec.fieldContext_Product_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Product_description(ctx, field)
+			case "attributes":
+				return ec.fieldContext_Product_attributes(ctx, field)
 			case "defaultVariant":
 				return ec.fieldContext_Product_defaultVariant(ctx, field)
 			case "variants":
@@ -5639,7 +5174,7 @@ func (ec *executionContext) _Query_shop(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Shop(rctx)
 	})
@@ -5723,7 +5258,7 @@ func (ec *executionContext) _Query___type(ctx context.Context, field graphql.Col
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.introspectType(fc.Args["name"].(string))
 	})
@@ -5767,6 +5302,8 @@ func (ec *executionContext) fieldContext_Query___type(ctx context.Context, field
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -5797,7 +5334,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.introspectSchema()
 	})
@@ -5852,7 +5389,7 @@ func (ec *executionContext) _Shop_id(ctx context.Context, field graphql.Collecte
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Shop().ID(rctx, obj)
 	})
@@ -5896,7 +5433,7 @@ func (ec *executionContext) _Shop_title(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Title, nil
 	})
@@ -5940,7 +5477,7 @@ func (ec *executionContext) _Shop_defaultDomain(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DefaultDomain, nil
 	})
@@ -5984,7 +5521,7 @@ func (ec *executionContext) _Shop_contactPhone(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ContactPhone, nil
 	})
@@ -6025,7 +5562,7 @@ func (ec *executionContext) _Shop_contactEmail(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ContactEmail, nil
 	})
@@ -6066,7 +5603,7 @@ func (ec *executionContext) _Shop_address(ctx context.Context, field graphql.Col
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Address, nil
 	})
@@ -6114,7 +5651,7 @@ func (ec *executionContext) _Shop_products(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Shop().Products(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
@@ -6174,7 +5711,7 @@ func (ec *executionContext) _Shop_categories(ctx context.Context, field graphql.
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Shop().Categories(rctx, obj, fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
@@ -6234,7 +5771,7 @@ func (ec *executionContext) _Shop_whatsAppNumber(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.WhatsAppNumber, nil
 	})
@@ -6275,7 +5812,7 @@ func (ec *executionContext) _Shop_whatsAppLink(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.WhatsAppLink, nil
 	})
@@ -6316,7 +5853,7 @@ func (ec *executionContext) _Shop_facebookLink(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.FacebookLink, nil
 	})
@@ -6357,7 +5894,7 @@ func (ec *executionContext) _Shop_instagramLink(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.InstagramLink, nil
 	})
@@ -6398,7 +5935,7 @@ func (ec *executionContext) _Shop_images(ctx context.Context, field graphql.Coll
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Shop().Images(rctx, obj)
 	})
@@ -6452,7 +5989,7 @@ func (ec *executionContext) _Shop_currencyCode(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.CurrencyCode, nil
 	})
@@ -6496,7 +6033,7 @@ func (ec *executionContext) _Shop_about(ctx context.Context, field graphql.Colle
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.About, nil
 	})
@@ -6537,7 +6074,7 @@ func (ec *executionContext) _Shop_shopProductsCategory(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ShopProductsCategory, nil
 	})
@@ -6578,7 +6115,7 @@ func (ec *executionContext) _Shop_seoDescription(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SeoDescription, nil
 	})
@@ -6619,7 +6156,7 @@ func (ec *executionContext) _Shop_seoKeywords(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SeoKeywords, nil
 	})
@@ -6663,7 +6200,7 @@ func (ec *executionContext) _Shop_seoTitle(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SeoTitle, nil
 	})
@@ -6704,7 +6241,7 @@ func (ec *executionContext) _ShopAddress_address(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Address, nil
 	})
@@ -6748,7 +6285,7 @@ func (ec *executionContext) _ShopImages_siteLogo(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SiteLogo, nil
 	})
@@ -6795,7 +6332,7 @@ func (ec *executionContext) _ShopImages_favicon(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Favicon, nil
 	})
@@ -6842,7 +6379,7 @@ func (ec *executionContext) _ShopImages_banner(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Banner, nil
 	})
@@ -6889,7 +6426,7 @@ func (ec *executionContext) _ShopImages_coverImage(ctx context.Context, field gr
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.CoverImage, nil
 	})
@@ -6936,7 +6473,7 @@ func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
@@ -6980,7 +6517,7 @@ func (ec *executionContext) ___Directive_description(ctx context.Context, field 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -7021,7 +6558,7 @@ func (ec *executionContext) ___Directive_locations(ctx context.Context, field gr
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Locations, nil
 	})
@@ -7065,7 +6602,7 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Args, nil
 	})
@@ -7084,7 +6621,7 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext___Directive_args(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext___Directive_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Directive",
 		Field:      field,
@@ -7100,9 +6637,24 @@ func (ec *executionContext) fieldContext___Directive_args(_ context.Context, fie
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field___Directive_args_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7119,7 +6671,7 @@ func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsRepeatable, nil
 	})
@@ -7163,7 +6715,7 @@ func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
@@ -7207,7 +6759,7 @@ func (ec *executionContext) ___EnumValue_description(ctx context.Context, field 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -7248,7 +6800,7 @@ func (ec *executionContext) ___EnumValue_isDeprecated(ctx context.Context, field
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsDeprecated(), nil
 	})
@@ -7292,7 +6844,7 @@ func (ec *executionContext) ___EnumValue_deprecationReason(ctx context.Context, 
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DeprecationReason(), nil
 	})
@@ -7333,7 +6885,7 @@ func (ec *executionContext) ___Field_name(ctx context.Context, field graphql.Col
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
@@ -7377,7 +6929,7 @@ func (ec *executionContext) ___Field_description(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -7418,7 +6970,7 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Args, nil
 	})
@@ -7437,7 +6989,7 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext___Field_args(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext___Field_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Field",
 		Field:      field,
@@ -7453,9 +7005,24 @@ func (ec *executionContext) fieldContext___Field_args(_ context.Context, field g
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field___Field_args_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -7472,7 +7039,7 @@ func (ec *executionContext) ___Field_type(ctx context.Context, field graphql.Col
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Type, nil
 	})
@@ -7519,6 +7086,8 @@ func (ec *executionContext) fieldContext___Field_type(_ context.Context, field g
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -7538,7 +7107,7 @@ func (ec *executionContext) ___Field_isDeprecated(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.IsDeprecated(), nil
 	})
@@ -7582,7 +7151,7 @@ func (ec *executionContext) ___Field_deprecationReason(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DeprecationReason(), nil
 	})
@@ -7623,7 +7192,7 @@ func (ec *executionContext) ___InputValue_name(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name, nil
 	})
@@ -7667,7 +7236,7 @@ func (ec *executionContext) ___InputValue_description(ctx context.Context, field
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -7708,7 +7277,7 @@ func (ec *executionContext) ___InputValue_type(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Type, nil
 	})
@@ -7755,6 +7324,8 @@ func (ec *executionContext) fieldContext___InputValue_type(_ context.Context, fi
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -7774,7 +7345,7 @@ func (ec *executionContext) ___InputValue_defaultValue(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.DefaultValue, nil
 	})
@@ -7803,6 +7374,91 @@ func (ec *executionContext) fieldContext___InputValue_defaultValue(_ context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) ___InputValue_isDeprecated(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___InputValue_isDeprecated(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDeprecated(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___InputValue_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__InputValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) ___InputValue_deprecationReason(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___InputValue_deprecationReason(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeprecationReason(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___InputValue_deprecationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__InputValue",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) ___Schema_description(ctx context.Context, field graphql.CollectedField, obj *introspection.Schema) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext___Schema_description(ctx, field)
 	if err != nil {
@@ -7815,7 +7471,7 @@ func (ec *executionContext) ___Schema_description(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -7856,7 +7512,7 @@ func (ec *executionContext) ___Schema_types(ctx context.Context, field graphql.C
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Types(), nil
 	})
@@ -7903,6 +7559,8 @@ func (ec *executionContext) fieldContext___Schema_types(_ context.Context, field
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -7922,7 +7580,7 @@ func (ec *executionContext) ___Schema_queryType(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.QueryType(), nil
 	})
@@ -7969,6 +7627,8 @@ func (ec *executionContext) fieldContext___Schema_queryType(_ context.Context, f
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -7988,7 +7648,7 @@ func (ec *executionContext) ___Schema_mutationType(ctx context.Context, field gr
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.MutationType(), nil
 	})
@@ -8032,6 +7692,8 @@ func (ec *executionContext) fieldContext___Schema_mutationType(_ context.Context
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -8051,7 +7713,7 @@ func (ec *executionContext) ___Schema_subscriptionType(ctx context.Context, fiel
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SubscriptionType(), nil
 	})
@@ -8095,6 +7757,8 @@ func (ec *executionContext) fieldContext___Schema_subscriptionType(_ context.Con
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -8114,7 +7778,7 @@ func (ec *executionContext) ___Schema_directives(ctx context.Context, field grap
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Directives(), nil
 	})
@@ -8170,7 +7834,7 @@ func (ec *executionContext) ___Type_kind(ctx context.Context, field graphql.Coll
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Kind(), nil
 	})
@@ -8214,7 +7878,7 @@ func (ec *executionContext) ___Type_name(ctx context.Context, field graphql.Coll
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Name(), nil
 	})
@@ -8255,7 +7919,7 @@ func (ec *executionContext) ___Type_description(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Description(), nil
 	})
@@ -8296,7 +7960,7 @@ func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Fields(fc.Args["includeDeprecated"].(bool)), nil
 	})
@@ -8362,7 +8026,7 @@ func (ec *executionContext) ___Type_interfaces(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Interfaces(), nil
 	})
@@ -8406,6 +8070,8 @@ func (ec *executionContext) fieldContext___Type_interfaces(_ context.Context, fi
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -8425,7 +8091,7 @@ func (ec *executionContext) ___Type_possibleTypes(ctx context.Context, field gra
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.PossibleTypes(), nil
 	})
@@ -8469,6 +8135,8 @@ func (ec *executionContext) fieldContext___Type_possibleTypes(_ context.Context,
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -8488,7 +8156,7 @@ func (ec *executionContext) ___Type_enumValues(ctx context.Context, field graphq
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.EnumValues(fc.Args["includeDeprecated"].(bool)), nil
 	})
@@ -8550,7 +8218,7 @@ func (ec *executionContext) ___Type_inputFields(ctx context.Context, field graph
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.InputFields(), nil
 	})
@@ -8582,6 +8250,10 @@ func (ec *executionContext) fieldContext___Type_inputFields(_ context.Context, f
 				return ec.fieldContext___InputValue_type(ctx, field)
 			case "defaultValue":
 				return ec.fieldContext___InputValue_defaultValue(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+			case "deprecationReason":
+				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
 		},
@@ -8601,7 +8273,7 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.OfType(), nil
 	})
@@ -8645,6 +8317,8 @@ func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field 
 				return ec.fieldContext___Type_ofType(ctx, field)
 			case "specifiedByURL":
 				return ec.fieldContext___Type_specifiedByURL(ctx, field)
+			case "isOneOf":
+				return ec.fieldContext___Type_isOneOf(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 		},
@@ -8664,7 +8338,7 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 			ret = graphql.Null
 		}
 	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.SpecifiedByURL(), nil
 	})
@@ -8693,14 +8367,55 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) ___Type_isOneOf(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext___Type_isOneOf(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsOneOf(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "__Type",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 // endregion **************************** field.gotpl *****************************
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputAddCartItemInput(ctx context.Context, obj interface{}) (model.AddCartItemInput, error) {
+func (ec *executionContext) unmarshalInputAddCartItemInput(ctx context.Context, obj any) (model.AddCartItemInput, error) {
 	var it model.AddCartItemInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
@@ -8731,10 +8446,10 @@ func (ec *executionContext) unmarshalInputAddCartItemInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputImageInput(ctx context.Context, obj interface{}) (model.ImageInput, error) {
+func (ec *executionContext) unmarshalInputImageInput(ctx context.Context, obj any) (model.ImageInput, error) {
 	var it model.ImageInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
@@ -8765,10 +8480,10 @@ func (ec *executionContext) unmarshalInputImageInput(ctx context.Context, obj in
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRemoveCartItemInput(ctx context.Context, obj interface{}) (model.RemoveCartItemInput, error) {
+func (ec *executionContext) unmarshalInputRemoveCartItemInput(ctx context.Context, obj any) (model.RemoveCartItemInput, error) {
 	var it model.RemoveCartItemInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
@@ -8792,10 +8507,10 @@ func (ec *executionContext) unmarshalInputRemoveCartItemInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputShopAddressInput(ctx context.Context, obj interface{}) (model.ShopAddressInput, error) {
+func (ec *executionContext) unmarshalInputShopAddressInput(ctx context.Context, obj any) (model.ShopAddressInput, error) {
 	var it model.ShopAddressInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
@@ -8819,10 +8534,10 @@ func (ec *executionContext) unmarshalInputShopAddressInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateCartItemInput(ctx context.Context, obj interface{}) (model.UpdateCartItemInput, error) {
+func (ec *executionContext) unmarshalInputUpdateCartItemInput(ctx context.Context, obj any) (model.UpdateCartItemInput, error) {
 	var it model.UpdateCartItemInput
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
 	}
 
@@ -8920,94 +8635,6 @@ func (ec *executionContext) _UserError(ctx context.Context, sel ast.SelectionSet
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
-
-var allowedCategoryAttributesImplementors = []string{"AllowedCategoryAttributes"}
-
-func (ec *executionContext) _AllowedCategoryAttributes(ctx context.Context, sel ast.SelectionSet, obj *model.AllowedCategoryAttributes) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, allowedCategoryAttributesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AllowedCategoryAttributes")
-		case "title":
-			out.Values[i] = ec._AllowedCategoryAttributes_title(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "dataType":
-			out.Values[i] = ec._AllowedCategoryAttributes_dataType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var allowedProductAttributesImplementors = []string{"AllowedProductAttributes"}
-
-func (ec *executionContext) _AllowedProductAttributes(ctx context.Context, sel ast.SelectionSet, obj *model.AllowedProductAttributes) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, allowedProductAttributesImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("AllowedProductAttributes")
-		case "title":
-			out.Values[i] = ec._AllowedProductAttributes_title(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "dataType":
-			out.Values[i] = ec._AllowedProductAttributes_dataType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
 
 var cartImplementors = []string{"Cart"}
 
@@ -9253,11 +8880,6 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "allowedAttributes":
-			out.Values[i] = ec._Category_allowedAttributes(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
-			}
 		case "images":
 			field := field
 
@@ -9711,6 +9333,11 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "attributes":
+			out.Values[i] = ec._Product_attributes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "defaultVariant":
 			field := field
 
@@ -9748,41 +9375,10 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "variants":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Product_variants(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Product_variants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "images":
 			field := field
 
@@ -9863,51 +9459,16 @@ func (ec *executionContext) _ProductAttribute(ctx context.Context, sel ast.Selec
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ProductAttribute")
-		case "key":
-			out.Values[i] = ec._ProductAttribute_key(ctx, field, obj)
+		case "attribute_title":
+			out.Values[i] = ec._ProductAttribute_attribute_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "value":
 			out.Values[i] = ec._ProductAttribute_value(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var productAttributeValueImplementors = []string{"ProductAttributeValue"}
-
-func (ec *executionContext) _ProductAttributeValue(ctx context.Context, sel ast.SelectionSet, obj *model.ProductAttributeValue) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, productAttributeValueImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ProductAttributeValue")
-		case "intValue":
-			out.Values[i] = ec._ProductAttributeValue_intValue(ctx, field, obj)
-		case "stringValue":
-			out.Values[i] = ec._ProductAttributeValue_stringValue(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10116,16 +9677,6 @@ func (ec *executionContext) _ProductVariant(ctx context.Context, sel ast.Selecti
 			}
 		case "stockStatus":
 			out.Values[i] = ec._ProductVariant_stockStatus(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updatedAt":
-			out.Values[i] = ec._ProductVariant_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createdAt":
-			out.Values[i] = ec._ProductVariant_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -10826,6 +10377,13 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 			}
 		case "defaultValue":
 			out.Values[i] = ec.___InputValue_defaultValue(ctx, field, obj)
+		case "isDeprecated":
+			out.Values[i] = ec.___InputValue_isDeprecated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deprecationReason":
+			out.Values[i] = ec.___InputValue_deprecationReason(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10938,6 +10496,8 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec.___Type_ofType(ctx, field, obj)
 		case "specifiedByURL":
 			out.Values[i] = ec.___Type_specifiedByURL(ctx, field, obj)
+		case "isOneOf":
+			out.Values[i] = ec.___Type_isOneOf(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10965,60 +10525,12 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAddCartItemInput(ctx context.Context, v interface{}) (model.AddCartItemInput, error) {
+func (ec *executionContext) unmarshalNAddCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAddCartItemInput(ctx context.Context, v any) (model.AddCartItemInput, error) {
 	res, err := ec.unmarshalInputAddCartItemInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAllowedCategoryAttributes2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAllowedCategoryAttributes(ctx context.Context, sel ast.SelectionSet, v model.AllowedCategoryAttributes) graphql.Marshaler {
-	return ec._AllowedCategoryAttributes(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNAllowedCategoryAttributes2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAllowedCategoryAttributesᚄ(ctx context.Context, sel ast.SelectionSet, v []model.AllowedCategoryAttributes) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNAllowedCategoryAttributes2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐAllowedCategoryAttributes(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
+func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11149,7 +10661,7 @@ func (ec *executionContext) marshalNCategoryEdge2ᚕgithubᚗcomᚋpetrejonnᚋn
 	return ret
 }
 
-func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+func (ec *executionContext) unmarshalNDateTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11164,7 +10676,7 @@ func (ec *executionContext) marshalNDateTime2timeᚐTime(ctx context.Context, se
 	return res
 }
 
-func (ec *executionContext) unmarshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐErrorCode(ctx context.Context, v interface{}) (model.ErrorCode, error) {
+func (ec *executionContext) unmarshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐErrorCode(ctx context.Context, v any) (model.ErrorCode, error) {
 	var res model.ErrorCode
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -11174,7 +10686,7 @@ func (ec *executionContext) marshalNErrorCode2githubᚗcomᚋpetrejonnᚋnaytife
 	return v
 }
 
-func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v any) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11189,7 +10701,7 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalID(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11262,7 +10774,7 @@ func (ec *executionContext) marshalNImage2ᚖgithubᚗcomᚋpetrejonnᚋnaytife�
 	return ec._Image(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11345,16 +10857,6 @@ func (ec *executionContext) marshalNProductAttribute2ᚕgithubᚗcomᚋpetrejonn
 	return ret
 }
 
-func (ec *executionContext) unmarshalNProductAttributeDataType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductAttributeDataType(ctx context.Context, v interface{}) (model.ProductAttributeDataType, error) {
-	var res model.ProductAttributeDataType
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNProductAttributeDataType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductAttributeDataType(ctx context.Context, sel ast.SelectionSet, v model.ProductAttributeDataType) graphql.Marshaler {
-	return v
-}
-
 func (ec *executionContext) marshalNProductConnection2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductConnection(ctx context.Context, sel ast.SelectionSet, v model.ProductConnection) graphql.Marshaler {
 	return ec._ProductConnection(ctx, sel, &v)
 }
@@ -11417,7 +10919,7 @@ func (ec *executionContext) marshalNProductEdge2ᚕgithubᚗcomᚋpetrejonnᚋna
 	return ret
 }
 
-func (ec *executionContext) unmarshalNProductStockStatus2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductStockStatus(ctx context.Context, v interface{}) (model.ProductStockStatus, error) {
+func (ec *executionContext) unmarshalNProductStockStatus2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐProductStockStatus(ctx context.Context, v any) (model.ProductStockStatus, error) {
 	var res model.ProductStockStatus
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -11485,7 +10987,7 @@ func (ec *executionContext) marshalNProductVariant2ᚖgithubᚗcomᚋpetrejonn�
 	return ec._ProductVariant(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNRemoveCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐRemoveCartItemInput(ctx context.Context, v interface{}) (model.RemoveCartItemInput, error) {
+func (ec *executionContext) unmarshalNRemoveCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐRemoveCartItemInput(ctx context.Context, v any) (model.RemoveCartItemInput, error) {
 	res, err := ec.unmarshalInputRemoveCartItemInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11528,7 +11030,7 @@ func (ec *executionContext) marshalNShopImages2ᚖgithubᚗcomᚋpetrejonnᚋnay
 	return ec._ShopImages(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
+func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11543,8 +11045,8 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
 	if v != nil {
 		vSlice = graphql.CoerceList(v)
 	}
@@ -11575,7 +11077,7 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) unmarshalNUpdateCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐUpdateCartItemInput(ctx context.Context, v interface{}) (model.UpdateCartItemInput, error) {
+func (ec *executionContext) unmarshalNUpdateCartItemInput2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐUpdateCartItemInput(ctx context.Context, v any) (model.UpdateCartItemInput, error) {
 	res, err := ec.unmarshalInputUpdateCartItemInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11628,7 +11130,7 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 	return ret
 }
 
-func (ec *executionContext) unmarshalN__DirectiveLocation2string(ctx context.Context, v interface{}) (string, error) {
+func (ec *executionContext) unmarshalN__DirectiveLocation2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11643,8 +11145,8 @@ func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Conte
 	return res
 }
 
-func (ec *executionContext) unmarshalN__DirectiveLocation2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	var vSlice []interface{}
+func (ec *executionContext) unmarshalN__DirectiveLocation2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
 	if v != nil {
 		vSlice = graphql.CoerceList(v)
 	}
@@ -11818,7 +11320,7 @@ func (ec *executionContext) marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgen�
 	return ec.___Type(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalN__TypeKind2string(ctx context.Context, v interface{}) (string, error) {
+func (ec *executionContext) unmarshalN__TypeKind2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11833,7 +11335,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
+func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -11843,7 +11345,7 @@ func (ec *executionContext) marshalOBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalOBoolean2ᚖbool(ctx context.Context, v interface{}) (*bool, error) {
+func (ec *executionContext) unmarshalOBoolean2ᚖbool(ctx context.Context, v any) (*bool, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -11887,7 +11389,7 @@ func (ec *executionContext) marshalOCategoryImages2ᚖgithubᚗcomᚋpetrejonn�
 	return ec._CategoryImages(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -11910,7 +11412,7 @@ func (ec *executionContext) marshalOImage2ᚖgithubᚗcomᚋpetrejonnᚋnaytife�
 	return ec._Image(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -11947,7 +11449,7 @@ func (ec *executionContext) marshalOProductConnection2ᚖgithubᚗcomᚋpetrejon
 	return ec._ProductConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/routes"
 	"github.com/petrejonn/naytife/internal/db"
-	admingraph "github.com/petrejonn/naytife/internal/gql/admin"
 	publicgraph "github.com/petrejonn/naytife/internal/gql/public"
 	"github.com/petrejonn/naytife/internal/middleware"
 )
@@ -106,11 +105,9 @@ func main() {
 	routes.CartRouter(api, repo)
 
 	app.Get("/api/graph", publicgraph.NewPlaygroundHandler("/api/query"))
-	app.Get("/api/admin/graph", admingraph.NewPlaygroundHandler("/api/admin/query"))
 
 	graphql := app.Group("/api/query", middleware.ShopIDMiddlewareFiber(repo))
-	graphql.Post("/", publicgraph.NewHandler(repo))           // public
-	graphql.Post("/admin/query", admingraph.NewHandler(repo)) // admin
+	graphql.Post("/", publicgraph.NewHandler(repo)) // public
 
 	address := ":" + env.PORT
 	fmt.Fprintf(os.Stdout, "🚀 Server ready at port %s\n", address)
