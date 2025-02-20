@@ -3,7 +3,7 @@ package models
 import "github.com/petrejonn/naytife/internal/db"
 
 type Attribute struct {
-	AttributeID   int64                 `json:"attribute_id"`
+	ID            int64                 `json:"attribute_id"`
 	Title         string                `json:"title"`
 	DataType      db.AttributeDataType  `json:"data_type"`
 	Unit          db.AttributeUnit      `json:"unit,omitempty"`
@@ -29,9 +29,9 @@ type AttributeUpdateParams struct {
 }
 
 type AttributeOption struct {
-	AttributeOptionID int64  `json:"attribute_option_id"`
-	Value             string `json:"value"`
-	AttributeID       int64  `json:"attribute_id"`
+	ID          int64  `json:"attribute_option_id"`
+	Value       string `json:"value"`
+	AttributeID int64  `json:"attribute_id"`
 }
 
 type AttributeOptionCreateParams struct {

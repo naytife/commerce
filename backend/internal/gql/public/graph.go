@@ -20,7 +20,7 @@ func NewHandler(repo db.Repository) fiber.Handler {
 	return adaptor.HTTPHandler(h)
 }
 func NewPlaygroundHandler(endpoint string) fiber.Handler {
-	h := playground.AltairHandler("Naytife Storefront Playground", endpoint)
+	h := playground.AltairHandler("Naytife Storefront Playground", endpoint, map[string]any{})
 
 	return adaptor.HTTPHandler(h)
 }

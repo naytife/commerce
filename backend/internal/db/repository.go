@@ -137,7 +137,7 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	config.ConnConfig.Tracer = traceLogger
 
 	// Set pool settings
-	config.MaxConns = 1
+	config.MaxConns = 5
 	config.MinConns = 1
 	config.MaxConnIdleTime = 5 * time.Minute
 

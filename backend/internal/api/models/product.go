@@ -6,7 +6,7 @@ import (
 )
 
 type Product struct {
-	ProductID   int64              `json:"product_id"`
+	ID          int64              `json:"product_id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	Status      db.ProductStatus   `json:"status"`
