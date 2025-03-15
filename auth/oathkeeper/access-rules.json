@@ -52,13 +52,43 @@
     ]
   },
   {
+    "id": "api:shop-enpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://host.minikube.internal:8000"
+    },
+    "match": {
+      "url": "http://127.0.0.1:8080/api/v1/<{shops}><**>",
+      "methods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "keto_engine_acp_ory"
+    },
+    "mutators": [
+      {
+        "handler": "header"
+      }
+    ]
+  },
+  {
     "id": "api:rest-api",
     "upstream": {
       "preserve_host": true,
       "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "http://127.0.0.1:8080/api/v1/<{me,shops}><**>",
+      "url": "http://127.0.0.1:8080/api/v1/<{shops}><**>",
       "methods": [
         "GET",
         "POST",

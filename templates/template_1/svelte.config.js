@@ -23,7 +23,7 @@ const config = {
 		  },
 		alias: {
 			$houdini: '.houdini/'
-		}
+		},
 	}
 };
 

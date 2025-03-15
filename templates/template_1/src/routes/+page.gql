@@ -32,8 +32,6 @@ query Shop {
                         availableQuantity
                         description
                         stockStatus
-                        updatedAt
-                        createdAt
                     }
                 }
             }
@@ -49,10 +47,7 @@ query Shop {
                     description
                     updatedAt
                     createdAt
-                    allowedAttributes {
-                        title
-                        dataType
-                    }
+                   
                 }
             }
         }
