@@ -50,8 +50,8 @@ type Repository interface {
 	DeleteShop(ctx context.Context, shopID int64) error
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 	GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Shop, error)
-	GetShopByDomain(ctx context.Context, defaultDomain string) (Shop, error)
-	GetShopIDByDomain(ctx context.Context, domain string) (int64, error)
+	GetShopBySubDomain(ctx context.Context, defaultSubDomain string) (Shop, error)
+	GetShopIDBySubDomain(ctx context.Context, subDomain string) (int64, error)
 	GetShopImages(ctx context.Context, shopID int64) (ShopImage, error)
 	// PRODUCT-TYPE
 	CreateProductType(ctx context.Context, arg CreateProductTypeParams) (ProductType, error)
@@ -62,8 +62,8 @@ type Repository interface {
 	// ATTRIBUTE
 	CreateAttribute(ctx context.Context, arg CreateAttributeParams) (Attribute, error)
 	DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) (Attribute, error)
-	GetAttribute(ctx context.Context, arg GetAttributeParams) (Attribute, error)
-	GetAttributes(ctx context.Context, arg GetAttributesParams) ([]Attribute, error)
+	GetAttribute(ctx context.Context, arg GetAttributeParams) (GetAttributeRow, error)
+	GetAttributes(ctx context.Context, arg GetAttributesParams) ([]GetAttributesRow, error)
 	UpdateAttribute(ctx context.Context, arg UpdateAttributeParams) (Attribute, error)
 	GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]Attribute, error)
 	GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]Attribute, error)

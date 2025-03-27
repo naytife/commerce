@@ -10,13 +10,14 @@ type Attribute struct {
 	Required      bool                  `json:"required"`
 	AppliesTo     db.AttributeAppliesTo `json:"applies_to"`
 	ProductTypeID int64                 `json:"product_type_id"`
+	Options       []AttributeOption     `json:"options,omitempty"`
 }
 
 type AttributeCreateParams struct {
 	Title     string                `json:"title" validate:"required,min=3,max=255" example:"Size"`
 	DataType  db.AttributeDataType  `json:"data_type" validate:"required,oneof=Text Number Date" example:"Text"`
 	Unit      db.AttributeUnit      `json:"unit,omitempty" example:"KG"`
-	Required  bool                  `json:"required" validate:"required"`
+	Required  bool                  `json:"required" validate:"boolean"`
 	AppliesTo db.AttributeAppliesTo `json:"applies_to" validate:"required,oneof=Product ProductVariation"`
 }
 
@@ -31,7 +32,7 @@ type AttributeUpdateParams struct {
 type AttributeOption struct {
 	ID          int64  `json:"attribute_option_id"`
 	Value       string `json:"value"`
-	AttributeID int64  `json:"attribute_id"`
+	AttributeID int64  `json:"attribute_id,omitempty"`
 }
 
 type AttributeOptionCreateParams struct {

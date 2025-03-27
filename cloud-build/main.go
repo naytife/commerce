@@ -27,7 +27,7 @@ var ctx = context.Background()
 
 const redisQueue = "build-queue"
 const buildDir = "./built_sites"
-const templatesDir = "../templates"
+const templatesDir = "./templates"
 const bucketName = "naytife-shops-static"
 
 type BuildJob struct {

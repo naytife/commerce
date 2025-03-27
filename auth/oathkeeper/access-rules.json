@@ -52,7 +52,7 @@
     ]
   },
   {
-    "id": "api:shop-enpoint",
+    "id": "api:cors",
     "upstream": {
       "preserve_host": true,
       "url": "http://host.minikube.internal:8000"
@@ -60,20 +60,16 @@
     "match": {
       "url": "http://127.0.0.1:8080/api/v1/<{shops}><**>",
       "methods": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH"
+        "OPTIONS"
       ]
     },
     "authenticators": [
       {
-        "handler": "oauth2_introspection"
+        "handler": "noop"
       }
     ],
     "authorizer": {
-      "handler": "keto_engine_acp_ory"
+      "handler": "allow"
     },
     "mutators": [
       {
@@ -94,8 +90,7 @@
         "POST",
         "PUT",
         "DELETE",
-        "PATCH"
-      ]
+        "PATCH"      ]
     },
     "authenticators": [
       {
@@ -103,11 +98,7 @@
       }
     ],
     "authorizer": {
-      "handler": "keto_engine_acp_ory",
-      "config": {
-        "required_action": "read",
-        "required_resource": "admin_panel"
-      }
+      "handler": "allow"
     },
     "mutators": [
       {
@@ -288,13 +279,7 @@
     },
     "authenticators": [
       {
-        "handler": "oauth2_client_credentials",
-        "config": {
-          "required_scope": [
-            "hydra.openid",
-            "offline"
-          ]
-        }
+        "handler": "noop"
       }
     ],
     "authorizer": {

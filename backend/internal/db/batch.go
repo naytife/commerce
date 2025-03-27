@@ -71,6 +71,60 @@ func (b *BatchDeleteProductAttributeValuesBatchResults) Close() error {
 	return b.br.Close()
 }
 
+const batchDeleteProductVariationAttributeValues = `-- name: BatchDeleteProductVariationAttributeValues :batchexec
+DELETE FROM product_variation_attribute_values 
+WHERE product_variation_id = $1 
+AND shop_id = $2
+AND attribute_id NOT IN (SELECT UNNEST($3::int[]))
+`
+
+type BatchDeleteProductVariationAttributeValuesBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type BatchDeleteProductVariationAttributeValuesParams struct {
+	ProductVariationID int64   `json:"product_variation_id"`
+	ShopID             int64   `json:"shop_id"`
+	Column3            []int32 `json:"column_3"`
+}
+
+func (q *Queries) BatchDeleteProductVariationAttributeValues(ctx context.Context, arg []BatchDeleteProductVariationAttributeValuesParams) *BatchDeleteProductVariationAttributeValuesBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ProductVariationID,
+			a.ShopID,
+			a.Column3,
+		}
+		batch.Queue(batchDeleteProductVariationAttributeValues, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &BatchDeleteProductVariationAttributeValuesBatchResults{br, len(arg), false}
+}
+
+func (b *BatchDeleteProductVariationAttributeValuesBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *BatchDeleteProductVariationAttributeValuesBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const batchUpsertProductAttributeValues = `-- name: BatchUpsertProductAttributeValues :batchexec
 INSERT INTO product_attribute_values (value, attribute_option_id, product_id, attribute_id, shop_id)
 VALUES ($1, $2, $3, $4, $5)
@@ -130,6 +184,69 @@ func (b *BatchUpsertProductAttributeValuesBatchResults) Exec(f func(int, error))
 }
 
 func (b *BatchUpsertProductAttributeValuesBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
+const batchUpsertProductVariationAttributeValues = `-- name: BatchUpsertProductVariationAttributeValues :batchexec
+INSERT INTO product_variation_attribute_values (value, attribute_option_id, product_variation_id, attribute_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (product_variation_id, attribute_id, shop_id) 
+DO UPDATE SET 
+    value = EXCLUDED.value,
+    attribute_option_id = EXCLUDED.attribute_option_id
+WHERE product_variation_attribute_values.value IS DISTINCT FROM EXCLUDED.value  
+   OR product_variation_attribute_values.attribute_option_id IS DISTINCT FROM EXCLUDED.attribute_option_id
+RETURNING product_variation_attribute_value_id, value, attribute_option_id, product_variation_id, attribute_id, shop_id
+`
+
+type BatchUpsertProductVariationAttributeValuesBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type BatchUpsertProductVariationAttributeValuesParams struct {
+	Value              *string `json:"value"`
+	AttributeOptionID  *int64  `json:"attribute_option_id"`
+	ProductVariationID int64   `json:"product_variation_id"`
+	AttributeID        int64   `json:"attribute_id"`
+	ShopID             int64   `json:"shop_id"`
+}
+
+func (q *Queries) BatchUpsertProductVariationAttributeValues(ctx context.Context, arg []BatchUpsertProductVariationAttributeValuesParams) *BatchUpsertProductVariationAttributeValuesBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.Value,
+			a.AttributeOptionID,
+			a.ProductVariationID,
+			a.AttributeID,
+			a.ShopID,
+		}
+		batch.Queue(batchUpsertProductVariationAttributeValues, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &BatchUpsertProductVariationAttributeValuesBatchResults{br, len(arg), false}
+}
+
+func (b *BatchUpsertProductVariationAttributeValuesBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *BatchUpsertProductVariationAttributeValuesBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }

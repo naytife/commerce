@@ -1,6 +1,6 @@
 
 -- name: CreateShop :one
-INSERT INTO shops (owner_id, title, domain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
+INSERT INTO shops (owner_id, title, subdomain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
@@ -42,10 +42,10 @@ SET
 WHERE shop_id = sqlc.arg('shop_id')
 RETURNING *;
 
--- name: GetShopByDomain :one
+-- name: GetShopBySubDomain :one
 SELECT * FROM shops
-WHERE domain = $1;
+WHERE subdomain = $1;
 
--- name: GetShopIDByDomain :one
+-- name: GetShopIDBySubDomain :one
 SELECT shop_id FROM shops
-WHERE domain = $1;
+WHERE subdomain = $1;

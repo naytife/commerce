@@ -48,6 +48,10 @@ definitions:
         type: integer
       data_type:
         $ref: '#/definitions/db.AttributeDataType'
+      options:
+        items:
+          $ref: '#/definitions/models.AttributeOption'
+        type: array
       product_type_id:
         type: integer
       required:
@@ -87,7 +91,6 @@ definitions:
     required:
     - applies_to
     - data_type
-    - required
     - title
     type: object
   models.AttributeOption:
@@ -203,6 +206,10 @@ definitions:
         example: "2025-02-09T09:38:25Z"
         format: date-time
         type: string
+      variants:
+        items:
+          $ref: '#/definitions/models.ProductVariant'
+        type: array
     type: object
   models.ProductAttribute:
     properties:
@@ -223,6 +230,8 @@ definitions:
         type: integer
       value:
         type: string
+    required:
+    - attribute_id
     type: object
   models.ProductCreateParams:
     properties:
@@ -238,6 +247,9 @@ definitions:
         items:
           $ref: '#/definitions/models.ProductVariantParams'
         type: array
+    required:
+    - attributes
+    - variants
     type: object
   models.ProductType:
     properties:
@@ -283,9 +295,45 @@ definitions:
       title:
         type: string
     type: object
-  models.ProductVariantParams:
+  models.ProductVariant:
     properties:
       available_quantity:
+        type: integer
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      description:
+        type: string
+      price:
+        type: number
+      product_variation_id:
+        type: integer
+      seo_description:
+        type: string
+      seo_keywords:
+        items:
+          type: string
+        type: array
+      seo_title:
+        type: string
+      sku:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+    type: object
+  models.ProductVariantParams:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttributeValuesBatchUpsertParams'
+        type: array
+      available_quantity:
+        minimum: 1
         type: integer
       description:
         type: string
@@ -299,8 +347,12 @@ definitions:
         type: array
       seo_title:
         type: string
+      sku:
+        type: string
     required:
+    - available_quantity
     - price
+    - sku
     type: object
   models.RegisterUserParams:
     properties:
@@ -339,8 +391,6 @@ definitions:
         type: string
       currency_code:
         type: string
-      domain:
-        type: string
       email:
         type: string
       facebook_link:
@@ -361,6 +411,8 @@ definitions:
         type: integer
       status:
         type: string
+      subdomain:
+        type: string
       title:
         type: string
       updated_at:
@@ -379,14 +431,14 @@ definitions:
         - USD
         - NGN
         type: string
-      domain:
-        maxLength: 255
-        minLength: 3
-        type: string
       status:
         enum:
         - PUBLISHED
         - DRAFT
+        type: string
+      subdomain:
+        maxLength: 255
+        minLength: 3
         type: string
       title:
         maxLength: 255
@@ -394,42 +446,9 @@ definitions:
         type: string
     required:
     - currency_code
-    - domain
     - status
+    - subdomain
     - title
-    type: object
-  models.ShopUpdateParams:
-    properties:
-      about:
-        type: string
-      address:
-        type: string
-      currency_code:
-        type: string
-      email:
-        type: string
-      facebook_link:
-        type: string
-      instagram_link:
-        type: string
-      phone_number:
-        type: string
-      seo_description:
-        type: string
-      seo_keywords:
-        items:
-          type: string
-        type: array
-      seo_title:
-        type: string
-      status:
-        type: string
-      title:
-        type: string
-      whatsapp_link:
-        type: string
-      whatsapp_phone_number:
-        type: string
     type: object
   models.SuccessResponse:
     description: Generic API response
@@ -663,50 +682,6 @@ paths:
       security:
       - OAuth2AccessCode: []
       summary: Fetch a shop
-      tags:
-      - shops
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        type: string
-      - description: Shop object that needs to be updated
-        in: body
-        name: shop
-        required: true
-        schema:
-          $ref: '#/definitions/models.ShopUpdateParams'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Shop updated successfully
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.SuccessResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.Shop'
-              type: object
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Shop not found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - OAuth2AccessCode: []
-      summary: Update a shop
       tags:
       - shops
   /shops/{shop_id}/attribute-options/{attribute_option_id}:
@@ -1256,6 +1231,10 @@ paths:
         name: product_type_id
         required: true
         type: string
+      - description: For (Product or ProductVariation)
+        in: query
+        name: for
+        type: string
       produces:
       - application/json
       responses:
@@ -1611,6 +1590,41 @@ paths:
       summary: Update a product
       tags:
       - Product
+  /shops/subdomain/{subdomain}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Shop Subdomain
+        in: path
+        name: subdomain
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Shop fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Shop'
+              type: object
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a shop by subdomain
+      tags:
+      - shops
 schemes:
 - http
 securityDefinitions:

@@ -14,4 +14,5 @@ func ShopRouter(app fiber.Router, repo db.Repository) {
 	app.Delete("/shops/:shop_id", handler.DeleteShop)
 	app.Get("/shops/:shop_id", handler.GetShop)
 	app.Put("/shops/:shop_id", handler.UpdateShop)
+	app.Get("/shops/subdomain/:subdomain", handler.GetShopBySubDomain)
 }

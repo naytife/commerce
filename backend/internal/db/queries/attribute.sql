@@ -4,7 +4,30 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetAttributes :many
-SELECT * FROM attributes WHERE product_type_id = $1 AND shop_id = $2;
+SELECT 
+    a.attribute_id, 
+    a.title, 
+    a.data_type, 
+    a.unit, 
+    a.required, 
+    a.applies_to, 
+    a.shop_id, 
+    a.product_type_id,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.product_type_id = $1 
+  AND a.shop_id = $2
+  AND (sqlc.arg(applies_to)::text = '' OR applies_to = sqlc.arg(applies_to)::attribute_applies_to)
+GROUP BY a.attribute_id;
 
 -- name: GetProductsAttributes :many
 SELECT * FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2;
@@ -13,7 +36,21 @@ SELECT * FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 A
 SELECT * FROM attributes WHERE applies_to = 'ProductVariation' AND product_type_id = $1 AND shop_id = $2;
 
 -- name: GetAttribute :one
-SELECT * FROM attributes WHERE attribute_id = $1 AND shop_id = $2;
+SELECT 
+    a.*, 
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.attribute_id = $1 AND a.shop_id = $2
+GROUP BY a.attribute_id;
 
 -- name: UpdateAttribute :one
 UPDATE attributes
@@ -81,3 +118,31 @@ SELECT
 FROM product_attribute_values pav
 LEFT JOIN attribute_options ao ON ao.attribute_option_id = pav.attribute_option_id
 WHERE pav.product_id = $1 AND pav.shop_id = $2;
+
+-- name: BatchUpsertProductVariationAttributeValues :batchexec
+INSERT INTO product_variation_attribute_values (value, attribute_option_id, product_variation_id, attribute_id, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (product_variation_id, attribute_id, shop_id) 
+DO UPDATE SET 
+    value = EXCLUDED.value,
+    attribute_option_id = EXCLUDED.attribute_option_id
+WHERE product_variation_attribute_values.value IS DISTINCT FROM EXCLUDED.value  
+   OR product_variation_attribute_values.attribute_option_id IS DISTINCT FROM EXCLUDED.attribute_option_id
+RETURNING *;
+
+-- name: BatchDeleteProductVariationAttributeValues :batchexec
+DELETE FROM product_variation_attribute_values 
+WHERE product_variation_id = $1 
+AND shop_id = $2
+AND attribute_id NOT IN (SELECT UNNEST($3::int[]));
+
+-- name: GetProductVariationAttributeValues :many
+SELECT 
+    pvav.product_variation_id,
+    pvav.attribute_id,
+    pvav.shop_id,
+    pvav.attribute_option_id,
+    COALESCE(ao.value, pvav.value) as value
+FROM product_variation_attribute_values pvav
+LEFT JOIN attribute_options ao ON ao.attribute_option_id = pvav.attribute_option_id
+WHERE pvav.product_variation_id = $1 AND pvav.shop_id = $2;

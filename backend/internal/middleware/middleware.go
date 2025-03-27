@@ -14,7 +14,7 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 		subdomain := strings.Split(c.Hostname(), ".")[0]
 		ctx := c.UserContext()
 
-		shopID, err := repo.GetShopIDByDomain(ctx, subdomain)
+		shopID, err := repo.GetShopIDBySubDomain(ctx, subdomain)
 		if err != nil {
 			log.Println(err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
