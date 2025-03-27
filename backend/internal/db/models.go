@@ -312,6 +312,7 @@ type Shop struct {
 	SeoTitle            *string            `json:"seo_title"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	Subdomain           string             `json:"subdomain"`
 }
 
 type ShopImage struct {

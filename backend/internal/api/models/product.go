@@ -29,7 +29,7 @@ type ProductVariant struct {
 	Sku                string             `json:"sku"`
 	Slug               string             `json:"slug"`
 	Description        string             `json:"description"`
-	Price              pgtype.Numeric     `json:"price"`
+	Price              pgtype.Numeric     `json:"price" swaggertype:"primitive,number"`
 	AvailableQuantity  int64              `json:"available_quantity"`
 	SeoDescription     *string            `json:"seo_description"`
 	SeoKeywords        []string           `json:"seo_keywords"`
@@ -41,23 +41,25 @@ type ProductVariant struct {
 type ProductCreateParams struct {
 	Title       string                                    `json:"title"`
 	Description string                                    `json:"description"`
-	Attributes  []ProductAttributeValuesBatchUpsertParams `json:"attributes"`
-	Variants    []ProductVariantParams                    `json:"variants"`
+	Attributes  []ProductAttributeValuesBatchUpsertParams `json:"attributes" validate:"required"`
+	Variants    []ProductVariantParams                    `json:"variants" validate:"required"`
 }
 
 type ProductAttributeValuesBatchUpsertParams struct {
 	Value             *string `json:"value,omitempty"`
 	AttributeOptionID *int64  `json:"attribute_option_id,omitempty"`
-	AttributeID       int64   `json:"attribute_id"`
+	AttributeID       int64   `json:"attribute_id" validate:"required"`
 }
 
 type ProductVariantParams struct {
-	Description       string         `json:"description"`
-	Price             pgtype.Numeric `json:"price" validate:"required" swaggertype:"primitive,number"`
-	AvailableQuantity int64          `json:"available_quantity"`
-	SeoDescription    *string        `json:"seo_description"`
-	SeoKeywords       []string       `json:"seo_keywords"`
-	SeoTitle          *string        `json:"seo_title"`
+	Sku               string                                    `json:"sku" validate:"required"`
+	Description       string                                    `json:"description"`
+	Price             pgtype.Numeric                            `json:"price" validate:"required" swaggertype:"primitive,number"`
+	AvailableQuantity int64                                     `json:"available_quantity" validate:"required,min=1"`
+	SeoDescription    *string                                   `json:"seo_description"`
+	SeoKeywords       []string                                  `json:"seo_keywords"`
+	SeoTitle          *string                                   `json:"seo_title"`
+	Attributes        []ProductAttributeValuesBatchUpsertParams `json:"attributes"`
 }
 
 type ProductUpdateParams struct {

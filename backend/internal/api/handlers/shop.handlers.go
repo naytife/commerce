@@ -8,7 +8,6 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jinzhu/copier"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
@@ -40,7 +39,6 @@ const (
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// TODO: verify user exist
 	userSub, _ := c.Locals("user_id").(string)
-	param := db.CreateShopParams{}
 	var shop models.ShopCreateParams
 	c.BodyParser(&shop)
 	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
@@ -49,8 +47,8 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	}
 	shop.Status = string(db.ProductStatusDRAFT)
 	shop.CurrencyCode = "NGN"
-	if !slug.IsSlug(shop.Domain) {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid domain format", nil)
+	if !slug.IsSlug(shop.Subdomain) {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid subdomain format", nil)
 	}
 
 	validator := &models.XValidator{}
@@ -62,8 +60,13 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 			Message: errMsgs,
 		}
 	}
-	copier.Copy(&param, &shop)
-	param.OwnerID = user.UserID
+	param := db.CreateShopParams{
+		OwnerID:      user.UserID,
+		Title:        shop.Title,
+		Subdomain:    shop.Subdomain,
+		CurrencyCode: shop.CurrencyCode,
+		Status:       shop.Status,
+	}
 	objDB, err := h.Repository.CreateShop(c.Context(), param)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
@@ -74,8 +77,26 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create shop", nil)
 	}
-	var resp models.Shop
-	copier.Copy(&resp, &objDB)
+	resp := models.Shop{
+		ID:                  objDB.ShopID,
+		Title:               objDB.Title,
+		Subdomain:           objDB.Subdomain,
+		CurrencyCode:        objDB.CurrencyCode,
+		Status:              objDB.Status,
+		CreatedAt:           objDB.CreatedAt,
+		UpdatedAt:           objDB.UpdatedAt,
+		Email:               objDB.Email,
+		About:               objDB.About,
+		Address:             objDB.Address,
+		PhoneNumber:         objDB.PhoneNumber,
+		WhatsappPhoneNumber: objDB.WhatsappPhoneNumber,
+		WhatsappLink:        objDB.WhatsappLink,
+		FacebookLink:        objDB.FacebookLink,
+		InstagramLink:       objDB.InstagramLink,
+		SeoDescription:      objDB.SeoDescription,
+		SeoKeywords:         objDB.SeoKeywords,
+		SeoTitle:            objDB.SeoTitle,
+	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Shop created")
 }
 
@@ -101,7 +122,29 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 		api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get shops", nil)
 	}
 	var resp []models.Shop
-	copier.Copy(&resp, &objsDB)
+	for _, obj := range objsDB {
+		shop := models.Shop{
+			ID:                  obj.ShopID,
+			Title:               obj.Title,
+			Subdomain:           obj.Subdomain,
+			CurrencyCode:        obj.CurrencyCode,
+			Status:              obj.Status,
+			CreatedAt:           obj.CreatedAt,
+			UpdatedAt:           obj.UpdatedAt,
+			Email:               obj.Email,
+			About:               obj.About,
+			Address:             obj.Address,
+			PhoneNumber:         obj.PhoneNumber,
+			WhatsappPhoneNumber: obj.WhatsappPhoneNumber,
+			WhatsappLink:        obj.WhatsappLink,
+			FacebookLink:        obj.FacebookLink,
+			InstagramLink:       obj.InstagramLink,
+			SeoDescription:      obj.SeoDescription,
+			SeoKeywords:         obj.SeoKeywords,
+			SeoTitle:            obj.SeoTitle,
+		}
+		resp = append(resp, shop)
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shops retrieved")
 }
 
@@ -153,25 +196,79 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 		}
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
-	var resp models.Shop
-	copier.Copy(&resp, &objDB)
+	resp := models.Shop{
+		ID:                  objDB.ShopID,
+		Title:               objDB.Title,
+		Subdomain:           objDB.Subdomain,
+		CurrencyCode:        objDB.CurrencyCode,
+		Status:              objDB.Status,
+		CreatedAt:           objDB.CreatedAt,
+		UpdatedAt:           objDB.UpdatedAt,
+		Email:               objDB.Email,
+		About:               objDB.About,
+		Address:             objDB.Address,
+		PhoneNumber:         objDB.PhoneNumber,
+		WhatsappPhoneNumber: objDB.WhatsappPhoneNumber,
+		WhatsappLink:        objDB.WhatsappLink,
+		FacebookLink:        objDB.FacebookLink,
+		InstagramLink:       objDB.InstagramLink,
+		SeoDescription:      objDB.SeoDescription,
+		SeoKeywords:         objDB.SeoKeywords,
+		SeoTitle:            objDB.SeoTitle,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
 }
 
-// UpdateShop updates a shop
-// @Summary      Update a shop
+// GetShopBySubDomain fetches a shop by subdomain
+// @Summary      Fetch a shop by subdomain
 // @Description
 // @Tags         shops
 // @Accept       json
 // @Produce      json
-// @Param        shop_id path string true "Shop ID"
-// @Param        shop body models.ShopUpdateParams true "Shop object that needs to be updated"
-// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop updated successfully"
-// @Failure      400  {object}   models.ErrorResponse "Invalid request body"
+// @Param        subdomain path string true "Shop Subdomain"
+// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop fetched successfully"
 // @Failure      404  {object}   models.ErrorResponse "Shop not found"
 // @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
-// @Router       /shops/{shop_id} [put]
+// @Router       /shops/subdomain/{subdomain} [get]
+func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
+	subdomain := c.Params("subdomain", "")
+	if subdomain == "" {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Subdomain is required", nil)
+	}
+
+	objDB, err := h.Repository.GetShopBySubDomain(c.Context(), subdomain)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch shop", nil)
+	}
+
+	resp := models.Shop{
+		ID:                  objDB.ShopID,
+		Title:               objDB.Title,
+		Subdomain:           objDB.Subdomain,
+		CustomDomain:        objDB.Domain,
+		CurrencyCode:        objDB.CurrencyCode,
+		Status:              objDB.Status,
+		CreatedAt:           objDB.CreatedAt,
+		UpdatedAt:           objDB.UpdatedAt,
+		Email:               objDB.Email,
+		About:               objDB.About,
+		Address:             objDB.Address,
+		PhoneNumber:         objDB.PhoneNumber,
+		WhatsappPhoneNumber: objDB.WhatsappPhoneNumber,
+		WhatsappLink:        objDB.WhatsappLink,
+		FacebookLink:        objDB.FacebookLink,
+		InstagramLink:       objDB.InstagramLink,
+		SeoDescription:      objDB.SeoDescription,
+		SeoKeywords:         objDB.SeoKeywords,
+		SeoTitle:            objDB.SeoTitle,
+	}
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
+}
+
 func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
@@ -191,9 +288,22 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 	}
 
 	param := db.UpdateShopParams{
-		ShopID: shopID,
+		ShopID:              shopID,
+		Title:               shop.Title,
+		CurrencyCode:        shop.CurrencyCode,
+		About:               shop.About,
+		Status:              shop.Status,
+		PhoneNumber:         shop.PhoneNumber,
+		WhatsappLink:        shop.WhatsappLink,
+		WhatsappPhoneNumber: shop.WhatsappPhoneNumber,
+		FacebookLink:        shop.FacebookLink,
+		InstagramLink:       shop.InstagramLink,
+		SeoDescription:      shop.SeoDescription,
+		SeoKeywords:         shop.SeoKeywords,
+		SeoTitle:            shop.SeoTitle,
+		Address:             shop.Address,
+		Email:               shop.Email,
 	}
-	copier.Copy(&param, &shop)
 
 	objDB, err := h.Repository.UpdateShop(c.Context(), param)
 	if err != nil {
@@ -203,7 +313,25 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop", nil)
 	}
 
-	var resp models.Shop
-	copier.Copy(&resp, &objDB)
+	resp := models.Shop{
+		ID:                  objDB.ShopID,
+		Title:               objDB.Title,
+		Subdomain:           objDB.Subdomain,
+		CurrencyCode:        objDB.CurrencyCode,
+		Status:              objDB.Status,
+		CreatedAt:           objDB.CreatedAt,
+		UpdatedAt:           objDB.UpdatedAt,
+		Email:               objDB.Email,
+		About:               objDB.About,
+		Address:             objDB.Address,
+		PhoneNumber:         objDB.PhoneNumber,
+		WhatsappPhoneNumber: objDB.WhatsappPhoneNumber,
+		WhatsappLink:        objDB.WhatsappLink,
+		FacebookLink:        objDB.FacebookLink,
+		InstagramLink:       objDB.InstagramLink,
+		SeoDescription:      objDB.SeoDescription,
+		SeoKeywords:         objDB.SeoKeywords,
+		SeoTitle:            objDB.SeoTitle,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
 }

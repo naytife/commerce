@@ -17,6 +17,7 @@ CREATE TABLE shops (
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
     domain VARCHAR(50) UNIQUE NOT NULL,
+    subdomain VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(50) NOT NULL,
     currency_code VARCHAR(3) NOT NULL,
     status VARCHAR(10) NOT NULL,
@@ -57,6 +58,7 @@ CREATE TABLE categories (
     CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES categories(category_id),
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX unique_lower_category_title_shop ON categories (LOWER(title), shop_id);
 
 CREATE TABLE product_types (
     product_type_id BIGSERIAL PRIMARY KEY,
@@ -84,6 +86,7 @@ CREATE TABLE products(
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX unique_lower_product_title_shop ON products (LOWER(title), shop_id);
 
 CREATE TABLE product_images(
     product_image_id BIGSERIAL PRIMARY KEY,
@@ -130,6 +133,7 @@ CREATE TABLE attributes(
     CONSTRAINT fk_product_type FOREIGN KEY (product_type_id) REFERENCES product_types(product_type_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX unique_lower_title_product_type ON attributes (LOWER(title), product_type_id);
 
 CREATE TABLE attribute_options(
     attribute_option_id BIGSERIAL PRIMARY KEY,
@@ -140,6 +144,7 @@ CREATE TABLE attribute_options(
     CONSTRAINT fk_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(attribute_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX unique_lower_value_attribute ON attribute_options (LOWER(value), attribute_id);
 
 CREATE TABLE product_attribute_values(
     product_attribute_value_id BIGSERIAL PRIMARY KEY,

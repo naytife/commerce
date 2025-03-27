@@ -6,15 +6,16 @@ import (
 
 type ShopCreateParams struct {
 	Title        string `json:"title" validate:"required,min=3,max=255"`
-	Domain       string `json:"domain" validate:"required,min=3,max=255"`
+	Subdomain    string `json:"subdomain" validate:"required,min=3,max=255"`
 	CurrencyCode string `json:"currency_code" validate:"required,oneof=USD NGN"`
 	Status       string `json:"status" validate:"required,oneof=PUBLISHED DRAFT"`
 }
 
 type Shop struct {
-	ShopID              int64              `json:"shop_id"`
+	ID                  int64              `json:"shop_id"`
 	Title               string             `json:"title"`
-	Domain              string             `json:"domain"`
+	Subdomain           string             `json:"subdomain"`
+	CustomDomain        string             `json:"custom_domain"`
 	Email               string             `json:"email,omitempty"`
 	CurrencyCode        string             `json:"currency_code"`
 	Status              string             `json:"status"`

@@ -86,7 +86,11 @@ oathkeeper:
       keto_engine_acp_ory:
         enabled: true
         config:
-          base_url: http://keto-read.naytife-ory.svc.cluster.local:4466
+          base_url: http://keto-read.naytife-ory.svccluster.local:4466
+          required_action: "my:action:$1"
+          required_resource: "my:resource:$2:foo:$1"
+          subject: "{{ .Extra.email }}"
+          flavor: exact
 
     mutators:
       noop:

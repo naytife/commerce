@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -71,8 +72,15 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create attribute", nil)
 	}
 
-	var resp models.Attribute
-	copier.Copy(&resp, &objDB)
+	resp := models.Attribute{
+		ID:            objDB.AttributeID,
+		Title:         objDB.Title,
+		DataType:      objDB.DataType,
+		Unit:          objDB.Unit.AttributeUnit,
+		Required:      objDB.Required,
+		AppliesTo:     objDB.AppliesTo,
+		ProductTypeID: objDB.ProductTypeID,
+	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Attribute created successfully")
 }
 
@@ -84,6 +92,7 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product Type ID"
+// @Param for query string false "For (Product or ProductVariation)"
 // @Success 200 {object} models.SuccessResponse{data=[]models.Attribute} "Attributes fetched successfully"
 // @Failure 500 {object} models.ErrorResponse "Failed to fetch attributes"
 // @Security OAuth2AccessCode
@@ -93,10 +102,16 @@ func (h *Handler) GetAttributes(c *fiber.Ctx) error {
 	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
 	productTypeIDStr := c.Params("product_type_id", "0")
 	productTypeID, _ := strconv.ParseInt(productTypeIDStr, 10, 64)
+	// Validate that 'for' parameter is either Product or ProductVariation
+	if appliesTo := c.Query("for", ""); appliesTo != "" && appliesTo != "Product" && appliesTo != "ProductVariation" {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Parameter 'for' must be either 'Product' or 'ProductVariation'", nil)
+	}
+	appliesTo := c.Query("for", "")
 
 	params := db.GetAttributesParams{
 		ProductTypeID: productTypeID,
 		ShopID:        shopID,
+		AppliesTo:     appliesTo, // Add this to filter by type
 	}
 
 	objsDB, err := h.Repository.GetAttributes(c.Context(), params)
@@ -104,9 +119,27 @@ func (h *Handler) GetAttributes(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attributes", nil)
 	}
 
-	var resp []models.Attribute
-	copier.Copy(&resp, &objsDB)
+	resp := make([]models.Attribute, len(objsDB))
+	for i, obj := range objsDB {
+		var attributeOptions []models.AttributeOption
+		if err := json.Unmarshal(obj.Options, &attributeOptions); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to parse attribute options", nil)
+		}
+
+		resp[i] = models.Attribute{
+			ID:            obj.AttributeID,
+			Title:         obj.Title,
+			DataType:      obj.DataType,
+			Unit:          obj.Unit.AttributeUnit,
+			Required:      obj.Required,
+			AppliesTo:     obj.AppliesTo,
+			ProductTypeID: obj.ProductTypeID,
+			Options:       attributeOptions,
+		}
+	}
+
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attributes fetched successfully")
+
 }
 
 // GetAttribute fetches a single attribute
@@ -141,8 +174,21 @@ func (h *Handler) GetAttribute(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attribute", nil)
 	}
 
-	var resp models.Attribute
-	copier.Copy(&resp, &objDB)
+	var attributeOptions []models.AttributeOption
+	if err := json.Unmarshal(objDB.Options, &attributeOptions); err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
+	}
+
+	resp := models.Attribute{
+		ID:            objDB.AttributeID,
+		Title:         objDB.Title,
+		DataType:      objDB.DataType,
+		Unit:          objDB.Unit.AttributeUnit,
+		Required:      objDB.Required,
+		AppliesTo:     objDB.AppliesTo,
+		ProductTypeID: objDB.ProductTypeID,
+		Options:       attributeOptions,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute fetched successfully")
 }
 
@@ -295,8 +341,11 @@ func (h *Handler) CreateAttributeOption(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create attribute option", nil)
 	}
 
-	var resp models.AttributeOption
-	copier.Copy(&resp, &objDB)
+	resp := models.AttributeOption{
+		ID:          objDB.AttributeOptionID,
+		Value:       objDB.Value,
+		AttributeID: objDB.AttributeID,
+	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Attribute option created successfully")
 }
 
@@ -328,8 +377,14 @@ func (h *Handler) GetAttributeOptions(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attribute options", nil)
 	}
 
-	var resp []models.AttributeOption
-	copier.Copy(&resp, &objsDB)
+	resp := make([]models.AttributeOption, len(objsDB))
+	for i, obj := range objsDB {
+		resp[i] = models.AttributeOption{
+			ID:          obj.AttributeOptionID,
+			Value:       obj.Value,
+			AttributeID: obj.AttributeID,
+		}
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute options fetched successfully")
 }
 

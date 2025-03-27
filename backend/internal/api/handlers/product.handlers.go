@@ -54,6 +54,33 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		}
 	}
 
+	// Additional validation for variants
+	if len(productArg.Variants) == 0 {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "At least one product variant is required", nil)
+	}
+
+	for i, variant := range productArg.Variants {
+		if errs := validator.Validate(&variant); len(errs) > 0 {
+			errMsgs := models.FormatValidationErrors(errs)
+			return api.ErrorResponse(
+				c,
+				fiber.StatusBadRequest,
+				fmt.Sprintf("Invalid variant at position %d: %s", i+1, errMsgs),
+				nil,
+			)
+		}
+
+		// Additional business logic validation
+		if !variant.Price.Valid || variant.Price.Int == nil || variant.Price.Int.Sign() <= 0 {
+			return api.ErrorResponse(
+				c,
+				fiber.StatusBadRequest,
+				fmt.Sprintf("Invalid price for variant %d: price must be greater than 0", i+1),
+				nil,
+			)
+		}
+	}
+
 	// Prepare parameters for product creation
 	createProductParams := db.CreateProductParams{
 		Title:         productArg.Title,
@@ -67,7 +94,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	err := h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
 		product, err := q.CreateProduct(c.Context(), createProductParams)
 		if err != nil {
-			return fmt.Errorf("failed to create product: %w", err)
+			return err
 		}
 
 		// Handle attribute values if provided
@@ -89,7 +116,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			var batchErr error
 			batch.Exec(func(i int, err error) {
 				if err != nil {
-					batchErr = fmt.Errorf("failed to upsert product attribute values: %w", err)
+					batchErr = err
 				}
 			})
 
@@ -98,47 +125,45 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			}
 
 			if err := batch.Close(); err != nil {
-				return fmt.Errorf("failed to close attribute batch: %w", err)
+				return err
 			}
 		}
 
 		// Handle variants if provided
-		if len(productArg.Variants) > 0 {
-			fmt.Println("LEN: ", len(productArg.Variants))
-			variantParams := make([]db.UpsertProductVariantsParams, len(productArg.Variants))
-			for i, variant := range productArg.Variants {
-				// Generate a slug for the variant
-				slug := slug.MakeLang(variant.Description, "en")
+		variantParams := make([]db.UpsertProductVariantsParams, len(productArg.Variants))
+		for i, variant := range productArg.Variants {
+			// Generate a slug for the variant
 
-				variantParams[i] = db.UpsertProductVariantsParams{
-					Slug:              slug,
-					Description:       variant.Description,
-					Price:             variant.Price,
-					AvailableQuantity: variant.AvailableQuantity,
-					SeoDescription:    variant.SeoDescription,
-					SeoKeywords:       variant.SeoKeywords,
-					SeoTitle:          variant.SeoTitle,
-					ProductID:         product.ProductID,
-					ShopID:            shopID,
-				}
+			slug := slug.MakeLang(fmt.Sprint(product.Title), "en")
+
+			variantParams[i] = db.UpsertProductVariantsParams{
+				Slug:              slug,
+				Description:       variant.Description,
+				Price:             variant.Price,
+				AvailableQuantity: variant.AvailableQuantity,
+				SeoDescription:    variant.SeoDescription,
+				SeoKeywords:       variant.SeoKeywords,
+				SeoTitle:          variant.SeoTitle,
+				ProductID:         product.ProductID,
+				ShopID:            shopID,
 			}
+		}
 
-			// Perform batch upsert for variants
-			variantBatch := q.UpsertProductVariants(c.Context(), variantParams)
-			var batchErr error
-			variantBatch.Exec(func(i int, err error) {
-				if err != nil {
-					batchErr = fmt.Errorf("failed to upsert product variant %d: %w", i, err)
-				}
-			})
-
-			if batchErr != nil {
-				return batchErr
+		// Perform batch upsert for variants
+		variantBatch := q.UpsertProductVariants(c.Context(), variantParams)
+		var batchErr error
+		variantBatch.Exec(func(i int, err error) {
+			if err != nil {
+				batchErr = err
 			}
+		})
 
-			if err := variantBatch.Close(); err != nil {
-				return fmt.Errorf("failed to upsert product variants: %w", err)
-			}
+		if batchErr != nil {
+			return batchErr
+		}
+
+		if err := variantBatch.Close(); err != nil {
+			return err
 		}
 
 		return nil
@@ -147,8 +172,18 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			if pgErr.Code == errors.UniqueViolation {
-				return api.ErrorResponse(c, fiber.StatusConflict, "Product already exists", nil)
+				if pgErr.ConstraintName == "products_title_shop_id_key" {
+					return api.ErrorResponse(c, fiber.StatusConflict, "A product with this title already exists in your shop", nil)
+				}
+				return api.ErrorResponse(c, fiber.StatusConflict, fmt.Sprintf("Unique constraint violation: %s", pgErr.ConstraintName), nil)
 			}
+			if pgErr.Code == errors.ForeignKeyViolation {
+				if pgErr.ConstraintName == "fk_attribute" {
+					return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid attribute ID provided", nil)
+				}
+				return api.ErrorResponse(c, fiber.StatusBadRequest, fmt.Sprintf("Invalid reference: %s", pgErr.ConstraintName), nil)
+			}
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Database error: %s", pgErr.Message), nil)
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create product", nil)
 	}
@@ -216,6 +251,7 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 			UpdatedAt:   prod.UpdatedAt,
 			Attributes:  attributes,
 			Variants:    variants,
+			Status:      prod.Status,
 		}
 	}
 

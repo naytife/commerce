@@ -12,15 +12,15 @@ import (
 )
 
 const createShop = `-- name: CreateShop :one
-INSERT INTO shops (owner_id, title, domain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
+INSERT INTO shops (owner_id, title, subdomain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain
 `
 
 type CreateShopParams struct {
 	OwnerID        uuid.UUID `json:"owner_id"`
 	Title          string    `json:"title"`
-	Domain         string    `json:"domain"`
+	Subdomain      string    `json:"subdomain"`
 	Email          string    `json:"email"`
 	CurrencyCode   string    `json:"currency_code"`
 	About          *string   `json:"about"`
@@ -36,7 +36,7 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	row := q.db.QueryRow(ctx, createShop,
 		arg.OwnerID,
 		arg.Title,
-		arg.Domain,
+		arg.Subdomain,
 		arg.Email,
 		arg.CurrencyCode,
 		arg.About,
@@ -68,6 +68,7 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.Subdomain,
 	)
 	return i, err
 }
@@ -83,7 +84,7 @@ func (q *Queries) DeleteShop(ctx context.Context, shopID int64) error {
 }
 
 const getShop = `-- name: GetShop :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
 WHERE shop_id = $1
 `
 
@@ -110,17 +111,18 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.Subdomain,
 	)
 	return i, err
 }
 
-const getShopByDomain = `-- name: GetShopByDomain :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
-WHERE domain = $1
+const getShopBySubDomain = `-- name: GetShopBySubDomain :one
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
+WHERE subdomain = $1
 `
 
-func (q *Queries) GetShopByDomain(ctx context.Context, domain string) (Shop, error) {
-	row := q.db.QueryRow(ctx, getShopByDomain, domain)
+func (q *Queries) GetShopBySubDomain(ctx context.Context, subdomain string) (Shop, error) {
+	row := q.db.QueryRow(ctx, getShopBySubDomain, subdomain)
 	var i Shop
 	err := row.Scan(
 		&i.ShopID,
@@ -142,17 +144,18 @@ func (q *Queries) GetShopByDomain(ctx context.Context, domain string) (Shop, err
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.Subdomain,
 	)
 	return i, err
 }
 
-const getShopIDByDomain = `-- name: GetShopIDByDomain :one
+const getShopIDBySubDomain = `-- name: GetShopIDBySubDomain :one
 SELECT shop_id FROM shops
-WHERE domain = $1
+WHERE subdomain = $1
 `
 
-func (q *Queries) GetShopIDByDomain(ctx context.Context, domain string) (int64, error) {
-	row := q.db.QueryRow(ctx, getShopIDByDomain, domain)
+func (q *Queries) GetShopIDBySubDomain(ctx context.Context, subdomain string) (int64, error) {
+	row := q.db.QueryRow(ctx, getShopIDBySubDomain, subdomain)
 	var shop_id int64
 	err := row.Scan(&shop_id)
 	return shop_id, err
@@ -178,7 +181,7 @@ func (q *Queries) GetShopImages(ctx context.Context, shopID int64) (ShopImage, e
 }
 
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
+SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
 WHERE owner_id = $1
 `
 
@@ -211,6 +214,7 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.SeoTitle,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.Subdomain,
 		); err != nil {
 			return nil, err
 		}
@@ -241,7 +245,7 @@ SET
     email = COALESCE($14, email),
     updated_at = NOW()
 WHERE shop_id = $15
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
+RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain
 `
 
 type UpdateShopParams struct {
@@ -301,6 +305,7 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.Subdomain,
 	)
 	return i, err
 }

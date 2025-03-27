@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-build
+  namespace: naytife
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloud-build
+  template:
+    metadata:
+      labels:
+        app: cloud-build
+    spec:
+      containers:
+      - name: cloud-build
+        image: cloud-build:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - secretRef:
+            name: cloud-build-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-build
+  namespace: naytife
+spec:
+  selector:
+    app: cloud-build
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-build
+  namespace: naytife
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: cloud-build.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cloud-build
+            port:
+              number: 80

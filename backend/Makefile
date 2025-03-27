@@ -33,6 +33,10 @@ generate-sqlc: ## Generate SQL code from .sql files
 generate-gqlgen: ## Generate GraphQL code from schema
 	go get github.com/99designs/gqlgen && go run github.com/99designs/gqlgen generate 
 
+.PHONY:	generate-swagger
+generate-swagger:	## Generate Swagger documentation
+	swag init -g cmd/api/main.go -o docs
+
 # Migration targets
 .PHONY: migrate-up
 migrate-up: ## Apply all up migrations

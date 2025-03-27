@@ -219,6 +219,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/shops/subdomain/{subdomain}": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shops"
+                ],
+                "summary": "Fetch a shop by subdomain",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop Subdomain",
+                        "name": "subdomain",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shop fetched successfully",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/models.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Shop"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Shop not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/shops/{shop_id}": {
             "get": {
                 "security": [
@@ -262,79 +322,6 @@ const docTemplate = `{
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "404": {
-                        "description": "Shop not found",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "OAuth2AccessCode": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "shops"
-                ],
-                "summary": "Update a shop",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Shop ID",
-                        "name": "shop_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Shop object that needs to be updated",
-                        "name": "shop",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ShopUpdateParams"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Shop updated successfully",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/models.SuccessResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Shop"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "404": {
@@ -1308,6 +1295,12 @@ const docTemplate = `{
                         "name": "product_type_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "For (Product or ProductVariation)",
+                        "name": "for",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1949,6 +1942,12 @@ const docTemplate = `{
                 "data_type": {
                     "$ref": "#/definitions/db.AttributeDataType"
                 },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.AttributeOption"
+                    }
+                },
                 "product_type_id": {
                     "type": "integer"
                 },
@@ -1968,7 +1967,6 @@ const docTemplate = `{
             "required": [
                 "applies_to",
                 "data_type",
-                "required",
                 "title"
             ],
             "properties": {
@@ -2183,6 +2181,12 @@ const docTemplate = `{
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-02-09T09:38:25Z"
+                },
+                "variants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductVariant"
+                    }
                 }
             }
         },
@@ -2205,6 +2209,9 @@ const docTemplate = `{
         },
         "models.ProductAttributeValuesBatchUpsertParams": {
             "type": "object",
+            "required": [
+                "attribute_id"
+            ],
             "properties": {
                 "attribute_id": {
                     "type": "integer"
@@ -2219,6 +2226,10 @@ const docTemplate = `{
         },
         "models.ProductCreateParams": {
             "type": "object",
+            "required": [
+                "attributes",
+                "variants"
+            ],
             "properties": {
                 "attributes": {
                     "type": "array",
@@ -2306,14 +2317,68 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ProductVariantParams": {
+        "models.ProductVariant": {
             "type": "object",
-            "required": [
-                "price"
-            ],
             "properties": {
                 "available_quantity": {
                     "type": "integer"
+                },
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-02-09T09:38:25Z"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "product_variation_id": {
+                    "type": "integer"
+                },
+                "seo_description": {
+                    "type": "string"
+                },
+                "seo_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "seo_title": {
+                    "type": "string"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-02-09T09:38:25Z"
+                }
+            }
+        },
+        "models.ProductVariantParams": {
+            "type": "object",
+            "required": [
+                "available_quantity",
+                "price",
+                "sku"
+            ],
+            "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductAttributeValuesBatchUpsertParams"
+                    }
+                },
+                "available_quantity": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "description": {
                     "type": "string"
@@ -2331,6 +2396,9 @@ const docTemplate = `{
                     }
                 },
                 "seo_title": {
+                    "type": "string"
+                },
+                "sku": {
                     "type": "string"
                 }
             }
@@ -2388,9 +2456,6 @@ const docTemplate = `{
                 "currency_code": {
                     "type": "string"
                 },
-                "domain": {
-                    "type": "string"
-                },
                 "email": {
                     "type": "string"
                 },
@@ -2421,6 +2486,9 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "subdomain": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -2441,8 +2509,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "currency_code",
-                "domain",
                 "status",
+                "subdomain",
                 "title"
             ],
             "properties": {
@@ -2453,11 +2521,6 @@ const docTemplate = `{
                         "NGN"
                     ]
                 },
-                "domain": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 3
-                },
                 "status": {
                     "type": "string",
                     "enum": [
@@ -2465,60 +2528,15 @@ const docTemplate = `{
                         "DRAFT"
                     ]
                 },
+                "subdomain": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
                 "title": {
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 3
-                }
-            }
-        },
-        "models.ShopUpdateParams": {
-            "type": "object",
-            "properties": {
-                "about": {
-                    "type": "string"
-                },
-                "address": {
-                    "type": "string"
-                },
-                "currency_code": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "facebook_link": {
-                    "type": "string"
-                },
-                "instagram_link": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string"
-                },
-                "seo_description": {
-                    "type": "string"
-                },
-                "seo_keywords": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "seo_title": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "whatsapp_link": {
-                    "type": "string"
-                },
-                "whatsapp_phone_number": {
-                    "type": "string"
                 }
             }
         },

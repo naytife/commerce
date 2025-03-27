@@ -15,7 +15,3 @@ sql:
             go_type:
               import: "github.com/google/uuid"
               type: "UUID"
-          - column: products.attributes
-            go_type: "encoding/json.RawMessage"
-          - column: products.variants
-            go_type: "encoding/json.RawMessage"
