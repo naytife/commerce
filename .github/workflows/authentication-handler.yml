@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     environment:
-      name: stage
+      name: dev
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,9 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-      # Log in to DigitalOcean Container Registry with short-lived credentials
+      # Log in to DigitalOcean Container Registry with appropriate scopes
       - name: Log in to DigitalOcean Container Registry with short-lived credentials
-        run: doctl registry login --expiry-seconds 1200
+        run: doctl registry login --expiry-seconds 1200 --scope "repository:write"
 
       # Build the Docker image
       - name: Build Docker image
