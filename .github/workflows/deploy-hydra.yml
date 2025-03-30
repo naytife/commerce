@@ -31,7 +31,7 @@ jobs:
 
       - name: Add Ory Helm Repo
         run: |
-          helm repo add ory https://k8s.ory.sh/helm
+          helm repo add ory https://k8s.ory.sh/helm/charts
           helm repo update
 
       - name: Generate Secrets
