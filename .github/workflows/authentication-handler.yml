@@ -23,9 +23,13 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-      # Log in to DigitalOcean Container Registry with appropriate scopes
+      # Log in to DigitalOcean Container Registry
       - name: Log in to DigitalOcean Container Registry with short-lived credentials
-        run: doctl registry login --expiry-seconds 1200 --scope "repository:write"
+        run: doctl registry login --expiry-seconds 1200
+
+      # Verify login by listing repositories
+      - name: Verify DigitalOcean Registry Login
+        run: doctl registry repository list ${{ secrets.REGISTRY_NAME }}
 
       # Build the Docker image
       - name: Build Docker image
