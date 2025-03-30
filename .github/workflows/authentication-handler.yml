@@ -3,7 +3,7 @@ name: Build and Deploy authentication-handler
 on:
   push:
     branches:
-      - stage 
+      - dev 
     paths:
       - 'auth/authentication-handler/**'
       - '.github/workflows/**'
@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     environment:
-      name: dev
+      name: stage
     runs-on: ubuntu-latest
 
     steps:
