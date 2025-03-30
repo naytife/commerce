@@ -6,7 +6,7 @@ on:
       - dev 
     paths:
       - 'auth/authentication-handler/**'
-      - '.github/workflows/**'
+      - '.github/workflows/authentication-handler.yml'
 
 jobs:
   build:

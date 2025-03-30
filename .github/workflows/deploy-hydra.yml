@@ -9,6 +9,8 @@ on:
 
 jobs:
   deploy:
+    environment:
+      name: stage
     runs-on: ubuntu-latest
 
     steps:
