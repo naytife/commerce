@@ -36,11 +36,11 @@ jobs:
 
       - name: Generate Secrets
         run: |
-          HYDRA_SYSTEM_SECRET=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 | base64)
-          OIDC_SALT=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 | base64)
+            HYDRA_SYSTEM_SECRET=$(openssl rand -base64 32)
+            OIDC_SALT=$(openssl rand -base64 32)
 
-          echo "HYDRA_SYSTEM_SECRET=$HYDRA_SYSTEM_SECRET" >> $GITHUB_ENV
-          echo "OIDC_SALT=$OIDC_SALT" >> $GITHUB_ENV
+            echo "HYDRA_SYSTEM_SECRET=$HYDRA_SYSTEM_SECRET" >> $GITHUB_ENV
+            echo "OIDC_SALT=$OIDC_SALT" >> $GITHUB_ENV
 
       - name: Deploy Hydra with Helm
         run: |
