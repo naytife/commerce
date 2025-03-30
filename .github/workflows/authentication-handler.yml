@@ -47,6 +47,15 @@ jobs:
 
       - name: Ensure Kubernetes Namespace Exists
         run: kubectl create namespace auth --dry-run=client -o yaml | kubectl apply -f -
+          
+      - name: Apply Kubernetes Secret
+        run: |
+          kubectl create secret generic auth-handler-secrets \
+            --from-literal=HYDRA_ADMIN_URL=${{ secrets.HYDRA_ADMIN_URL }} \
+            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --from-literal=LOGIN_HANDLER_REDIRECT_URI=${{ secrets.LOGIN_HANDLER_REDIRECT_URI }} \
+            --dry-run=client -o yaml | kubectl apply -f -
       
       - name: Deploy to DigitalOcean Kubernetes
         run: kubectl apply -f $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
