@@ -1,0 +1,54 @@
+name: Deploy Hydra to DigitalOcean Kubernetes
+
+on:
+    push:
+        branches:
+        - dev
+        paths:
+        - '.github/workflows/deploy-hydra.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install and Authenticate doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Authenticate with DigitalOcean Kubernetes
+        run: |
+          doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.CLUSTER_NAME }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Ory Helm Repo
+        run: |
+          helm repo add ory https://k8s.ory.sh/helm
+          helm repo update
+
+      - name: Generate Secrets
+        run: |
+          HYDRA_SYSTEM_SECRET=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 | base64)
+          OIDC_SALT=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 | base64)
+
+          echo "HYDRA_SYSTEM_SECRET=$HYDRA_SYSTEM_SECRET" >> $GITHUB_ENV
+          echo "OIDC_SALT=$OIDC_SALT" >> $GITHUB_ENV
+
+      - name: Deploy Hydra with Helm
+        run: |
+          helm upgrade --install hydra ory/hydra \
+            --namespace auth \
+            --create-namespace \
+            --set "hydra.config.dsn=${{ secrets.DATABASE_URL }}" \
+            --set "hydra.config.urls.self.issuer=https://naytife.com" \
+            --set "hydra.config.urls.login=https://naytife.com/auth/login" \
+            --set "hydra.config.urls.logout=https://naytife.com/auth/logout" \
+            --set "hydra.config.urls.consent=https://naytife.com/auth/consent" \
+            --set "hydra.config.secrets.system={$HYDRA_SYSTEM_SECRET}" \
+            --set "hydra.config.oidc.subject_identifiers.pairwise.salt=$OIDC_SALT"
