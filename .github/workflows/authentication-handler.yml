@@ -17,19 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # Install and authenticate doctl
       - name: Install and Authenticate doctl
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
-      # Log in to DigitalOcean Container Registry
       - name: Log in to DigitalOcean Container Registry with short-lived credentials
         run: doctl registry login --expiry-seconds 1200
-
-      # Verify login by listing repositories
-      - name: Verify DigitalOcean Registry Login
-        run: doctl registry repository list ${{ secrets.REGISTRY_NAME }}
 
       - name: Build Docker image
         run: docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$(echo $GITHUB_SHA | head -c7) .
@@ -38,20 +32,19 @@ jobs:
       - name: Push Docker image
         run: docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$(echo $GITHUB_SHA | head -c7)
 
-      # Update deployment file
       - name: Update deployment file
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
           sed -i 's|<IMAGE>|${{ secrets.REGISTRY_NAME }}/authentication-handler:'${TAG}'|' $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
 
-      # Save DigitalOcean kubeconfig with short-lived credentials
       - name: Save DigitalOcean kubeconfig with short-lived credentials
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.CLUSTER_NAME }}
 
-      # Deploy to DigitalOcean Kubernetes
+      - name: Ensure Kubernetes Namespace Exists
+        run: kubectl create namespace auth --dry-run=client -o yaml | kubectl apply -f -
+      
       - name: Deploy to DigitalOcean Kubernetes
         run: kubectl apply -f $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
-
-      # Verify deployment
-      - name: Verify deployment
-        run: kubectl rollout status deployment/auth-handler
+      
+      - name: Verify Deployment
+        run: kubectl rollout status deployment/auth-handler -n auth
