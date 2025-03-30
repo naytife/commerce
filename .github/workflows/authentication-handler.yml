@@ -32,11 +32,12 @@ jobs:
       - name: Push Docker image
         run: docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$(echo $GITHUB_SHA | head -c7)
 
-      - name: Update deployment file
+      - name: Update Deployment Image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          sed -i 's|<IMAGE>|${{ secrets.REGISTRY_NAME }}/authentication-handler:'${TAG}'|' $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
-
+          sed -i 's|<IMAGE>|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:'${TAG}'|' $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
+          cat $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
+          
       - name: Save DigitalOcean kubeconfig with short-lived credentials
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.CLUSTER_NAME }}
 
