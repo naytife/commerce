@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: auth-handler
-        image: auth-handler:latest
-        imagePullPolicy: IfNotPresent
+        image: registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:17fc64b
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
         envFrom:
