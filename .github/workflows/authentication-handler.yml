@@ -26,16 +26,20 @@ jobs:
         run: doctl registry login --expiry-seconds 1200
 
       - name: Build Docker image
-        run: docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$(echo $GITHUB_SHA | head -c7) .
+        run: |
+          TAG=$(echo $GITHUB_SHA | head -c7)
+          docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG .
         working-directory: ./auth/authentication-handler
-      
+
       - name: Push Docker image
-        run: docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$(echo $GITHUB_SHA | head -c7)
+        run: |
+          TAG=$(echo $GITHUB_SHA | head -c7)
+          docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG
 
       - name: Update Deployment Image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          sed -i 's|<IMAGE>|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:'${TAG}'|' $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
+          sed -i "s|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:latest|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG|" $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
           cat $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
           
       - name: Save DigitalOcean kubeconfig with short-lived credentials
@@ -47,5 +51,8 @@ jobs:
       - name: Deploy to DigitalOcean Kubernetes
         run: kubectl apply -f $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
       
+      - name: Force Deployment Rollout
+        run: kubectl rollout restart deployment/auth-handler -n auth
+
       - name: Verify Deployment
         run: kubectl rollout status deployment/auth-handler -n auth
