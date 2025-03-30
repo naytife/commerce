@@ -34,6 +34,12 @@ jobs:
           helm repo add ory https://k8s.ory.sh/helm/charts
           helm repo update
 
+      - name: Run Hydra Database Migrations
+        run: |
+            kubectl create job --from=cronjob/hydra-migrate -n auth hydra-migrate-job || true
+            kubectl wait --for=condition=complete --timeout=300s job/hydra-migrate-job -n auth
+            kubectl delete job/hydra-migrate-job -n auth
+
       - name: Generate Secrets
         run: |
           HYDRA_SYSTEM_SECRET=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32 | base64)
