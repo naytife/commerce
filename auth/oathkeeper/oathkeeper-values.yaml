@@ -21,6 +21,7 @@ oathkeeper:
       noop:
         enabled: true
       oauth2_introspection:
+        enabled: true
         config:
           introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
           token_from:
