@@ -13,6 +13,12 @@ oathkeeper:
           config:
             verbose: true
     authenticators:
+      anonymous:
+        enabled: true
+        config:
+          subject: guest
+      noop:
+        enabled: true
       oauth2_introspection:
         config:
           introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
@@ -26,9 +32,30 @@ oathkeeper:
           cache:
             enabled: true
             ttl: 60s
+      oauth2_client_credentials:
+        enabled: true
+        config:
+          token_url: http://hydra-public.auth:4444/oauth2/token
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - http://hydra-public.auth:4444/.well-known/jwks.json
+          allowed_algorithms:
+            - RS256
+          trusted_issuers:
+            - http://hydra-public.auth:4444
     authorizers:
       allow:
         enabled: true
+      keto_engine_acp_ory:
+        enabled: true
+        config:
+          base_url: http://keto-read.auth.svccluster.local:4466
+          required_action: "my:action:$1"
+          required_resource: "my:resource:$2:foo:$1"
+          subject: "{{ .Extra.email }}"
+          flavor: exact
     mutators:
       noop:
         enabled: true
