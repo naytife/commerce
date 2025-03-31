@@ -21,27 +21,23 @@ oathkeeper:
       noop:
         enabled: true
       oauth2_introspection:
-        enabled: true
         config:
-          introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
-          scope_strategy: exact
-          required_scope:
-            - hydra.openid
-            - offline
-          token_from:
-            header: Authorization
-          pre_authorization:
-            enabled: true
-            scope:
-              - introspect
-          trusted_issuers: 
-            - https://naytife.com
-          retry:
-            max_delay: 300ms
-            give_up_after: 2s
           cache:
             enabled: true
             ttl: 60s
+          introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
+          required_scope:
+          - hydra.openid
+          - offline
+          retry:
+            give_up_after: 2s
+            max_delay: 300ms
+          scope_strategy: exact
+          token_from:
+            header: Authorization
+          trusted_issuers:
+          - https://naytife.com
+        enabled: true
       oauth2_client_credentials:
         enabled: true
         config:
