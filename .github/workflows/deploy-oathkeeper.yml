@@ -37,7 +37,7 @@ jobs:
 
       - name: Deploy Oathkeeper with Helm
         run: |
-          helm upgrade --install oathkeeper ory/oathkeeper \
+            helm upgrade --install oathkeeper ory/oathkeeper \
             --namespace auth \
             --create-namespace \
             --set image.repository=oryd/oathkeeper \
@@ -50,10 +50,9 @@ jobs:
             --set 'oathkeeper.config.authenticators.oauth2_introspection.config.token_url=http://hydra-public.auth.svc.cluster.local:4444/oauth2/token' \
             --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.client_id=${{ secrets.HYDRA_OAUTH2_CLIENT_ID }}' \
             --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.client_secret=${{ secrets.HYDRA_OAUTH2_CLIENT_SECRET }}' \
-            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.scope[0]=introspect' \
-            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.required_scope[0]=hydra.openid' \
-            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.required_scope[1]=offline' \
-            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.trusted_issuers[0]=https://naytife.com' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.scope={introspect}' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.required_scope={hydra.openid,offline}' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.trusted_issuers={https://naytife.com}' \
             --set 'oathkeeper.config.authenticators.oauth2_introspection.config.cache.enabled=true' \
             --set 'oathkeeper.config.authenticators.oauth2_introspection.config.cache.ttl=60s' \
             --set 'oathkeeper.config.authorizers.allow.enabled=true' \
