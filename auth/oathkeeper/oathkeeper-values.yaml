@@ -1,6 +1,6 @@
 image:
   repository: oryd/oathkeeper
-  tag: v0.40.9
+  tag: v0.40.7
 
 oathkeeper:
   config:
@@ -71,7 +71,6 @@ oathkeeper:
           headers:
             X-User-Id: '{{ print .Subject }}'
             X-User-Email: '{{ print .Extra.email }}'
-
   service:
     type: ClusterIP
     ports:
