@@ -81,7 +81,9 @@ oathkeeper:
 
   ingress:
     proxy:
-      className: nginx
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: letsencrypt
       hosts:
         - host: naytife.com
           paths:
@@ -91,5 +93,3 @@ oathkeeper:
         - secretName: oathkeeper-tls
           hosts:
             - naytife.com
-      annotations:
-        cert-manager.io/cluster-issuer: letsencrypt
