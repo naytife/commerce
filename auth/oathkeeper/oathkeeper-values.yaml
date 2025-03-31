@@ -27,8 +27,8 @@ oathkeeper:
             ttl: 60s
           introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
           required_scope:
-          - hydra.openid
-          - offline
+            - hydra.openid
+            - offline
           retry:
             give_up_after: 2s
             max_delay: 300ms
@@ -36,7 +36,7 @@ oathkeeper:
           token_from:
             header: Authorization
           trusted_issuers:
-          - https://naytife.com
+            - https://naytife.com
         enabled: true
       oauth2_client_credentials:
         enabled: true
@@ -57,7 +57,7 @@ oathkeeper:
       keto_engine_acp_ory:
         enabled: true
         config:
-          base_url: http://keto-read.auth.svccluster.local:4466
+          base_url: http://keto-read.auth.svc.cluster.local:4466
           required_action: "my:action:$1"
           required_resource: "my:resource:$2:foo:$1"
           subject: "{{ .Extra.email }}"
@@ -71,3 +71,35 @@ oathkeeper:
           headers:
             X-User-Id: '{{ print .Subject }}'
             X-User-Email: '{{ print .Extra.email }}'
+
+  service:
+    type: ClusterIP
+    port: 4455  # Oathkeeper Proxy
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    hosts:
+      - host: naytife.com
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: oathkeeper
+                port:
+                  number: 4455
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: oathkeeper
+                port:
+                  number: 4455
+    tls:
+      - secretName: naytife-tls
+        hosts:
+          - naytife.com
