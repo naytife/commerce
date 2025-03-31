@@ -1,0 +1,62 @@
+name: Deploy Oathkeeper to Kubernetes
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'auth/oathkeeper/deploy-oathkeeper.yml'
+
+jobs:
+  deploy:
+    environment:
+      name: stage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install and Authenticate doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Authenticate with DigitalOcean Kubernetes
+        run: |
+          doctl kubernetes cluster kubeconfig save --expiry-seconds 600 ${{ secrets.CLUSTER_NAME }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Ory Helm Repo
+        run: |
+          helm repo add ory https://k8s.ory.sh/helm/charts
+          helm repo update
+
+      - name: Deploy Oathkeeper with Helm
+        run: |
+          helm upgrade --install oathkeeper ory/oathkeeper \
+            --namespace auth \
+            --create-namespace \
+            --set image.repository=oryd/oathkeeper \
+            --set image.tag=v0.40.7 \
+            --set-file 'oathkeeper.accessRules=./auth/oathkeeper/access-rules.json' \
+            --set 'oathkeeper.config.access_rules.repositories[0]=file:///etc/rules/access-rules.json' \
+            --set 'oathkeeper.config.errors.handlers.json.config.verbose=true' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.introspection_url=http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.token_from.header=Authorization' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.token_url=http://hydra-public.auth.svc.cluster.local:4444/oauth2/token' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.client_id=${{ secrets.HYDRA_OAUTH2_CLIENT_ID }}' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.client_secret=${{ secrets.HYDRA_OAUTH2_CLIENT_SECRET }}' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.pre_authorization.scope[0]=introspect' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.required_scope[0]=hydra.openid' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.required_scope[1]=offline' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.trusted_issuers[0]=https://naytife.com' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.cache.enabled=true' \
+            --set 'oathkeeper.config.authenticators.oauth2_introspection.config.cache.ttl=60s' \
+            --set 'oathkeeper.config.authorizers.allow.enabled=true' \
+            --set 'oathkeeper.config.mutators.noop.enabled=true' \
+            --set 'oathkeeper.config.mutators.header.enabled=true' \
+            --set 'oathkeeper.config.mutators.header.config.headers[X-User-Id]={{ print .Subject }}' \
+            --set 'oathkeeper.config.mutators.header.config.headers[X-User-Email]={{ print .Extra.email }}'
