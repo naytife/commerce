@@ -1,0 +1,40 @@
+image:
+  repository: oryd/oathkeeper
+  tag: v0.40.7
+
+oathkeeper:
+  config:
+    access_rules:
+      repositories:
+        - file:///etc/rules/access-rules.json
+    errors:
+      handlers:
+        json:
+          config:
+            verbose: true
+    authenticators:
+      oauth2_introspection:
+        config:
+          introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
+          token_from:
+            header: Authorization
+          token_url: http://hydra-public.auth.svc.cluster.local:4444/oauth2/token
+          pre_authorization:
+            scope: [introspect]
+          required_scope: [hydra.openid, offline]
+          trusted_issuers: [https://naytife.com]
+          cache:
+            enabled: true
+            ttl: 60s
+    authorizers:
+      allow:
+        enabled: true
+    mutators:
+      noop:
+        enabled: true
+      header:
+        enabled: true
+        config:
+          headers:
+            X-User-Id: '{{ print .Subject }}'
+            X-User-Email: '{{ print .Extra.email }}'
