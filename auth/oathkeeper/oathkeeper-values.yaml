@@ -81,30 +81,15 @@ oathkeeper:
 
   ingress:
     proxy:
-      enabled: true
-      className: "nginx"
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt"
+      className: nginx
       hosts:
-        - host: proxy.naytife.com
+        - host: naytife.com
           paths:
             - path: /
               pathType: Prefix
       tls:
-        - secretName: proxy-oathkeeper-tls
+        - secretName: oathkeeper-tls
           hosts:
-            - proxy.naytife.com
-    api:
-      enabled: true
-      className: "nginx"
+            - naytife.com
       annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt"
-      hosts:
-        - host: api.naytife.com
-          paths:
-            - path: /
-              pathType: Prefix
-      tls:
-        - secretName: api-oathkeeper-tls
-          hosts:
-            - api.naytife.com
+        cert-manager.io/cluster-issuer: letsencrypt
