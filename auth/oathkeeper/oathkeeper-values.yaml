@@ -79,17 +79,17 @@ oathkeeper:
         port: 80
         targetPort: 4455
 
-  ingress:
-    proxy:
-      className: nginx
-      hosts:
-        - host: naytife.com
-          paths:
-            - path: /
-              pathType: Prefix
-      tls:
-        - secretName: oathkeeper-tls
-          hosts:
-            - naytife.com
-      annotations:
-        cert-manager.io/cluster-issuer: letsencrypt
+ingress:
+  proxy:
+    className: nginx
+    hosts:
+      - host: naytife.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: oathkeeper-tls
+        hosts:
+          - naytife.com
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
