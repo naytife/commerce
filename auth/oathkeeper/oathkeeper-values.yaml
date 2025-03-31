@@ -30,8 +30,8 @@ oathkeeper:
             - offline
           token_from:
             header: Authorization
-          token_url: http://hydra-public.auth.svc.cluster.local:4444/oauth2/token
           pre_authorization:
+            enabled: true
             scope:
               - introspect
           trusted_issuers: 
