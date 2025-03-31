@@ -24,13 +24,21 @@ oathkeeper:
         enabled: true
         config:
           introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
+          scope_strategy: exact
+          required_scope:
+            - hydra.openid
+            - offline
           token_from:
             header: Authorization
           token_url: http://hydra-public.auth.svc.cluster.local:4444/oauth2/token
           pre_authorization:
-            scope: [introspect]
-          required_scope: [hydra.openid, offline]
-          trusted_issuers: [https://naytife.com]
+            scope:
+              - introspect
+          trusted_issuers: 
+            - https://naytife.com
+          retry:
+            max_delay: 300ms
+            give_up_after: 2s
           cache:
             enabled: true
             ttl: 60s
