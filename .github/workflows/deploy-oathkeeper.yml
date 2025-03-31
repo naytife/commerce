@@ -5,7 +5,8 @@ on:
     branches:
       - dev
     paths:
-      - 'auth/oathkeeper/deploy-oathkeeper.yml'
+      - 'auth/oathkeeper/access-rules.json'
+      - '.github/workflows/deploy-oathkeeper.yml'
 
 jobs:
   deploy:
