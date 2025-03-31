@@ -5,6 +5,7 @@ image:
 oathkeeper:
   config:
     access_rules:
+      matching_strategy: glob
       repositories:
         - file:///etc/rules/access-rules.json
     errors:

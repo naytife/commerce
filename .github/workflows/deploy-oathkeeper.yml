@@ -6,6 +6,7 @@ on:
       - dev
     paths:
       - 'auth/oathkeeper/access-rules.json'
+      - 'auth/oathkeeper/oathkeeper-values.yaml'
       - '.github/workflows/deploy-oathkeeper.yml'
 
 jobs:
