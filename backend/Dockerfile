@@ -29,7 +29,7 @@ WORKDIR /app
 COPY --from=builder /app/backend/bin/api /app/bin/api
 
 # Expose the port your application listens on (adjust if necessary)
-EXPOSE 8080
+EXPOSE 8000
 
 # Run the binary
 CMD ["/app/bin/api"]
