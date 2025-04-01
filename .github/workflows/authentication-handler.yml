@@ -28,18 +28,18 @@ jobs:
       - name: Build Docker image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG .
+          docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/app:auth-$TAG .
         working-directory: ./auth/authentication-handler
 
       - name: Push Docker image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG
+          docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/app:auth-$TAG
 
       - name: Update Deployment Image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          sed -i "s|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:latest|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/authentication-handler:$TAG|" $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
+          sed -i "s|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/app:auth-latest|registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/app:auth-$TAG|" $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
           cat $GITHUB_WORKSPACE/auth/authentication-handler/auth-handler-deployment.yaml
           
       - name: Save DigitalOcean kubeconfig with short-lived credentials
