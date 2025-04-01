@@ -9,7 +9,7 @@ COPY ./backend/go.mod ./backend/go.sum ./
 RUN go mod download
 
 # Copy the entire backend directory
-COPY ./backend ./
+COPY ./ ./
 
 # Build the Go application
 RUN go build -o bin/api ./cmd/api
