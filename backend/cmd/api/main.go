@@ -74,7 +74,7 @@ func main() {
 	}))
 	app.Use(logger.New())
 	app.Get("/api/v1/docs/swagger.json", func(c *fiber.Ctx) error {
-		return c.SendFile("./docs/swagger.json") // or your own handler logic
+		return c.SendFile("docs/swagger.json") // Remove the ./ prefix
 	})
 	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{ // custom
 		URL:         "https://naytife.com/api/v1/docs/swagger.json",

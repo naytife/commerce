@@ -27,6 +27,8 @@ WORKDIR /app
 
 # Copy the binary from the build stage
 COPY --from=builder /app/bin/api /app/bin/api
+# Copy the docs directory
+COPY --from=builder /app/docs /app/docs
 
 # Expose the port your application listens on (adjust if necessary)
 EXPOSE 8000
