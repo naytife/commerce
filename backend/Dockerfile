@@ -2,14 +2,14 @@
 FROM golang:1.22 AS builder
 
 # Set the working directory inside the container
-WORKDIR /app/backend
+WORKDIR /app
 
 # Copy the Go module files to download dependencies first
-COPY ./backend/go.mod ./backend/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the entire backend directory
-COPY ./ ./
+COPY . .
 
 # Build the Go application
 RUN go build -o bin/api ./cmd/api
