@@ -23,9 +23,9 @@ jobs:
               with:
                 go-version: "1.22.6" # Adjust to your Go version
 
-            # Not sure why i need this
+            # Cache Go modules
             - name: Cache Go modules
-              uses: actions/cache@v2
+              uses: actions/cache@v3
               with:
                 path: |
                   ~/.cache/go-build
