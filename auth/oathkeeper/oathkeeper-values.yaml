@@ -1,6 +1,6 @@
 image:
   repository: oryd/oathkeeper
-  tag: v0.40.7
+  tag: v0.40.9
 
 oathkeeper:
   config:
@@ -80,15 +80,9 @@ oathkeeper:
 
 ingress:
   proxy:
-    className: nginx
+    className: ""
     hosts:
-      - host: naytife.com
+      - host: proxy.oathkeeper.localhost
         paths:
           - path: /
-            pathType: Prefix
-    tls:
-      - secretName: oathkeeper-tls
-        hosts:
-          - naytife.com
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
+            pathType: ImplementationSpecific
