@@ -26,7 +26,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy the binary from the build stage
-COPY --from=builder /app/backend/bin/api /app/bin/api
+COPY --from=builder /app/bin/api /app/bin/api
 
 # Expose the port your application listens on (adjust if necessary)
 EXPOSE 8000
