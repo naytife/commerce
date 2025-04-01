@@ -26,7 +26,7 @@ jobs:
       - name: Build Docker image
         run: |
           TAG=$(echo $GITHUB_SHA | head -c7)
-          docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/backend:$TAG ./backend
+          docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/backend:$TAG .
         working-directory: ./backend
 
       # Push Docker image
