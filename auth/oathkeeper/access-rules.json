@@ -217,7 +217,7 @@
     "id": "oauth:auth-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/oauth2/auth",
@@ -243,7 +243,7 @@
     "id": "oauth:fallbacks-error-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/oauth2/fallbacks/error",
@@ -269,7 +269,7 @@
     "id": "oauth:token-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/oauth2/token",
@@ -295,7 +295,7 @@
     "id": "oauth:userinfo-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/userinfo",
@@ -322,7 +322,7 @@
     "id": "oauth:logout-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/oauth2/sessions/logout",
@@ -348,7 +348,7 @@
     "id": "oidc:well-known",
     "upstream": {
       "preserve_host": true,
-      "url": "http://hydra-public.naytife-ory:4444"
+      "url": "http://hydra-public.auth:4444"
     },
     "match": {
       "url": "https://naytife.com/.well-known/openid-configuration",
@@ -374,7 +374,7 @@
     "id": "oauth:login-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://auth-handler.naytife-ory:80"
+      "url": "http://auth-handler.auth:80"
     },
     "match": {
       "url": "https://naytife.com/login",
@@ -401,7 +401,7 @@
     "id": "oauth:consent-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://auth-handler.naytife-ory:80"
+      "url": "http://auth-handler.auth:80"
     },
     "match": {
       "url": "https://naytife.com/consent",
@@ -428,7 +428,7 @@
     "id": "oauth:callback-endpoint",
     "upstream": {
       "preserve_host": true,
-      "url": "http://auth-handler.naytife-ory:80"
+      "url": "http://auth-handler.auth:80"
     },
     "match": {
       "url": "https://naytife.com/callback",
