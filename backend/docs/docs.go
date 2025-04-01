@@ -2257,7 +2257,7 @@ const docTemplate = `{
                 "digital": {
                     "type": "boolean"
                 },
-                "product_type_id": {
+                "id": {
                     "type": "integer"
                 },
                 "shippable": {
@@ -2456,6 +2456,9 @@ const docTemplate = `{
                 "currency_code": {
                     "type": "string"
                 },
+                "custom_domain": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2604,8 +2607,8 @@ const docTemplate = `{
         "OAuth2AccessCode": {
             "type": "oauth2",
             "flow": "accessCode",
-            "authorizationUrl": "http://127.0.0.1:8080/oauth2/auth",
-            "tokenUrl": "http://127.0.0.1:8080/oauth2/token"
+            "authorizationUrl": "http://naytife.com/oauth2/auth",
+            "tokenUrl": "https://naytife.com/oauth2/token"
         }
     }
 }`
@@ -2613,7 +2616,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "127.0.0.1:8080",
+	Host:             "naytife.com",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http"},
 	Title:            "Naytife API Docs",

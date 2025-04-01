@@ -255,7 +255,7 @@ definitions:
     properties:
       digital:
         type: boolean
-      product_type_id:
+      id:
         type: integer
       shippable:
         type: boolean
@@ -391,6 +391,8 @@ definitions:
         type: string
       currency_code:
         type: string
+      custom_domain:
+        type: string
       email:
         type: string
       facebook_link:
@@ -492,7 +494,7 @@ definitions:
         description: 'TODO: add sub fields'
         type: string
     type: object
-host: 127.0.0.1:8080
+host: naytife.com
 info:
   contact: {}
   description: This is the Naytife API documentation
@@ -1629,8 +1631,8 @@ schemes:
 - http
 securityDefinitions:
   OAuth2AccessCode:
-    authorizationUrl: http://127.0.0.1:8080/oauth2/auth
+    authorizationUrl: http://naytife.com/oauth2/auth
     flow: accessCode
-    tokenUrl: http://127.0.0.1:8080/oauth2/token
+    tokenUrl: https://naytife.com/oauth2/token
     type: oauth2
 swagger: "2.0"

@@ -20,12 +20,12 @@ import (
 // @title Naytife API Docs
 // @version 1.0
 // @description This is the Naytife API documentation
-// @host 127.0.0.1:8080
+// @host naytife.com
 // @BasePath /api/v1
 // @schemes http
 // @securityDefinitions.oauth2.accessCode OAuth2AccessCode
-// @tokenUrl http://127.0.0.1:8080/oauth2/token
-// @authorizationUrl http://127.0.0.1:8080/oauth2/auth
+// @tokenUrl https://naytife.com/oauth2/token
+// @authorizationUrl http://naytife.com/oauth2/auth
 func main() {
 	env, err := config.LoadConfig()
 	if err != nil {
