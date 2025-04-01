@@ -77,15 +77,15 @@ oathkeeper:
       - name: http
         port: 80
         targetPort: 4455
-
 ingress:
   enabled: true
   proxy:
     enabled: true
     className: "nginx"
     annotations:
-      kubernetes.io/ingress.class: nginx
-      nginx.ingress.kubernetes.io/rewrite-target: /
+      kubernetes.io/ingress.class: "nginx"
+      nginx.ingress.kubernetes.io/rewrite-target: "/"
+      cert-manager.io/cluster-issuer: "letsencrypt"
     hosts:
       - host: naytife.com
         paths:
@@ -95,5 +95,3 @@ ingress:
       - secretName: oathkeeper-tls
         hosts:
           - naytife.com
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
