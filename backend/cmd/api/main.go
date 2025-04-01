@@ -77,7 +77,7 @@ func main() {
 		return c.SendFile("./docs/swagger.json") // or your own handler logic
 	})
 	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{ // custom
-		URL:         "http://127.0.0.1:8080/api/v1/docs/swagger.json",
+		URL:         "https://naytife.com/api/v1/docs/swagger.json",
 		DeepLinking: false,
 		// Expand ("list") or Collapse ("none") tag groups by default
 		DocExpansion: "none",
@@ -91,7 +91,7 @@ func main() {
 		},
 		PersistAuthorization: true,
 		// Ability to change OAuth2 redirect uri location
-		OAuth2RedirectUrl: "http://127.0.0.1:8080/api/v1/docs/oauth2-redirect.html",
+		OAuth2RedirectUrl: "https://naytife.com/api/v1/docs/oauth2-redirect.html",
 	}))
 
 	v1 := app.Group("/api/v1")
