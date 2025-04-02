@@ -11,27 +11,21 @@ RUN go mod download
 # Copy the entire backend directory
 COPY . .
 
-# Build the Go application
-RUN go build -o bin/api ./cmd/api
+# Build the Go application with optimization flags
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
 
-# Use a minimal image for running the application
-FROM ubuntu:jammy
+# Use scratch as base image
+FROM scratch
 
-# Install CA certificates
-RUN apt-get update && \
-    apt-get install -y ca-certificates && \
-    apt-get clean
+# Copy CA certificates from the builder
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Set the working directory for the runtime
-WORKDIR /app
-
-# Copy the binary from the build stage
+# Copy the binary and docs
 COPY --from=builder /app/bin/api /app/bin/api
-# Copy the docs directory
 COPY --from=builder /app/docs /app/docs
 
-# Expose the port your application listens on (adjust if necessary)
+# Expose the port
 EXPOSE 8000
 
 # Run the binary
-CMD ["/app/bin/api"]
+ENTRYPOINT ["/app/bin/api"]
