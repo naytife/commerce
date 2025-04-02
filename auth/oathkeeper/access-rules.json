@@ -6,6 +6,32 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
+      "url": "https://api.naytife.com/api/v1/docs",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    }, 
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id":"api:rest-api-docs-all",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
       "url": "https://api.naytife.com/api/v1/docs/<**>",
       "methods": [
         "GET"

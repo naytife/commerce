@@ -74,9 +74,9 @@ func main() {
 	}))
 	app.Use(logger.New())
 	app.Get("/api/v1/docs/swagger.json", func(c *fiber.Ctx) error {
-		return c.SendFile("docs/swagger.json") // Remove the ./ prefix
+		return c.SendFile("docs/swagger.json")
 	})
-	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{ // custom
+	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{
 		URL:         "https://api.naytife.com/api/v1/docs/swagger.json",
 		DeepLinking: false,
 		// Expand ("list") or Collapse ("none") tag groups by default

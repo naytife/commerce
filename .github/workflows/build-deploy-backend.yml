@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - dev # Or your main branch
+    paths:
+      - 'backend/**'
+      - '.github/workflows/build-deploy-backend.yml'
+      - 'deploy/backend-deployment.yaml'
 
 jobs:
   build-and-deploy:
