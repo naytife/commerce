@@ -11,14 +11,21 @@ RUN go mod download
 # Copy the entire backend directory
 COPY . .
 
+# Generate Swagger documentation
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init -g cmd/api/main.go -o docs
+
 # Build the Go application with optimization flags
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
 
-# Use scratch as base image
-FROM scratch
+# Use Alpine as base image instead of scratch
+FROM alpine:3.19
 
-# Copy CA certificates from the builder
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# Install CA certificates
+RUN apk --no-cache add ca-certificates
+
+# Create app directory
+WORKDIR /app
 
 # Copy the binary and docs
 COPY --from=builder /app/bin/api /app/bin/api
