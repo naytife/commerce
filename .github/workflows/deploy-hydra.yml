@@ -49,9 +49,9 @@ jobs:
             --create-namespace \
             --set "hydra.config.dsn=${{ secrets.DATABASE_URL }}" \
             --set "hydra.config.urls.self.issuer=https://naytife.com" \
-            --set "hydra.config.urls.login=https://naytife.com/auth/login" \
-            --set "hydra.config.urls.logout=https://naytife.com/auth/logout" \
-            --set "hydra.config.urls.consent=https://naytife.com/auth/consent" \
+            --set "hydra.config.urls.login=https://auth.naytife.com/auth/login" \
+            --set "hydra.config.urls.logout=https://auth.naytife.com/auth/logout" \
+            --set "hydra.config.urls.consent=https://auth.naytife.com/auth/consent" \
             --set "hydra.config.secrets.system={$HYDRA_SYSTEM_SECRET}" \
             --set hydra.automigration.enabled=true \
             --set "hydra.config.oidc.subject_identifiers.pairwise.salt=$OIDC_SALT"

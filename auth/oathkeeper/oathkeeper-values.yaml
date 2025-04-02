@@ -36,7 +36,7 @@ oathkeeper:
           token_from:
             header: Authorization
           trusted_issuers:
-            - https://naytife.com
+            - https://auth.naytife.com
         enabled: true
       oauth2_client_credentials:
         enabled: true
@@ -87,11 +87,11 @@ ingress:
       nginx.ingress.kubernetes.io/rewrite-target: "/"
       cert-manager.io/cluster-issuer: "letsencrypt"
     hosts:
-      - host: naytife.com
+      - host: *.naytife.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: oathkeeper-tls
         hosts:
-          - naytife.com
+          - *.naytife.com
