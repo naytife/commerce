@@ -9,7 +9,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "naytife.com",
+    "host": "api.naytife.com",
     "basePath": "/api/v1",
     "paths": {
         "/auth/register": {
@@ -2604,8 +2604,8 @@
         "OAuth2AccessCode": {
             "type": "oauth2",
             "flow": "accessCode",
-            "authorizationUrl": "http://naytife.com/oauth2/auth",
-            "tokenUrl": "https://naytife.com/oauth2/token"
+            "authorizationUrl": "https://auth.naytife.com/oauth2/auth",
+            "tokenUrl": "https://auth.naytife.com/oauth2/token"
         }
     }
 }

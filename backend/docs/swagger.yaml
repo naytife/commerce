@@ -494,7 +494,7 @@ definitions:
         description: 'TODO: add sub fields'
         type: string
     type: object
-host: naytife.com
+host: api.naytife.com
 info:
   contact: {}
   description: This is the Naytife API documentation
@@ -1631,8 +1631,8 @@ schemes:
 - http
 securityDefinitions:
   OAuth2AccessCode:
-    authorizationUrl: http://naytife.com/oauth2/auth
+    authorizationUrl: https://auth.naytife.com/oauth2/auth
     flow: accessCode
-    tokenUrl: https://naytife.com/oauth2/token
+    tokenUrl: https://auth.naytife.com/oauth2/token
     type: oauth2
 swagger: "2.0"

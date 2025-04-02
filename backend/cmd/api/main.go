@@ -20,12 +20,12 @@ import (
 // @title Naytife API Docs
 // @version 1.0
 // @description This is the Naytife API documentation
-// @host naytife.com
+// @host api.naytife.com
 // @BasePath /api/v1
 // @schemes http
 // @securityDefinitions.oauth2.accessCode OAuth2AccessCode
-// @tokenUrl https://naytife.com/oauth2/token
-// @authorizationUrl http://naytife.com/oauth2/auth
+// @tokenUrl https://auth.naytife.com/oauth2/token
+// @authorizationUrl https://auth.naytife.com/oauth2/auth
 func main() {
 	env, err := config.LoadConfig()
 	if err != nil {
@@ -77,7 +77,7 @@ func main() {
 		return c.SendFile("docs/swagger.json") // Remove the ./ prefix
 	})
 	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{ // custom
-		URL:         "https://naytife.com/api/v1/docs/swagger.json",
+		URL:         "https://api.naytife.com/api/v1/docs/swagger.json",
 		DeepLinking: false,
 		// Expand ("list") or Collapse ("none") tag groups by default
 		DocExpansion: "none",
@@ -91,7 +91,7 @@ func main() {
 		},
 		PersistAuthorization: true,
 		// Ability to change OAuth2 redirect uri location
-		OAuth2RedirectUrl: "https://naytife.com/api/v1/docs/oauth2-redirect.html",
+		OAuth2RedirectUrl: "https://api.naytife.com/api/v1/docs/oauth2-redirect.html",
 	}))
 
 	v1 := app.Group("/api/v1")

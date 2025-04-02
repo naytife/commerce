@@ -2607,8 +2607,8 @@ const docTemplate = `{
         "OAuth2AccessCode": {
             "type": "oauth2",
             "flow": "accessCode",
-            "authorizationUrl": "http://naytife.com/oauth2/auth",
-            "tokenUrl": "https://naytife.com/oauth2/token"
+            "authorizationUrl": "https://auth.naytife.com/oauth2/auth",
+            "tokenUrl": "https://auth.naytife.com/oauth2/token"
         }
     }
 }`
@@ -2616,7 +2616,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "naytife.com",
+	Host:             "api.naytife.com",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http"},
 	Title:            "Naytife API Docs",

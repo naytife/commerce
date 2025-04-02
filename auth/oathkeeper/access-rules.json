@@ -6,7 +6,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://naytife.com/api/v1/docs/<**>",
+      "url": "https://api.naytife.com/api/v1/docs/<**>",
       "methods": [
         "GET"
       ]
@@ -32,7 +32,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://naytife.com/api/v1/auth/<{register}>",
+      "url": "https://api.naytife.com/api/v1/auth/<{register}>",
       "methods": [
         "POST"
       ]
@@ -58,7 +58,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://naytife.com/api/v1/<{shops}><**>",
+      "url": "https://api.naytife.com/api/v1/<{shops}><**>",
       "methods": [
         "OPTIONS"
       ]
@@ -84,7 +84,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://naytife.com/api/v1/<{shops}><**>",
+      "url": "https://api.naytife.com/api/v1/<{shops}><**>",
       "methods": [
         "GET",
         "POST",
@@ -220,7 +220,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/oauth2/auth",
+      "url": "https://auth.naytife.com/oauth2/auth",
       "methods": [
         "GET"
       ]
@@ -246,7 +246,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/oauth2/fallbacks/error",
+      "url": "https://auth.naytife.com/oauth2/fallbacks/error",
       "methods": [
         "GET"
       ]
@@ -272,7 +272,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/oauth2/token",
+      "url": "https://auth.naytife.com/oauth2/token",
       "methods": [
         "POST"
       ]
@@ -298,7 +298,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/userinfo",
+      "url": "https://auth.naytife.com/userinfo",
       "methods": [
         "GET",
         "POST"
@@ -325,7 +325,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/oauth2/sessions/logout",
+      "url": "https://auth.naytife.com/oauth2/sessions/logout",
       "methods": [
         "GET"
       ]
@@ -351,7 +351,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://naytife.com/.well-known/openid-configuration",
+      "url": "https://auth.naytife.com/.well-known/openid-configuration",
       "methods": [
         "GET"
       ]
@@ -377,7 +377,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://naytife.com/login",
+      "url": "https://auth.naytife.com/login",
       "methods": [
         "GET",
         "POST"
@@ -404,7 +404,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://naytife.com/consent",
+      "url": "https://auth.naytife.com/consent",
       "methods": [
         "GET",
         "POST"
@@ -431,7 +431,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://naytife.com/callback",
+      "url": "https://auth.naytife.com/callback",
       "methods": [
         "GET"
       ]
