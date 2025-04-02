@@ -87,11 +87,16 @@ ingress:
       nginx.ingress.kubernetes.io/rewrite-target: "/"
       cert-manager.io/cluster-issuer: "letsencrypt"
     hosts:
-      - host: *.naytife.com
+      - host: auth.naytife.com
+        paths:
+          - path: /
+            pathType: Prefix
+      - host: api.naytife.com
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: oathkeeper-tls
         hosts:
-          - *.naytife.com
+          - auth.naytife.com
+          - api.naytife.com
