@@ -87,6 +87,8 @@ ingress:
       nginx.ingress.kubernetes.io/rewrite-target: "/"
       cert-manager.io/cluster-issuer: "letsencrypt"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/issue-temporary-certificate: "true"
+      acme.cert-manager.io/http01-edit-in-place: "true"
     hosts:
       - host: auth.naytife.com
         paths:
