@@ -494,7 +494,7 @@ definitions:
         description: 'TODO: add sub fields'
         type: string
     type: object
-host: api.naytife.com
+host: localhost:8000
 info:
   contact: {}
   description: This is the Naytife API documentation
@@ -545,6 +545,7 @@ paths:
               type: object
       security:
       - OAuth2AccessCode: []
+      - XUserIdAuth: []
       summary: Fetch the currently authenticated user
       tags:
       - user
@@ -1630,9 +1631,8 @@ paths:
 schemes:
 - http
 securityDefinitions:
-  OAuth2AccessCode:
-    authorizationUrl: https://auth.naytife.com/oauth2/auth
-    flow: accessCode
-    tokenUrl: https://auth.naytife.com/oauth2/token
-    type: oauth2
+  XUserIdAuth:
+    in: header
+    name: X-User-Id
+    type: apiKey
 swagger: "2.0"

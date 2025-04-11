@@ -44,6 +44,7 @@ type Repository interface {
 	GetUser(ctx context.Context, email *string) (User, error)
 	GetUserById(ctx context.Context, userID uuid.UUID) (User, error)
 	GetUserBySub(ctx context.Context, sub *string) (User, error)
+	GetUserBySubWithShops(ctx context.Context, sub *string) (GetUserBySubWithShopsRow, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)

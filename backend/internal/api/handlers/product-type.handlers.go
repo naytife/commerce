@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jinzhu/copier"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
@@ -62,8 +61,12 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create product type", nil)
 	}
 
-	var resp models.ProductType
-	copier.Copy(&resp, &objDB)
+	resp := models.ProductType{
+		ID:        objDB.ProductTypeID,
+		Title:     objDB.Title,
+		Shippable: objDB.Shippable,
+		Digital:   objDB.Digital,
+	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Product type created")
 }
 
@@ -87,8 +90,15 @@ func (h *Handler) GetProductTypes(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product types", nil)
 	}
 
-	var resp []models.ProductType
-	copier.Copy(&resp, &objsDB)
+	resp := make([]models.ProductType, len(objsDB))
+	for i, objDB := range objsDB {
+		resp[i] = models.ProductType{
+			ID:        objDB.ProductTypeID,
+			Title:     objDB.Title,
+			Shippable: objDB.Shippable,
+			Digital:   objDB.Digital,
+		}
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product types fetched successfully")
 }
 
@@ -124,8 +134,12 @@ func (h *Handler) GetProductType(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product type", nil)
 	}
 
-	var resp models.ProductType
-	copier.Copy(&resp, &objDB)
+	resp := models.ProductType{
+		ID:        objDB.ProductTypeID,
+		Title:     objDB.Title,
+		Shippable: objDB.Shippable,
+		Digital:   objDB.Digital,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type fetched successfully")
 }
 
@@ -186,8 +200,12 @@ func (h *Handler) UpdateProductType(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update product type", nil)
 	}
 
-	var resp models.ProductType
-	copier.Copy(&resp, &objDB)
+	resp := models.ProductType{
+		ID:        objDB.ProductTypeID,
+		Title:     objDB.Title,
+		Shippable: objDB.Shippable,
+		Digital:   objDB.Digital,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type updated successfully")
 }
 
@@ -223,7 +241,11 @@ func (h *Handler) DeleteProductType(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete product type", nil)
 	}
 
-	var resp models.ProductType
-	copier.Copy(&resp, &objDB)
+	resp := models.ProductType{
+		ID:        objDB.ProductTypeID,
+		Title:     objDB.Title,
+		Shippable: objDB.Shippable,
+		Digital:   objDB.Digital,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type deleted successfully")
 }

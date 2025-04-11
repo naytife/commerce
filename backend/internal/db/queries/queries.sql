@@ -21,3 +21,24 @@ WHERE user_id = $1;
 -- name: GetUserBySub :one
 SELECT * FROM users
 WHERE sub = $1;
+
+-- name: GetUserBySubWithShops :one
+SELECT 
+    users.*,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'shop_id', shops.shop_id,
+                'title', shops.title,
+                'domain', shops.domain,
+                'subdomain', shops.subdomain,
+                'status', shops.status,
+                'created_at', shops.created_at,
+                'updated_at', shops.updated_at
+            )
+        ) FILTER (WHERE shops.shop_id IS NOT NULL), '[]'::jsonb
+    )::jsonb AS shops
+FROM users
+LEFT JOIN shops ON users.user_id = shops.owner_id
+WHERE users.sub = $1
+GROUP BY users.user_id;

@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/jinzhu/copier"
+	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 )
@@ -20,9 +22,7 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param models.RegisterUserParams
 	err := c.BodyParser(&param)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
 	}
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&param); len(errs) > 0 {
@@ -33,18 +33,31 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 			Message: errMsgs,
 		}
 	}
-	var userParam db.UpsertUserParams
-	copier.Copy(&userParam, &param)
-	userParam.Sub = param.Email
-	objDB, err := h.Repository.UpsertUser(c.Context(), userParam)
+	objDB, err := h.Repository.UpsertUser(c.Context(), db.UpsertUserParams{
+		Sub:            param.Email,
+		ProviderID:     param.ProviderID,
+		Provider:       param.Provider,
+		Email:          param.Email,
+		Name:           param.Name,
+		Locale:         param.Locale,
+		ProfilePicture: param.ProfilePicture,
+		VerifiedEmail:  param.VerifiedEmail,
+	})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err,
-		})
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create or update user", nil)
 	}
-	var resp models.UserResponse
-	copier.Copy(&resp, &objDB)
-	return c.JSON(resp)
+	resp := models.UserResponse{
+		UserID:         objDB.UserID,
+		Provider:       objDB.Provider,
+		Email:          objDB.Email,
+		Name:           objDB.Name,
+		ProfilePicture: objDB.ProfilePicture,
+		CreatedAt:      objDB.CreatedAt,
+		LastLogin:      objDB.LastLogin,
+		ProviderID:     objDB.ProviderID,
+		Locale:         objDB.Locale,
+	}
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "User created or updated successfully")
 }
 
 // GetMe fetches the currently authenticated user
@@ -55,16 +68,30 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User fetched successfully"
 // @Security     OAuth2AccessCode
+// @Security XUserIdAuth
 // @Router       /me [get]
 func (h *Handler) GetMe(c *fiber.Ctx) error {
 	userIDStr, _ := c.Locals("user_id").(string)
-	objDB, err := h.Repository.GetUserBySub(c.Context(), &userIDStr)
+	objDB, err := h.Repository.GetUserBySubWithShops(c.Context(), &userIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err,
-		})
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user", nil)
 	}
-	var resp models.UserResponse
-	copier.Copy(&resp, &objDB)
-	return c.JSON(resp)
+	var shops []models.UserShopResponse
+	if err := json.Unmarshal(objDB.Shops, &shops); err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user shops", nil)
+	}
+	resp := models.UserResponse{
+		UserID:         objDB.UserID,
+		Provider:       objDB.Provider,
+		Email:          objDB.Email,
+		Name:           objDB.Name,
+		ProfilePicture: objDB.ProfilePicture,
+		CreatedAt:      objDB.CreatedAt,
+		LastLogin:      objDB.LastLogin,
+		ProviderID:     objDB.ProviderID,
+		Locale:         objDB.Locale,
+		Shops:          shops,
+	}
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "User fetched successfully")
+
 }

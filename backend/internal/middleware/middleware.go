@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -16,7 +16,6 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 
 		shopID, err := repo.GetShopIDBySubDomain(ctx, subdomain)
 		if err != nil {
-			log.Println(err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Invalid shop",
 			})
@@ -37,6 +36,7 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 func WebMiddlewareFiber() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID := c.Get("X-User-Id")
+		fmt.Println("User ID from header:", userID)
 		c.Locals("user_id", userID)
 		return c.Next()
 	}

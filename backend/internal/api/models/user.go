@@ -7,15 +7,16 @@ import (
 
 type UserResponse struct {
 	// TODO: add sub fields
-	UserID         uuid.UUID        `json:"user_id"`
-	Provider       *string          `json:"provider"`
-	Email          *string          `json:"email"`
-	Name           *string          `json:"name"`
-	ProfilePicture *string          `json:"profile_picture"`
-	CreatedAt      pgtype.Timestamp `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
-	LastLogin      pgtype.Timestamp `json:"last_login" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
-	ProviderID     *string          `json:"provider_id"`
-	Locale         *string          `json:"locale"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Provider       *string            `json:"provider"`
+	Email          *string            `json:"email"`
+	Name           *string            `json:"name"`
+	ProfilePicture *string            `json:"profile_picture"`
+	CreatedAt      pgtype.Timestamp   `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
+	LastLogin      pgtype.Timestamp   `json:"last_login" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
+	ProviderID     *string            `json:"provider_id"`
+	Locale         *string            `json:"locale"`
+	Shops          []UserShopResponse `json:"shops"`
 }
 
 type RegisterUserParams struct {
@@ -27,4 +28,14 @@ type RegisterUserParams struct {
 	Locale         *string `json:"locale"`
 	ProfilePicture *string `json:"picture"`
 	VerifiedEmail  *bool   `json:"verified_email"`
+}
+
+type UserShopResponse struct {
+	ID           int64              `json:"shop_id"`
+	Title        string             `json:"title"`
+	Subdomain    string             `json:"subdomain"`
+	CustomDomain string             `json:"custom_domain"`
+	Status       string             `json:"status"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 }

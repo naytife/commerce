@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getUser = `-- name: GetUser :one
@@ -79,6 +80,63 @@ func (q *Queries) GetUserBySub(ctx context.Context, sub *string) (User, error) {
 		&i.CreatedAt,
 		&i.LastLogin,
 		&i.VerifiedEmail,
+	)
+	return i, err
+}
+
+const getUserBySubWithShops = `-- name: GetUserBySubWithShops :one
+SELECT 
+    users.user_id, users.sub, users.email, users.provider, users.provider_id, users.name, users.locale, users.profile_picture, users.created_at, users.last_login, users.verified_email,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'shop_id', shops.shop_id,
+                'title', shops.title,
+                'domain', shops.domain,
+                'subdomain', shops.subdomain,
+                'status', shops.status,
+                'created_at', shops.created_at,
+                'updated_at', shops.updated_at
+            )
+        ) FILTER (WHERE shops.shop_id IS NOT NULL), '[]'::jsonb
+    )::jsonb AS shops
+FROM users
+LEFT JOIN shops ON users.user_id = shops.owner_id
+WHERE users.sub = $1
+GROUP BY users.user_id
+`
+
+type GetUserBySubWithShopsRow struct {
+	UserID         uuid.UUID        `json:"user_id"`
+	Sub            *string          `json:"sub"`
+	Email          *string          `json:"email"`
+	Provider       *string          `json:"provider"`
+	ProviderID     *string          `json:"provider_id"`
+	Name           *string          `json:"name"`
+	Locale         *string          `json:"locale"`
+	ProfilePicture *string          `json:"profile_picture"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	LastLogin      pgtype.Timestamp `json:"last_login"`
+	VerifiedEmail  *bool            `json:"verified_email"`
+	Shops          []byte           `json:"shops"`
+}
+
+func (q *Queries) GetUserBySubWithShops(ctx context.Context, sub *string) (GetUserBySubWithShopsRow, error) {
+	row := q.db.QueryRow(ctx, getUserBySubWithShops, sub)
+	var i GetUserBySubWithShopsRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Sub,
+		&i.Email,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.CreatedAt,
+		&i.LastLogin,
+		&i.VerifiedEmail,
+		&i.Shops,
 	)
 	return i, err
 }

@@ -9,7 +9,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "api.naytife.com",
+    "host": "localhost:8000",
     "basePath": "/api/v1",
     "paths": {
         "/auth/register": {
@@ -62,6 +62,9 @@
                 "security": [
                     {
                         "OAuth2AccessCode": []
+                    },
+                    {
+                        "XUserIdAuth": []
                     }
                 ],
                 "consumes": [
@@ -2601,11 +2604,10 @@
         }
     },
     "securityDefinitions": {
-        "OAuth2AccessCode": {
-            "type": "oauth2",
-            "flow": "accessCode",
-            "authorizationUrl": "https://auth.naytife.com/oauth2/auth",
-            "tokenUrl": "https://auth.naytife.com/oauth2/token"
+        "XUserIdAuth": {
+            "type": "apiKey",
+            "name": "X-User-Id",
+            "in": "header"
         }
     }
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jinzhu/copier"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
@@ -245,9 +244,16 @@ func (h *Handler) UpdateAttribute(c *fiber.Ctx) error {
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update attribute", nil)
 	}
+	resp := models.Attribute{
+		ID:            objDB.AttributeID,
+		Title:         objDB.Title,
+		DataType:      objDB.DataType,
+		Unit:          objDB.Unit.AttributeUnit,
+		Required:      objDB.Required,
+		AppliesTo:     objDB.AppliesTo,
+		ProductTypeID: objDB.ProductTypeID,
+	}
 
-	var resp models.Attribute
-	copier.Copy(&resp, &objDB)
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute updated successfully")
 }
 
@@ -283,8 +289,15 @@ func (h *Handler) DeleteAttribute(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete attribute", nil)
 	}
 
-	var resp models.Attribute
-	copier.Copy(&resp, &objDB)
+	resp := models.Attribute{
+		ID:            objDB.AttributeID,
+		Title:         objDB.Title,
+		DataType:      objDB.DataType,
+		Unit:          objDB.Unit.AttributeUnit,
+		Required:      objDB.Required,
+		AppliesTo:     objDB.AppliesTo,
+		ProductTypeID: objDB.ProductTypeID,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute deleted successfully")
 }
 
@@ -437,8 +450,11 @@ func (h *Handler) UpdateAttributeOption(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update attribute option", nil)
 	}
 
-	var resp models.AttributeOption
-	copier.Copy(&resp, &objDB)
+	resp := models.AttributeOption{
+		ID:          objDB.AttributeOptionID,
+		Value:       objDB.Value,
+		AttributeID: objDB.AttributeID,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute option updated successfully")
 }
 
@@ -474,7 +490,10 @@ func (h *Handler) DeleteAttributeOption(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete attribute option", nil)
 	}
 
-	var resp models.AttributeOption
-	copier.Copy(&resp, &objDB)
+	resp := models.AttributeOption{
+		ID:          objDB.AttributeOptionID,
+		Value:       objDB.Value,
+		AttributeID: objDB.AttributeID,
+	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute option deleted successfully")
 }
