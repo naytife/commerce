@@ -43,7 +43,6 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	if err := c.BodyParser(&productArg); err != nil {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
-
 	// Validate input
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&productArg); len(errs) > 0 {
@@ -128,7 +127,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 				return err
 			}
 		}
-
+		fmt.Println(" Handle variants if provided")
 		// Handle variants if provided
 		variantParams := make([]db.UpsertProductVariantsParams, len(productArg.Variants))
 		for i, variant := range productArg.Variants {
@@ -152,9 +151,13 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		// Perform batch upsert for variants
 		variantBatch := q.UpsertProductVariants(c.Context(), variantParams)
 		var batchErr error
-		variantBatch.Exec(func(i int, err error) {
+		var variants []db.ProductVariation
+		variantBatch.Query(func(i int, variations []db.ProductVariation, err error) {
 			if err != nil {
 				batchErr = err
+			}
+			if len(variations) > 0 {
+				variants = append(variants, variations...)
 			}
 		})
 
@@ -166,6 +169,35 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			return err
 		}
 
+		for i, variant := range productArg.Variants {
+			if len(variant.Attributes) == 0 {
+				continue
+			}
+
+			variantAttributeValuesParams := make([]db.BatchUpsertProductVariationAttributeValuesParams, len(variant.Attributes))
+			for j, attr := range variant.Attributes {
+				variantAttributeValuesParams[j] = db.BatchUpsertProductVariationAttributeValuesParams{
+					ProductVariationID: variants[i].ProductVariationID, // Use actual returned ID
+					Value:              attr.Value,
+					AttributeOptionID:  attr.AttributeOptionID,
+					AttributeID:        attr.AttributeID,
+					ShopID:             shopID,
+				}
+			}
+
+			variantAttributeBatch := q.BatchUpsertProductVariationAttributeValues(c.Context(), variantAttributeValuesParams)
+			variantAttributeBatch.Exec(func(i int, err error) {
+				if err != nil {
+					batchErr = err
+				}
+			})
+			if batchErr != nil {
+				return batchErr
+			}
+			if err := variantAttributeBatch.Close(); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 

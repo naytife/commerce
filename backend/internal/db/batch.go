@@ -304,9 +304,17 @@ func (b *DeleteProductVariantsBatchResults) Close() error {
 	return b.br.Close()
 }
 
-const upsertProductVariants = `-- name: UpsertProductVariants :batchexec
-INSERT INTO product_variations (slug, description, price,sku, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+const upsertProductVariants = `-- name: UpsertProductVariants :batchmany
+INSERT INTO product_variations (
+    slug, description, price, sku, available_quantity,
+    seo_description, seo_keywords, seo_title,
+    product_id, shop_id
+)
+VALUES (
+    $1, $2, $3, $4, $5,
+    $6, $7, $8,
+    $9, $10
+)
 ON CONFLICT (slug, shop_id)
 DO UPDATE SET
     description = EXCLUDED.description,
@@ -359,18 +367,47 @@ func (q *Queries) UpsertProductVariants(ctx context.Context, arg []UpsertProduct
 	return &UpsertProductVariantsBatchResults{br, len(arg), false}
 }
 
-func (b *UpsertProductVariantsBatchResults) Exec(f func(int, error)) {
+func (b *UpsertProductVariantsBatchResults) Query(f func(int, []ProductVariation, error)) {
 	defer b.br.Close()
 	for t := 0; t < b.tot; t++ {
+		var items []ProductVariation
 		if b.closed {
 			if f != nil {
-				f(t, ErrBatchAlreadyClosed)
+				f(t, items, ErrBatchAlreadyClosed)
 			}
 			continue
 		}
-		_, err := b.br.Exec()
+		err := func() error {
+			rows, err := b.br.Query()
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var i ProductVariation
+				if err := rows.Scan(
+					&i.ProductVariationID,
+					&i.Sku,
+					&i.Slug,
+					&i.Description,
+					&i.Price,
+					&i.AvailableQuantity,
+					&i.SeoDescription,
+					&i.SeoKeywords,
+					&i.SeoTitle,
+					&i.CreatedAt,
+					&i.UpdatedAt,
+					&i.ProductID,
+					&i.ShopID,
+				); err != nil {
+					return err
+				}
+				items = append(items, i)
+			}
+			return rows.Err()
+		}()
 		if f != nil {
-			f(t, err)
+			f(t, items, err)
 		}
 	}
 }

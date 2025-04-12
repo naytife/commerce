@@ -35,9 +35,17 @@ DELETE FROM products
 WHERE product_id = $1 AND shop_id = $2
 RETURNING *;
 
--- name: UpsertProductVariants :batchexec
-INSERT INTO product_variations (slug, description, price,sku, available_quantity, seo_description, seo_keywords, seo_title, product_id, shop_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+-- name: UpsertProductVariants :batchmany
+INSERT INTO product_variations (
+    slug, description, price, sku, available_quantity,
+    seo_description, seo_keywords, seo_title,
+    product_id, shop_id
+)
+VALUES (
+    $1, $2, $3, $4, $5,
+    $6, $7, $8,
+    $9, $10
+)
 ON CONFLICT (slug, shop_id)
 DO UPDATE SET
     description = EXCLUDED.description,
