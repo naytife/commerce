@@ -30,10 +30,56 @@ WHERE a.product_type_id = $1
 GROUP BY a.attribute_id;
 
 -- name: GetProductsAttributes :many
-SELECT * FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2;
+SELECT
+    a.attribute_id, 
+    a.title, 
+    a.data_type, 
+    a.unit, 
+    a.required, 
+    a.applies_to, 
+    a.shop_id, 
+    a.product_type_id,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.applies_to = 'Product' 
+  AND a.product_type_id = $1 
+  AND a.shop_id = $2
+GROUP BY a.attribute_id;
 
 -- name: GetVariationsAttributes :many
-SELECT * FROM attributes WHERE applies_to = 'ProductVariation' AND product_type_id = $1 AND shop_id = $2;
+SELECT
+    a.attribute_id, 
+    a.title, 
+    a.data_type, 
+    a.unit, 
+    a.required, 
+    a.applies_to, 
+    a.shop_id, 
+    a.product_type_id,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.applies_to = 'ProductVariation' 
+  AND a.product_type_id = $1 
+  AND a.shop_id = $2
+GROUP BY a.attribute_id;
 
 -- name: GetAttribute :one
 SELECT 
@@ -63,32 +109,34 @@ SET
 WHERE attribute_id = sqlc.arg('attribute_id') AND shop_id = sqlc.arg('shop_id')
 RETURNING *;
 
--- name: DeleteAttribute :one
+-- name: DeleteAttribute :exec
 DELETE FROM attributes
 WHERE attribute_id = $1 AND shop_id = $2
 RETURNING *;
 
--- name: CreateAttributeOption :one
+-- name: BatchUpsertAttributeOption :batchmany
 INSERT INTO attribute_options (value, shop_id, attribute_id)
 VALUES ($1, $2, $3)
+ON CONFLICT (value, shop_id, attribute_id)
+DO UPDATE SET 
+    value = EXCLUDED.value
+WHERE attribute_options.value IS DISTINCT FROM EXCLUDED.value
 RETURNING *;
+
+-- name: BatchDeleteAttributeOptions :batchexec
+DELETE FROM attribute_options
+WHERE shop_id = $1
+AND attribute_id = $2
+AND attribute_option_id != ALL(sqlc.arg('attribute_option_ids')::bigint[]);
 
 -- name: GetAttributeOptions :many
 SELECT * FROM attribute_options WHERE attribute_id = $1 AND shop_id = $2;
-
--- name: GetAttributeOption :one
-SELECT * FROM attribute_options WHERE attribute_option_id = $1 AND shop_id = $2;
 
 -- name: UpdateAttributeOption :one
 UPDATE attribute_options
 SET 
     value = COALESCE(sqlc.narg('value'), value)
 WHERE attribute_option_id = sqlc.arg('attribute_option_id') AND shop_id = sqlc.arg('shop_id')
-RETURNING *;
-
--- name: DeleteAttributeOption :one
-DELETE FROM attribute_options
-WHERE attribute_option_id = $1 AND shop_id = $2
 RETURNING *;
 
 -- name: BatchUpsertProductAttributeValues :batchexec

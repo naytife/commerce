@@ -40,7 +40,6 @@ func TestCreateProduct(t *testing.T) {
 				Description: "Test Description",
 				Variants: []models.ProductVariantParams{
 					{
-						Sku:               "TEST-SKU",
 						Price:             pgtype.Numeric{Int: big.NewInt(10000), Valid: true},
 						AvailableQuantity: 10,
 					},

@@ -20,9 +20,7 @@ import (
 // @title Naytife API Docs
 // @version 1.0
 // @description This is the Naytife API documentation
-// @host localhost:8000
-// @BasePath /api/v1
-// @schemes http
+// @servers.url http://localhost:8000/v1
 // securityDefinitions.oauth2.accessCode OAuth2AccessCode
 // @tokenUrl https://auth.naytife.com/oauth2/token
 // @authorizationUrl https://auth.naytife.com/oauth2/auth
@@ -72,15 +70,15 @@ func main() {
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowMethods: "GET,POST,OPTIONS",
+		AllowMethods: "GET,POST,OPTIONS,DELETE,PUT,PATCH",
 		AllowHeaders: "Content-Type,Authorization,X-User-Id",
 	}))
 	app.Use(logger.New())
-	app.Get("/api/v1/docs/swagger.json", func(c *fiber.Ctx) error {
+	app.Get("/v1/docs/swagger.json", func(c *fiber.Ctx) error {
 		return c.SendFile("docs/swagger.json")
 	})
-	app.Get("/api/v1/docs/*", swagger.New(swagger.Config{
-		URL:         fmt.Sprintf("http://%s/api/v1/docs/swagger.json", env.API_URL),
+	app.Get("/v1/docs/*", swagger.New(swagger.Config{
+		URL:         fmt.Sprintf("%s/v1/docs/swagger.json", env.API_URL),
 		DeepLinking: false,
 		// Expand ("list") or Collapse ("none") tag groups by default
 		DocExpansion: "none",
@@ -94,10 +92,10 @@ func main() {
 		},
 		PersistAuthorization: true,
 		// Ability to change OAuth2 redirect uri location
-		OAuth2RedirectUrl: fmt.Sprintf("%s/api/v1/docs/oauth2-redirect.html", env.API_URL),
+		OAuth2RedirectUrl: fmt.Sprintf("%s/v1/docs/oauth2-redirect.html", env.API_URL),
 	}))
 
-	v1 := app.Group("/api/v1")
+	v1 := app.Group("/v1")
 	api := v1.Group("/", middleware.WebMiddlewareFiber())
 	routes.AuthRouter(v1, repo)
 	routes.ShopRouter(api, repo)
@@ -107,9 +105,9 @@ func main() {
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)
 
-	app.Get("/api/graph", publicgraph.NewPlaygroundHandler("/api/query"))
+	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))
 
-	graphql := app.Group("/api/query", middleware.ShopIDMiddlewareFiber(repo))
+	graphql := app.Group("/query", middleware.ShopIDMiddlewareFiber(repo))
 	graphql.Post("/", publicgraph.NewHandler(repo)) // public
 
 	address := ":" + env.PORT

@@ -14,19 +14,21 @@ type Attribute struct {
 }
 
 type AttributeCreateParams struct {
-	Title     string                `json:"title" validate:"required,min=3,max=255" example:"Size"`
-	DataType  db.AttributeDataType  `json:"data_type" validate:"required,oneof=Text Number Date" example:"Text"`
-	Unit      db.AttributeUnit      `json:"unit,omitempty" example:"KG"`
-	Required  bool                  `json:"required" validate:"boolean"`
-	AppliesTo db.AttributeAppliesTo `json:"applies_to" validate:"required,oneof=Product ProductVariation"`
+	Title     string                        `json:"title" validate:"required,min=3,max=255" example:"Size"`
+	DataType  db.AttributeDataType          `json:"data_type" validate:"required,oneof=Text Number Date Option Color" example:"Text"`
+	Unit      db.AttributeUnit              `json:"unit,omitempty" example:"KG"`
+	Required  bool                          `json:"required" validate:"boolean"`
+	AppliesTo db.AttributeAppliesTo         `json:"applies_to" validate:"required,oneof=Product ProductVariation"`
+	Options   []AttributeOptionCreateParams `json:"options,omitempty"`
 }
 
 type AttributeUpdateParams struct {
-	Title     *string               `json:"title,omitempty" validate:"omitempty,min=3,max=255" example:"Size"`
-	DataType  db.AttributeDataType  `json:"data_type,omitempty" validate:"omitempty,oneof=Text Number Date" example:"Text"`
-	Unit      db.AttributeUnit      `json:"unit,omitempty" example:"KG"`
-	Required  *bool                 `json:"required,omitempty"`
-	AppliesTo db.AttributeAppliesTo `json:"applies_to,omitempty" validate:"omitempty,oneof=Product ProductVariation"`
+	Title     *string                       `json:"title,omitempty" validate:"omitempty,min=3,max=255" example:"Size"`
+	DataType  db.AttributeDataType          `json:"data_type,omitempty" validate:"omitempty,oneof=Text Number Date Option Color" example:"Text"`
+	Unit      db.AttributeUnit              `json:"unit,omitempty" example:"KG"`
+	Required  *bool                         `json:"required,omitempty"`
+	AppliesTo db.AttributeAppliesTo         `json:"applies_to,omitempty" validate:"omitempty,oneof=Product ProductVariation"`
+	Options   []AttributeOptionUpdateParams `json:"options,omitempty"`
 }
 
 type AttributeOption struct {
@@ -40,5 +42,6 @@ type AttributeOptionCreateParams struct {
 }
 
 type AttributeOptionUpdateParams struct {
+	ID    int64   `json:"attribute_option_id,omitempty"`
 	Value *string `json:"value,omitempty" validate:"omitempty,min=1,max=255" example:"XL"`
 }

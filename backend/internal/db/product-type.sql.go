@@ -10,16 +10,17 @@ import (
 )
 
 const createProductType = `-- name: CreateProductType :one
-INSERT INTO product_types ( title, shippable, digital, shop_id)
-VALUES ($1, $2, $3, $4)
-RETURNING product_type_id, title, shippable, digital, shop_id
+INSERT INTO product_types (title, shippable, digital, sku_substring, shop_id)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
 `
 
 type CreateProductTypeParams struct {
-	Title     string `json:"title"`
-	Shippable bool   `json:"shippable"`
-	Digital   bool   `json:"digital"`
-	ShopID    int64  `json:"shop_id"`
+	Title        string  `json:"title"`
+	Shippable    bool    `json:"shippable"`
+	Digital      bool    `json:"digital"`
+	SkuSubstring *string `json:"sku_substring"`
+	ShopID       int64   `json:"shop_id"`
 }
 
 func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypeParams) (ProductType, error) {
@@ -27,6 +28,7 @@ func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypePa
 		arg.Title,
 		arg.Shippable,
 		arg.Digital,
+		arg.SkuSubstring,
 		arg.ShopID,
 	)
 	var i ProductType
@@ -36,6 +38,7 @@ func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypePa
 		&i.Shippable,
 		&i.Digital,
 		&i.ShopID,
+		&i.SkuSubstring,
 	)
 	return i, err
 }
@@ -43,7 +46,7 @@ func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypePa
 const deleteProductType = `-- name: DeleteProductType :one
 DELETE FROM product_types
 WHERE product_type_id = $1 AND shop_id = $2
-RETURNING product_type_id, title, shippable, digital, shop_id
+RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
 `
 
 type DeleteProductTypeParams struct {
@@ -60,12 +63,13 @@ func (q *Queries) DeleteProductType(ctx context.Context, arg DeleteProductTypePa
 		&i.Shippable,
 		&i.Digital,
 		&i.ShopID,
+		&i.SkuSubstring,
 	)
 	return i, err
 }
 
 const getProductType = `-- name: GetProductType :one
-SELECT product_type_id, title, shippable, digital, shop_id FROM product_types WHERE product_type_id = $1 AND shop_id = $2
+SELECT product_type_id, title, shippable, digital, shop_id, sku_substring FROM product_types WHERE product_type_id = $1 AND shop_id = $2
 `
 
 type GetProductTypeParams struct {
@@ -82,12 +86,13 @@ func (q *Queries) GetProductType(ctx context.Context, arg GetProductTypeParams) 
 		&i.Shippable,
 		&i.Digital,
 		&i.ShopID,
+		&i.SkuSubstring,
 	)
 	return i, err
 }
 
 const getProductTypes = `-- name: GetProductTypes :many
-SELECT product_type_id, title, shippable, digital, shop_id FROM product_types WHERE shop_id = $1
+SELECT product_type_id, title, shippable, digital, shop_id, sku_substring FROM product_types WHERE shop_id = $1
 `
 
 func (q *Queries) GetProductTypes(ctx context.Context, shopID int64) ([]ProductType, error) {
@@ -105,6 +110,7 @@ func (q *Queries) GetProductTypes(ctx context.Context, shopID int64) ([]ProductT
 			&i.Shippable,
 			&i.Digital,
 			&i.ShopID,
+			&i.SkuSubstring,
 		); err != nil {
 			return nil, err
 		}
@@ -121,15 +127,17 @@ UPDATE product_types
 SET 
     title = COALESCE($1, title),
     shippable = COALESCE($2, shippable),
-    digital = COALESCE($3, digital)
-WHERE product_type_id = $4 AND shop_id = $5
-RETURNING product_type_id, title, shippable, digital, shop_id
+    digital = COALESCE($3, digital),
+    sku_substring = COALESCE($4, sku_substring)
+WHERE product_type_id = $5 AND shop_id = $6
+RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
 `
 
 type UpdateProductTypeParams struct {
 	Title         *string `json:"title"`
 	Shippable     *bool   `json:"shippable"`
 	Digital       *bool   `json:"digital"`
+	SkuSubstring  *string `json:"sku_substring"`
 	ProductTypeID int64   `json:"product_type_id"`
 	ShopID        int64   `json:"shop_id"`
 }
@@ -139,6 +147,7 @@ func (q *Queries) UpdateProductType(ctx context.Context, arg UpdateProductTypePa
 		arg.Title,
 		arg.Shippable,
 		arg.Digital,
+		arg.SkuSubstring,
 		arg.ProductTypeID,
 		arg.ShopID,
 	)
@@ -149,6 +158,7 @@ func (q *Queries) UpdateProductType(ctx context.Context, arg UpdateProductTypePa
 		&i.Shippable,
 		&i.Digital,
 		&i.ShopID,
+		&i.SkuSubstring,
 	)
 	return i, err
 }

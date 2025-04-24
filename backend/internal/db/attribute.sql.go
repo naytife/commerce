@@ -49,31 +49,7 @@ func (q *Queries) CreateAttribute(ctx context.Context, arg CreateAttributeParams
 	return i, err
 }
 
-const createAttributeOption = `-- name: CreateAttributeOption :one
-INSERT INTO attribute_options (value, shop_id, attribute_id)
-VALUES ($1, $2, $3)
-RETURNING attribute_option_id, value, shop_id, attribute_id
-`
-
-type CreateAttributeOptionParams struct {
-	Value       string `json:"value"`
-	ShopID      int64  `json:"shop_id"`
-	AttributeID int64  `json:"attribute_id"`
-}
-
-func (q *Queries) CreateAttributeOption(ctx context.Context, arg CreateAttributeOptionParams) (AttributeOption, error) {
-	row := q.db.QueryRow(ctx, createAttributeOption, arg.Value, arg.ShopID, arg.AttributeID)
-	var i AttributeOption
-	err := row.Scan(
-		&i.AttributeOptionID,
-		&i.Value,
-		&i.ShopID,
-		&i.AttributeID,
-	)
-	return i, err
-}
-
-const deleteAttribute = `-- name: DeleteAttribute :one
+const deleteAttribute = `-- name: DeleteAttribute :exec
 DELETE FROM attributes
 WHERE attribute_id = $1 AND shop_id = $2
 RETURNING attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id
@@ -84,43 +60,9 @@ type DeleteAttributeParams struct {
 	ShopID      int64 `json:"shop_id"`
 }
 
-func (q *Queries) DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) (Attribute, error) {
-	row := q.db.QueryRow(ctx, deleteAttribute, arg.AttributeID, arg.ShopID)
-	var i Attribute
-	err := row.Scan(
-		&i.AttributeID,
-		&i.Title,
-		&i.DataType,
-		&i.Unit,
-		&i.Required,
-		&i.AppliesTo,
-		&i.ShopID,
-		&i.ProductTypeID,
-	)
-	return i, err
-}
-
-const deleteAttributeOption = `-- name: DeleteAttributeOption :one
-DELETE FROM attribute_options
-WHERE attribute_option_id = $1 AND shop_id = $2
-RETURNING attribute_option_id, value, shop_id, attribute_id
-`
-
-type DeleteAttributeOptionParams struct {
-	AttributeOptionID int64 `json:"attribute_option_id"`
-	ShopID            int64 `json:"shop_id"`
-}
-
-func (q *Queries) DeleteAttributeOption(ctx context.Context, arg DeleteAttributeOptionParams) (AttributeOption, error) {
-	row := q.db.QueryRow(ctx, deleteAttributeOption, arg.AttributeOptionID, arg.ShopID)
-	var i AttributeOption
-	err := row.Scan(
-		&i.AttributeOptionID,
-		&i.Value,
-		&i.ShopID,
-		&i.AttributeID,
-	)
-	return i, err
+func (q *Queries) DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) error {
+	_, err := q.db.Exec(ctx, deleteAttribute, arg.AttributeID, arg.ShopID)
+	return err
 }
 
 const getAttribute = `-- name: GetAttribute :one
@@ -171,27 +113,6 @@ func (q *Queries) GetAttribute(ctx context.Context, arg GetAttributeParams) (Get
 		&i.ShopID,
 		&i.ProductTypeID,
 		&i.Options,
-	)
-	return i, err
-}
-
-const getAttributeOption = `-- name: GetAttributeOption :one
-SELECT attribute_option_id, value, shop_id, attribute_id FROM attribute_options WHERE attribute_option_id = $1 AND shop_id = $2
-`
-
-type GetAttributeOptionParams struct {
-	AttributeOptionID int64 `json:"attribute_option_id"`
-	ShopID            int64 `json:"shop_id"`
-}
-
-func (q *Queries) GetAttributeOption(ctx context.Context, arg GetAttributeOptionParams) (AttributeOption, error) {
-	row := q.db.QueryRow(ctx, getAttributeOption, arg.AttributeOptionID, arg.ShopID)
-	var i AttributeOption
-	err := row.Scan(
-		&i.AttributeOptionID,
-		&i.Value,
-		&i.ShopID,
-		&i.AttributeID,
 	)
 	return i, err
 }
@@ -408,7 +329,30 @@ func (q *Queries) GetProductVariationAttributeValues(ctx context.Context, arg Ge
 }
 
 const getProductsAttributes = `-- name: GetProductsAttributes :many
-SELECT attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id FROM attributes WHERE applies_to = 'Product' AND product_type_id = $1 AND shop_id = $2
+SELECT
+    a.attribute_id, 
+    a.title, 
+    a.data_type, 
+    a.unit, 
+    a.required, 
+    a.applies_to, 
+    a.shop_id, 
+    a.product_type_id,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.applies_to = 'Product' 
+  AND a.product_type_id = $1 
+  AND a.shop_id = $2
+GROUP BY a.attribute_id
 `
 
 type GetProductsAttributesParams struct {
@@ -416,15 +360,27 @@ type GetProductsAttributesParams struct {
 	ShopID        int64 `json:"shop_id"`
 }
 
-func (q *Queries) GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]Attribute, error) {
+type GetProductsAttributesRow struct {
+	AttributeID   int64              `json:"attribute_id"`
+	Title         string             `json:"title"`
+	DataType      AttributeDataType  `json:"data_type"`
+	Unit          NullAttributeUnit  `json:"unit"`
+	Required      bool               `json:"required"`
+	AppliesTo     AttributeAppliesTo `json:"applies_to"`
+	ShopID        int64              `json:"shop_id"`
+	ProductTypeID int64              `json:"product_type_id"`
+	Options       []byte             `json:"options"`
+}
+
+func (q *Queries) GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]GetProductsAttributesRow, error) {
 	rows, err := q.db.Query(ctx, getProductsAttributes, arg.ProductTypeID, arg.ShopID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Attribute
+	var items []GetProductsAttributesRow
 	for rows.Next() {
-		var i Attribute
+		var i GetProductsAttributesRow
 		if err := rows.Scan(
 			&i.AttributeID,
 			&i.Title,
@@ -434,6 +390,7 @@ func (q *Queries) GetProductsAttributes(ctx context.Context, arg GetProductsAttr
 			&i.AppliesTo,
 			&i.ShopID,
 			&i.ProductTypeID,
+			&i.Options,
 		); err != nil {
 			return nil, err
 		}
@@ -446,7 +403,30 @@ func (q *Queries) GetProductsAttributes(ctx context.Context, arg GetProductsAttr
 }
 
 const getVariationsAttributes = `-- name: GetVariationsAttributes :many
-SELECT attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id FROM attributes WHERE applies_to = 'ProductVariation' AND product_type_id = $1 AND shop_id = $2
+SELECT
+    a.attribute_id, 
+    a.title, 
+    a.data_type, 
+    a.unit, 
+    a.required, 
+    a.applies_to, 
+    a.shop_id, 
+    a.product_type_id,
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'attribute_option_id', ao.attribute_option_id,
+                'value', ao.value
+            )
+        ) FILTER (WHERE ao.attribute_option_id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS options
+FROM attributes a
+LEFT JOIN attribute_options ao ON a.attribute_id = ao.attribute_id
+WHERE a.applies_to = 'ProductVariation' 
+  AND a.product_type_id = $1 
+  AND a.shop_id = $2
+GROUP BY a.attribute_id
 `
 
 type GetVariationsAttributesParams struct {
@@ -454,15 +434,27 @@ type GetVariationsAttributesParams struct {
 	ShopID        int64 `json:"shop_id"`
 }
 
-func (q *Queries) GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]Attribute, error) {
+type GetVariationsAttributesRow struct {
+	AttributeID   int64              `json:"attribute_id"`
+	Title         string             `json:"title"`
+	DataType      AttributeDataType  `json:"data_type"`
+	Unit          NullAttributeUnit  `json:"unit"`
+	Required      bool               `json:"required"`
+	AppliesTo     AttributeAppliesTo `json:"applies_to"`
+	ShopID        int64              `json:"shop_id"`
+	ProductTypeID int64              `json:"product_type_id"`
+	Options       []byte             `json:"options"`
+}
+
+func (q *Queries) GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]GetVariationsAttributesRow, error) {
 	rows, err := q.db.Query(ctx, getVariationsAttributes, arg.ProductTypeID, arg.ShopID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Attribute
+	var items []GetVariationsAttributesRow
 	for rows.Next() {
-		var i Attribute
+		var i GetVariationsAttributesRow
 		if err := rows.Scan(
 			&i.AttributeID,
 			&i.Title,
@@ -472,6 +464,7 @@ func (q *Queries) GetVariationsAttributes(ctx context.Context, arg GetVariations
 			&i.AppliesTo,
 			&i.ShopID,
 			&i.ProductTypeID,
+			&i.Options,
 		); err != nil {
 			return nil, err
 		}

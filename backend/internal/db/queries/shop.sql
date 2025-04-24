@@ -1,4 +1,3 @@
-
 -- name: CreateShop :one
 INSERT INTO shops (owner_id, title, subdomain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -16,6 +15,32 @@ WHERE shop_id = $1;
 SELECT * FROM shop_images
 WHERE shop_id = $1;
 
+-- name: CreateShopImages :one
+INSERT INTO shop_images (
+    favicon_url, 
+    logo_url, 
+    logo_url_dark, 
+    banner_url, 
+    banner_url_dark, 
+    cover_image_url, 
+    cover_image_url_dark,
+    shop_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING *;
+
+-- name: UpdateShopImages :one
+UPDATE shop_images
+SET 
+    favicon_url = COALESCE(sqlc.narg('favicon_url'), favicon_url),
+    logo_url = COALESCE(sqlc.narg('logo_url'), logo_url),
+    logo_url_dark = COALESCE(sqlc.narg('logo_url_dark'), logo_url_dark),
+    banner_url = COALESCE(sqlc.narg('banner_url'), banner_url),
+    banner_url_dark = COALESCE(sqlc.narg('banner_url_dark'), banner_url_dark),
+    cover_image_url = COALESCE(sqlc.narg('cover_image_url'), cover_image_url),
+    cover_image_url_dark = COALESCE(sqlc.narg('cover_image_url_dark'), cover_image_url_dark)
+WHERE shop_id = sqlc.arg('shop_id')
+RETURNING *;
 
 -- name: GetShopsByOwner :many
 SELECT * FROM shops
@@ -24,6 +49,7 @@ WHERE owner_id = $1;
 -- name: UpdateShop :one
 UPDATE shops
 SET 
+    domain = COALESCE(sqlc.narg('custom_domain'), custom_domain),
     title = COALESCE(sqlc.narg('title'), title),
     currency_code = COALESCE(sqlc.narg('currency_code'), currency_code),
     about = COALESCE(sqlc.narg('about'), about),

@@ -26,13 +26,13 @@ resolver:
   # Optional: turn on to not generate template comments above resolvers
   # omit_template_comment: false
 
-# Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
-# struct_tag: json
+# Optional: turn on use `gqlgen:"fieldName"` tags in your models
+struct_tag: json
 
 # Optional: turn on to use []Thing instead of []*Thing
 omit_slice_element_pointers: true
 
-# Optional: turn on to omit Is<Name>() methods to interface and unions
+# Optional: turn on to omit Is<n>() methods to interface and unions
 # omit_interface_checks : true
 
 # Optional: turn on to skip generation of ComplexityRoot struct content and Complexity function
@@ -73,6 +73,7 @@ omit_slice_element_pointers: true
 # The first line in each type will be used as defaults for resolver arguments and
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
+
 models:
   ID:
     model:
@@ -108,8 +109,6 @@ models:
     fields:
       id:
         resolver: true
-      defaultVariant:
-        resolver: true
       images:
         resolver: true
   Shop:
@@ -117,8 +116,6 @@ models:
       id:
         resolver: true
       categories:
-        resolver: true
-      products:
         resolver: true
       images:
         resolver: true

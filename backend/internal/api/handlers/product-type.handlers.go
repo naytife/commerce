@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -44,11 +45,22 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 		}
 	}
 
+	// Use first 3 characters of title (uppercase) if sku_substring is not provided
+	var skuSubstring string
+	if productType.SkuSubstring != nil {
+		skuSubstring = *productType.SkuSubstring
+	} else if len(productType.Title) >= 3 {
+		skuSubstring = strings.ToUpper(productType.Title[:3])
+	} else {
+		skuSubstring = strings.ToUpper(productType.Title)
+	}
+
 	param := db.CreateProductTypeParams{
-		Title:     productType.Title,
-		Shippable: productType.Shippable,
-		Digital:   productType.Digital,
-		ShopID:    shopID,
+		Title:        productType.Title,
+		Shippable:    productType.Shippable,
+		Digital:      productType.Digital,
+		SkuSubstring: &skuSubstring,
+		ShopID:       shopID,
 	}
 
 	objDB, err := h.Repository.CreateProductType(c.Context(), param)
@@ -62,10 +74,11 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 	}
 
 	resp := models.ProductType{
-		ID:        objDB.ProductTypeID,
-		Title:     objDB.Title,
-		Shippable: objDB.Shippable,
-		Digital:   objDB.Digital,
+		ID:           objDB.ProductTypeID,
+		Title:        objDB.Title,
+		Shippable:    objDB.Shippable,
+		Digital:      objDB.Digital,
+		SkuSubstring: objDB.SkuSubstring,
 	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Product type created")
 }
@@ -74,7 +87,6 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 // @Summary Fetch all product types
 // @Description Fetch all product types
 // @Tags ProductType
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Success 200 {object} models.SuccessResponse{data=models.ProductType} "Product types fetched successfully"
@@ -93,10 +105,11 @@ func (h *Handler) GetProductTypes(c *fiber.Ctx) error {
 	resp := make([]models.ProductType, len(objsDB))
 	for i, objDB := range objsDB {
 		resp[i] = models.ProductType{
-			ID:        objDB.ProductTypeID,
-			Title:     objDB.Title,
-			Shippable: objDB.Shippable,
-			Digital:   objDB.Digital,
+			ID:           objDB.ProductTypeID,
+			Title:        objDB.Title,
+			Shippable:    objDB.Shippable,
+			Digital:      objDB.Digital,
+			SkuSubstring: objDB.SkuSubstring,
 		}
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product types fetched successfully")
@@ -106,7 +119,6 @@ func (h *Handler) GetProductTypes(c *fiber.Ctx) error {
 // @Summary Fetch a single product type
 // @Description Fetch a single product type
 // @Tags ProductType
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product type ID"
@@ -135,10 +147,11 @@ func (h *Handler) GetProductType(c *fiber.Ctx) error {
 	}
 
 	resp := models.ProductType{
-		ID:        objDB.ProductTypeID,
-		Title:     objDB.Title,
-		Shippable: objDB.Shippable,
-		Digital:   objDB.Digital,
+		ID:           objDB.ProductTypeID,
+		Title:        objDB.Title,
+		Shippable:    objDB.Shippable,
+		Digital:      objDB.Digital,
+		SkuSubstring: objDB.SkuSubstring,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type fetched successfully")
 }
@@ -183,6 +196,7 @@ func (h *Handler) UpdateProductType(c *fiber.Ctx) error {
 		Title:         productType.Title,
 		Shippable:     productType.Shippable,
 		Digital:       productType.Digital,
+		SkuSubstring:  productType.SkuSubstring,
 		ProductTypeID: productTypeID,
 		ShopID:        shopID,
 	}
@@ -201,10 +215,11 @@ func (h *Handler) UpdateProductType(c *fiber.Ctx) error {
 	}
 
 	resp := models.ProductType{
-		ID:        objDB.ProductTypeID,
-		Title:     objDB.Title,
-		Shippable: objDB.Shippable,
-		Digital:   objDB.Digital,
+		ID:           objDB.ProductTypeID,
+		Title:        objDB.Title,
+		Shippable:    objDB.Shippable,
+		Digital:      objDB.Digital,
+		SkuSubstring: objDB.SkuSubstring,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type updated successfully")
 }
@@ -213,7 +228,6 @@ func (h *Handler) UpdateProductType(c *fiber.Ctx) error {
 // @Summary Delete a product type
 // @Description Delete a product type
 // @Tags ProductType
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product type ID"
@@ -242,10 +256,11 @@ func (h *Handler) DeleteProductType(c *fiber.Ctx) error {
 	}
 
 	resp := models.ProductType{
-		ID:        objDB.ProductTypeID,
-		Title:     objDB.Title,
-		Shippable: objDB.Shippable,
-		Digital:   objDB.Digital,
+		ID:           objDB.ProductTypeID,
+		Title:        objDB.Title,
+		Shippable:    objDB.Shippable,
+		Digital:      objDB.Digital,
+		SkuSubstring: objDB.SkuSubstring,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Product type deleted successfully")
 }

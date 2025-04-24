@@ -12,12 +12,13 @@ import (
 )
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products ( title, description, status, product_type_id, shop_id)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
+INSERT INTO products ( slug, title, description, status, product_type_id, shop_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
 `
 
 type CreateProductParams struct {
+	Slug          string        `json:"slug"`
 	Title         string        `json:"title"`
 	Description   string        `json:"description"`
 	Status        ProductStatus `json:"status"`
@@ -27,6 +28,7 @@ type CreateProductParams struct {
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
 	row := q.db.QueryRow(ctx, createProduct,
+		arg.Slug,
 		arg.Title,
 		arg.Description,
 		arg.Status,
@@ -44,6 +46,66 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.CategoryID,
 		&i.ShopID,
 		&i.Status,
+		&i.Slug,
+	)
+	return i, err
+}
+
+const createProductVariation = `-- name: CreateProductVariation :one
+INSERT INTO product_variations (
+    description, price, sku, available_quantity,
+    seo_description, seo_keywords, seo_title,
+    product_id, shop_id, is_default
+)
+VALUES (
+    $1, $2, $3, $4, $5,
+    $6, $7, $8,
+    $9, $10
+)
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+`
+
+type CreateProductVariationParams struct {
+	Description       string         `json:"description"`
+	Price             pgtype.Numeric `json:"price"`
+	Sku               string         `json:"sku"`
+	AvailableQuantity int64          `json:"available_quantity"`
+	SeoDescription    *string        `json:"seo_description"`
+	SeoKeywords       []string       `json:"seo_keywords"`
+	SeoTitle          *string        `json:"seo_title"`
+	ProductID         int64          `json:"product_id"`
+	ShopID            int64          `json:"shop_id"`
+	IsDefault         bool           `json:"is_default"`
+}
+
+func (q *Queries) CreateProductVariation(ctx context.Context, arg CreateProductVariationParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, createProductVariation,
+		arg.Description,
+		arg.Price,
+		arg.Sku,
+		arg.AvailableQuantity,
+		arg.SeoDescription,
+		arg.SeoKeywords,
+		arg.SeoTitle,
+		arg.ProductID,
+		arg.ShopID,
+		arg.IsDefault,
+	)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+		&i.IsDefault,
 	)
 	return i, err
 }
@@ -51,7 +113,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 const deleteProduct = `-- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = $1 AND shop_id = $2
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
 `
 
 type DeleteProductParams struct {
@@ -64,10 +126,28 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) er
 	return err
 }
 
+const deleteProductVariants = `-- name: DeleteProductVariants :exec
+DELETE FROM product_variations
+WHERE shop_id = $1 AND product_id = $2
+AND product_variation_id != ALL($3::bigint[])
+`
+
+type DeleteProductVariantsParams struct {
+	ShopID              int64   `json:"shop_id"`
+	ProductID           int64   `json:"product_id"`
+	ProductVariationIds []int64 `json:"product_variation_ids"`
+}
+
+func (q *Queries) DeleteProductVariants(ctx context.Context, arg DeleteProductVariantsParams) error {
+	_, err := q.db.Exec(ctx, deleteProductVariants, arg.ShopID, arg.ProductID, arg.ProductVariationIds)
+	return err
+}
+
 const getProduct = `-- name: GetProduct :one
 SELECT 
     p.product_id,
     p.title,
+    p.slug,
     p.description,
     p.status,
     p.category_id,
@@ -80,7 +160,7 @@ SELECT
             jsonb_agg(
                 jsonb_build_object(
                     'attribute_id', pa.attribute_id,
-                    'attribute_title', a.title,
+                    'title', a.title,
                     'attribute_option_id', pa.attribute_option_id,
                     'value', COALESCE(ao.value, pa.value)
                 )
@@ -94,21 +174,56 @@ SELECT
     )::jsonb AS attributes,
 
     -- Aggregate variants separately to prevent duplication
-    (
+      (
         SELECT COALESCE(
-            jsonb_agg(DISTINCT jsonb_build_object(
-                'variation_id', pv.product_variation_id,
-                'slug', pv.slug,
-                'description', pv.description,
-                'price', pv.price,
-                'sku', pv.sku,
-                'available_quantity', pv.available_quantity
-            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            jsonb_agg(
+                jsonb_build_object(
+                    'variation_id', pv.product_variation_id,
+                    'description', pv.description,
+                    'price', pv.price,
+                    'sku', pv.sku,
+                    'available_quantity', pv.available_quantity,
+                    'is_default', pv.is_default,
+                    'attributes', (
+                        SELECT COALESCE(
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'attribute_id', pva.attribute_id,
+                                    'title', a.title,
+                                    'attribute_option_id', pva.attribute_option_id,
+                                    'value', COALESCE(ao.value, pva.value)
+                                )
+                            ) FILTER (WHERE pva.attribute_id IS NOT NULL),
+                            '[]'::jsonb
+                        )
+                        FROM product_variation_attribute_values pva
+                        LEFT JOIN attributes a ON a.attribute_id = pva.attribute_id
+                        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pva.attribute_option_id
+                        WHERE pva.product_variation_id = pv.product_variation_id
+                    )
+                )
+            ) FILTER (WHERE pv.product_variation_id IS NOT NULL),
             '[]'::jsonb
         )
         FROM product_variations pv
         WHERE pv.product_id = p.product_id
-    )::jsonb AS variants
+    )::jsonb AS variants,
+    
+    -- Aggregate product images separately
+    (
+        SELECT COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'id', pi.product_image_id,
+                    'url', pi.url,
+                    'alt', pi.alt
+                )
+            ) FILTER (WHERE pi.product_image_id IS NOT NULL),
+            '[]'::jsonb
+        )
+        FROM product_images pi
+        WHERE pi.product_id = p.product_id
+    )::jsonb AS images
 
 FROM products p
 WHERE p.product_id = $1 AND p.shop_id = $2
@@ -122,6 +237,7 @@ type GetProductParams struct {
 type GetProductRow struct {
 	ProductID   int64              `json:"product_id"`
 	Title       string             `json:"title"`
+	Slug        string             `json:"slug"`
 	Description string             `json:"description"`
 	Status      ProductStatus      `json:"status"`
 	CategoryID  *int64             `json:"category_id"`
@@ -129,6 +245,7 @@ type GetProductRow struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	Attributes  []byte             `json:"attributes"`
 	Variants    []byte             `json:"variants"`
+	Images      []byte             `json:"images"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -137,6 +254,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 	err := row.Scan(
 		&i.ProductID,
 		&i.Title,
+		&i.Slug,
 		&i.Description,
 		&i.Status,
 		&i.CategoryID,
@@ -144,12 +262,67 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.CreatedAt,
 		&i.Attributes,
 		&i.Variants,
+		&i.Images,
+	)
+	return i, err
+}
+
+const getProductById = `-- name: GetProductById :one
+SELECT product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug FROM products
+WHERE product_id = $1 AND shop_id = $2
+`
+
+type GetProductByIdParams struct {
+	ProductID int64 `json:"product_id"`
+	ShopID    int64 `json:"shop_id"`
+}
+
+func (q *Queries) GetProductById(ctx context.Context, arg GetProductByIdParams) (Product, error) {
+	row := q.db.QueryRow(ctx, getProductById, arg.ProductID, arg.ShopID)
+	var i Product
+	err := row.Scan(
+		&i.ProductID,
+		&i.Title,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductTypeID,
+		&i.CategoryID,
+		&i.ShopID,
+		&i.Status,
+		&i.Slug,
+	)
+	return i, err
+}
+
+const getProductTypeByProduct = `-- name: GetProductTypeByProduct :one
+SELECT pt.product_type_id, pt.title, pt.shippable, pt.digital, pt.shop_id, pt.sku_substring
+FROM products p
+JOIN product_types pt ON p.product_type_id = pt.product_type_id
+WHERE p.product_id = $1 AND p.shop_id = $2
+`
+
+type GetProductTypeByProductParams struct {
+	ProductID int64 `json:"product_id"`
+	ShopID    int64 `json:"shop_id"`
+}
+
+func (q *Queries) GetProductTypeByProduct(ctx context.Context, arg GetProductTypeByProductParams) (ProductType, error) {
+	row := q.db.QueryRow(ctx, getProductTypeByProduct, arg.ProductID, arg.ShopID)
+	var i ProductType
+	err := row.Scan(
+		&i.ProductTypeID,
+		&i.Title,
+		&i.Shippable,
+		&i.Digital,
+		&i.ShopID,
+		&i.SkuSubstring,
 	)
 	return i, err
 }
 
 const getProductVariants = `-- name: GetProductVariants :many
-SELECT product_variation_id, sku, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id FROM product_variations
+SELECT product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id
 `
@@ -171,7 +344,6 @@ func (q *Queries) GetProductVariants(ctx context.Context, arg GetProductVariants
 		if err := rows.Scan(
 			&i.ProductVariationID,
 			&i.Sku,
-			&i.Slug,
 			&i.Description,
 			&i.Price,
 			&i.AvailableQuantity,
@@ -182,6 +354,7 @@ func (q *Queries) GetProductVariants(ctx context.Context, arg GetProductVariants
 			&i.UpdatedAt,
 			&i.ProductID,
 			&i.ShopID,
+			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -196,6 +369,7 @@ func (q *Queries) GetProductVariants(ctx context.Context, arg GetProductVariants
 const getProducts = `-- name: GetProducts :many
 SELECT 
     p.product_id,
+    p.slug,
     p.title,
     p.description,
     p.status,
@@ -203,13 +377,13 @@ SELECT
     p.updated_at,
     p.created_at,
 
-    -- Aggregate attributes separately to prevent duplication
+    -- Product attributes
     (
         SELECT COALESCE(
             jsonb_agg(
                 jsonb_build_object(
                     'attribute_id', pa.attribute_id,
-                    'attribute_title', a.title,
+                    'title', a.title,
                     'attribute_option_id', pa.attribute_option_id,
                     'value', COALESCE(ao.value, pa.value)
                 )
@@ -222,22 +396,57 @@ SELECT
         WHERE pa.product_id = p.product_id
     )::jsonb AS attributes,
 
-    -- Aggregate variants separately to prevent duplication
+    -- Product variants with embedded attributes
     (
         SELECT COALESCE(
-            jsonb_agg(DISTINCT jsonb_build_object(
-                'variation_id', pv.product_variation_id,
-                'slug', pv.slug,
-                'description', pv.description,
-                'price', pv.price,
-                'sku', pv.sku,
-                'available_quantity', pv.available_quantity
-            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            jsonb_agg(
+                jsonb_build_object(
+                    'variation_id', pv.product_variation_id,
+                    'description', pv.description,
+                    'price', pv.price,
+                    'sku', pv.sku,
+                    'available_quantity', pv.available_quantity,
+                    'is_default', pv.is_default,
+                    'attributes', (
+                        SELECT COALESCE(
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'attribute_id', pva.attribute_id,
+                                    'title', a.title,
+                                    'attribute_option_id', pva.attribute_option_id,
+                                    'value', COALESCE(ao.value, pva.value)
+                                )
+                            ) FILTER (WHERE pva.attribute_id IS NOT NULL),
+                            '[]'::jsonb
+                        )
+                        FROM product_variation_attribute_values pva
+                        LEFT JOIN attributes a ON a.attribute_id = pva.attribute_id
+                        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pva.attribute_option_id
+                        WHERE pva.product_variation_id = pv.product_variation_id
+                    )
+                )
+            ) FILTER (WHERE pv.product_variation_id IS NOT NULL),
             '[]'::jsonb
         )
         FROM product_variations pv
         WHERE pv.product_id = p.product_id
-    )::jsonb AS variants
+    )::jsonb AS variants,
+    
+    -- Product images
+    (
+        SELECT COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'id', pi.product_image_id,
+                    'url', pi.url,
+                    'alt', pi.alt
+                )
+            ) FILTER (WHERE pi.product_image_id IS NOT NULL),
+            '[]'::jsonb
+        )
+        FROM product_images pi
+        WHERE pi.product_id = p.product_id
+    )::jsonb AS images
 
 FROM products p
 WHERE p.shop_id = $1 
@@ -254,6 +463,7 @@ type GetProductsParams struct {
 
 type GetProductsRow struct {
 	ProductID   int64              `json:"product_id"`
+	Slug        string             `json:"slug"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	Status      ProductStatus      `json:"status"`
@@ -262,6 +472,7 @@ type GetProductsRow struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	Attributes  []byte             `json:"attributes"`
 	Variants    []byte             `json:"variants"`
+	Images      []byte             `json:"images"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -275,6 +486,7 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 		var i GetProductsRow
 		if err := rows.Scan(
 			&i.ProductID,
+			&i.Slug,
 			&i.Title,
 			&i.Description,
 			&i.Status,
@@ -283,6 +495,7 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 			&i.CreatedAt,
 			&i.Attributes,
 			&i.Variants,
+			&i.Images,
 		); err != nil {
 			return nil, err
 		}
@@ -357,6 +570,7 @@ func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCa
 const getProductsByType = `-- name: GetProductsByType :many
 SELECT 
     p.product_id,
+    p.slug,
     p.title,
     p.description,
     p.status,
@@ -370,7 +584,7 @@ SELECT
             json_agg(
                 json_build_object(
                     'attribute_id', pa.attribute_id,
-                    'attribute_title', a.title,
+                    'title', a.title,
                     'attribute_option_id', pa.attribute_option_id,
                     'value', COALESCE(ao.value, pa.value)
                 )
@@ -384,21 +598,56 @@ SELECT
     ) AS attributes,
 
     -- Aggregate variants separately
-    (
+      (
         SELECT COALESCE(
-            json_agg(DISTINCT jsonb_build_object(
-                'variation_id', pv.product_variation_id,
-                'slug', pv.slug,
-                'description', pv.description,
-                'price', pv.price,
-                'sku', pv.sku,
-                'available_quantity', pv.available_quantity
-            )) FILTER (WHERE pv.product_variation_id IS NOT NULL),
-            '[]'::json
+            jsonb_agg(
+                jsonb_build_object(
+                    'variation_id', pv.product_variation_id,
+                    'description', pv.description,
+                    'price', pv.price,
+                    'sku', pv.sku,
+                    'available_quantity', pv.available_quantity,
+                    'is_default', pv.is_default,
+                    'attributes', (
+                        SELECT COALESCE(
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'attribute_id', pva.attribute_id,
+                                    'title', a.title,
+                                    'attribute_option_id', pva.attribute_option_id,
+                                    'value', COALESCE(ao.value, pva.value)
+                                )
+                            ) FILTER (WHERE pva.attribute_id IS NOT NULL),
+                            '[]'::jsonb
+                        )
+                        FROM product_variation_attribute_values pva
+                        LEFT JOIN attributes a ON a.attribute_id = pva.attribute_id
+                        LEFT JOIN attribute_options ao ON ao.attribute_option_id = pva.attribute_option_id
+                        WHERE pva.product_variation_id = pv.product_variation_id
+                    )
+                )
+            ) FILTER (WHERE pv.product_variation_id IS NOT NULL),
+            '[]'::jsonb
         )
         FROM product_variations pv
         WHERE pv.product_id = p.product_id
-    ) AS variants
+    )::jsonb AS variants,
+
+    -- Aggregate product images
+    (
+        SELECT COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'id', pi.product_image_id,
+                    'url', pi.url,
+                    'alt', pi.alt
+                )
+            ) FILTER (WHERE pi.product_image_id IS NOT NULL),
+            '[]'::jsonb
+        )
+        FROM product_images pi
+        WHERE pi.product_id = p.product_id
+    )::jsonb AS images
 
 FROM products p
 WHERE p.shop_id = $1 
@@ -417,6 +666,7 @@ type GetProductsByTypeParams struct {
 
 type GetProductsByTypeRow struct {
 	ProductID   int64              `json:"product_id"`
+	Slug        string             `json:"slug"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	Status      ProductStatus      `json:"status"`
@@ -424,7 +674,8 @@ type GetProductsByTypeRow struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	Attributes  interface{}        `json:"attributes"`
-	Variants    interface{}        `json:"variants"`
+	Variants    []byte             `json:"variants"`
+	Images      []byte             `json:"images"`
 }
 
 func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypeParams) ([]GetProductsByTypeRow, error) {
@@ -443,6 +694,7 @@ func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypePa
 		var i GetProductsByTypeRow
 		if err := rows.Scan(
 			&i.ProductID,
+			&i.Slug,
 			&i.Title,
 			&i.Description,
 			&i.Status,
@@ -451,6 +703,7 @@ func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypePa
 			&i.CreatedAt,
 			&i.Attributes,
 			&i.Variants,
+			&i.Images,
 		); err != nil {
 			return nil, err
 		}
@@ -469,7 +722,7 @@ SET
     description = COALESCE($2, description),
     updated_at = NOW()
 WHERE product_id = $3 AND shop_id = $4
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status
+RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
 `
 
 type UpdateProductParams struct {
@@ -487,4 +740,96 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.ShopID,
 	)
 	return err
+}
+
+const updateProductVariation = `-- name: UpdateProductVariation :one
+UPDATE product_variations
+SET 
+    description = COALESCE($1, description),
+    price = COALESCE($2, price),
+    available_quantity = COALESCE($3, available_quantity),
+    seo_description = COALESCE($4, seo_description),
+    seo_keywords = COALESCE($5, seo_keywords),
+    seo_title = COALESCE($6, seo_title),
+    is_default = COALESCE($7, is_default),
+    updated_at = NOW()
+WHERE product_variation_id = $8 AND shop_id = $9
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+`
+
+type UpdateProductVariationParams struct {
+	Description        *string        `json:"description"`
+	Price              pgtype.Numeric `json:"price"`
+	AvailableQuantity  *int64         `json:"available_quantity"`
+	SeoDescription     *string        `json:"seo_description"`
+	SeoKeywords        []string       `json:"seo_keywords"`
+	SeoTitle           *string        `json:"seo_title"`
+	IsDefault          *bool          `json:"is_default"`
+	ProductVariationID int64          `json:"product_variation_id"`
+	ShopID             int64          `json:"shop_id"`
+}
+
+func (q *Queries) UpdateProductVariation(ctx context.Context, arg UpdateProductVariationParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, updateProductVariation,
+		arg.Description,
+		arg.Price,
+		arg.AvailableQuantity,
+		arg.SeoDescription,
+		arg.SeoKeywords,
+		arg.SeoTitle,
+		arg.IsDefault,
+		arg.ProductVariationID,
+		arg.ShopID,
+	)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+		&i.IsDefault,
+	)
+	return i, err
+}
+
+const updateProductVariationSku = `-- name: UpdateProductVariationSku :one
+UPDATE product_variations
+SET sku = $2
+WHERE product_variation_id = $1 AND shop_id = $3
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+`
+
+type UpdateProductVariationSkuParams struct {
+	ProductVariationID int64  `json:"product_variation_id"`
+	Sku                string `json:"sku"`
+	ShopID             int64  `json:"shop_id"`
+}
+
+func (q *Queries) UpdateProductVariationSku(ctx context.Context, arg UpdateProductVariationSkuParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, updateProductVariationSku, arg.ProductVariationID, arg.Sku, arg.ShopID)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+		&i.IsDefault,
+	)
+	return i, err
 }

@@ -50,35 +50,96 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 			Message: errMsgs,
 		}
 	}
-
-	param := db.CreateAttributeParams{
-		Title:         attribute.Title,
-		DataType:      attribute.DataType,
-		Unit:          db.NullAttributeUnit{AttributeUnit: attribute.Unit, Valid: attribute.Unit != ""},
-		Required:      attribute.Required,
-		AppliesTo:     attribute.AppliesTo,
-		ProductTypeID: productTypeID,
-		ShopID:        shopID,
+	if attribute.AppliesTo == "ProductVariation" && len(attribute.Options) == 0 {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "At least one option is required for Variants Attribute", nil)
 	}
 
-	objDB, err := h.Repository.CreateAttribute(c.Context(), param)
+	for _, option := range attribute.Options {
+		if errs := validator.Validate(&option); len(errs) > 0 {
+			errMsgs := models.FormatValidationErrors(errs)
+			return &fiber.Error{
+				Code:    fiber.ErrBadRequest.Code,
+				Message: errMsgs,
+			}
+		}
+	}
+	var attribteDB db.Attribute
+	attributeOptions := make([]db.AttributeOption, 0)
+	err := h.Repository.WithTx(c.Context(), func(tx *db.Queries) error {
+		param := db.CreateAttributeParams{
+			Title:         attribute.Title,
+			DataType:      attribute.DataType,
+			Unit:          db.NullAttributeUnit{AttributeUnit: attribute.Unit, Valid: attribute.Unit != ""},
+			Required:      attribute.Required,
+			AppliesTo:     attribute.AppliesTo,
+			ProductTypeID: productTypeID,
+			ShopID:        shopID,
+		}
+
+		objDB, err := tx.CreateAttribute(c.Context(), param)
+		if err != nil {
+			return err
+		}
+		attribteDB = objDB
+
+		if len(attribute.Options) > 0 {
+			optionParams := make([]db.BatchUpsertAttributeOptionParams, len(attribute.Options))
+			for i, option := range attribute.Options {
+				optionParams[i] = db.BatchUpsertAttributeOptionParams{
+					Value:       option.Value,
+					ShopID:      shopID,
+					AttributeID: objDB.AttributeID,
+				}
+			}
+			batch := tx.BatchUpsertAttributeOption(c.Context(), optionParams)
+			var batchErr error
+			batch.Query(func(i int, options []db.AttributeOption, err error) {
+				if err != nil {
+					batchErr = err
+				}
+				if len(options) > 0 {
+					attributeOptions = append(attributeOptions, options...)
+				}
+			})
+
+			if batchErr != nil {
+				return batchErr
+			}
+
+			if err := batch.Close(); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Attribute already exists", nil)
 			}
+			return api.ErrorResponse(c, fiber.StatusConflict, fmt.Sprintf("Unique constraint violation: %s", pgErr.ConstraintName), nil)
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create attribute", nil)
 	}
-
+	var options []models.AttributeOption
+	for _, option := range attributeOptions {
+		options = append(options, models.AttributeOption{
+			ID:          option.AttributeOptionID,
+			Value:       option.Value,
+			AttributeID: option.AttributeID,
+		})
+	}
 	resp := models.Attribute{
-		ID:            objDB.AttributeID,
-		Title:         objDB.Title,
-		DataType:      objDB.DataType,
-		Unit:          objDB.Unit.AttributeUnit,
-		Required:      objDB.Required,
-		AppliesTo:     objDB.AppliesTo,
-		ProductTypeID: objDB.ProductTypeID,
+		ID:            attribteDB.AttributeID,
+		Title:         attribteDB.Title,
+		DataType:      attribteDB.DataType,
+		Unit:          attribteDB.Unit.AttributeUnit,
+		Required:      attribteDB.Required,
+		AppliesTo:     attribteDB.AppliesTo,
+		ProductTypeID: attribteDB.ProductTypeID,
+		Options:       options,
 	}
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Attribute created successfully")
 }
@@ -87,7 +148,6 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 // @Summary Fetch all attributes
 // @Description Fetch all attributes
 // @Tags ProductType
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product Type ID"
@@ -145,7 +205,6 @@ func (h *Handler) GetAttributes(c *fiber.Ctx) error {
 // @Summary Fetch a single attribute
 // @Description Fetch a single attribute
 // @Tags Attributes
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param attribute_id path string true "Attribute ID"
@@ -195,7 +254,6 @@ func (h *Handler) GetAttribute(c *fiber.Ctx) error {
 // @Summary Update an attribute
 // @Description Update an attribute
 // @Tags Attributes
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param attribute_id path string true "Attribute ID"
@@ -227,31 +285,111 @@ func (h *Handler) UpdateAttribute(c *fiber.Ctx) error {
 		}
 	}
 
-	param := db.UpdateAttributeParams{
-		Title:       attribute.Title,
-		DataType:    db.NullAttributeDataType{AttributeDataType: attribute.DataType, Valid: attribute.DataType != ""},
-		Unit:        db.NullAttributeUnit{AttributeUnit: attribute.Unit, Valid: attribute.Unit != ""},
-		Required:    attribute.Required,
-		AppliesTo:   db.NullAttributeAppliesTo{AttributeAppliesTo: attribute.AppliesTo, Valid: attribute.AppliesTo != ""},
-		AttributeID: attributeID,
-		ShopID:      shopID,
+	if attribute.AppliesTo == "ProductVariation" && len(attribute.Options) == 0 {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "At least one option is required for Variants Attribute", nil)
 	}
-
-	objDB, err := h.Repository.UpdateAttribute(c.Context(), param)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute not found", nil)
+	var attributeDB db.Attribute
+	attributeOptions := make([]db.AttributeOption, 0)
+	err := h.Repository.WithTx(c.Context(), func(tx *db.Queries) error {
+		// Update the attribute
+		param := db.UpdateAttributeParams{
+			Title:       attribute.Title,
+			DataType:    db.NullAttributeDataType{AttributeDataType: attribute.DataType, Valid: attribute.DataType != ""},
+			Unit:        db.NullAttributeUnit{AttributeUnit: attribute.Unit, Valid: attribute.Unit != ""},
+			Required:    attribute.Required,
+			AppliesTo:   db.NullAttributeAppliesTo{AttributeAppliesTo: attribute.AppliesTo, Valid: attribute.AppliesTo != ""},
+			AttributeID: attributeID,
+			ShopID:      shopID,
 		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update attribute", nil)
+
+		objDB, err := tx.UpdateAttribute(c.Context(), param)
+		if err != nil {
+			return err
+		}
+		attributeDB = objDB
+
+		// Handle options updates if provided
+		if len(attribute.Options) > 0 {
+			// Get option IDs that should be kept
+			keepOptionIDs := make([]int64, len(attribute.Options))
+			for i, option := range attribute.Options {
+				keepOptionIDs[i] = option.ID
+			}
+
+			// Delete options not in the update list
+			deleteBatch := tx.BatchDeleteAttributeOptions(c.Context(), []db.BatchDeleteAttributeOptionsParams{
+				{
+					ShopID:             shopID,
+					AttributeID:        attributeID,
+					AttributeOptionIds: keepOptionIDs,
+				},
+			})
+			deleteBatch.Exec(func(_ int, err error) {
+				if err != nil {
+					return
+				}
+			})
+
+			// Prepare options for batch upsert
+			optionParams := make([]db.BatchUpsertAttributeOptionParams, len(attribute.Options))
+			for i, option := range attribute.Options {
+				optionParams[i] = db.BatchUpsertAttributeOptionParams{
+					Value:       *option.Value,
+					ShopID:      shopID,
+					AttributeID: attributeID,
+				}
+			}
+
+			// Perform batch upsert for options
+			batch := tx.BatchUpsertAttributeOption(c.Context(), optionParams)
+			var batchErr error
+			batch.Query(func(i int, options []db.AttributeOption, err error) {
+				if err != nil {
+					batchErr = err
+				}
+				if len(options) > 0 {
+					attributeOptions = append(attributeOptions, options...)
+				}
+			})
+
+			if batchErr != nil {
+				return batchErr
+			}
+
+			if err := batch.Close(); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == errors.UniqueViolation {
+				return api.ErrorResponse(c, fiber.StatusConflict, "Attribute already exists", nil)
+			}
+			return api.ErrorResponse(c, fiber.StatusConflict, fmt.Sprintf("Unique constraint violation: %s", pgErr.ConstraintName), nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create attribute", nil)
+	}
+	var options []models.AttributeOption
+	for _, option := range attributeOptions {
+		options = append(options, models.AttributeOption{
+			ID:          option.AttributeOptionID,
+			Value:       option.Value,
+			AttributeID: option.AttributeID,
+		})
 	}
 	resp := models.Attribute{
-		ID:            objDB.AttributeID,
-		Title:         objDB.Title,
-		DataType:      objDB.DataType,
-		Unit:          objDB.Unit.AttributeUnit,
-		Required:      objDB.Required,
-		AppliesTo:     objDB.AppliesTo,
-		ProductTypeID: objDB.ProductTypeID,
+		ID:            attributeDB.AttributeID,
+		Title:         attributeDB.Title,
+		DataType:      attributeDB.DataType,
+		Unit:          attributeDB.Unit.AttributeUnit,
+		Required:      attributeDB.Required,
+		AppliesTo:     attributeDB.AppliesTo,
+		ProductTypeID: attributeDB.ProductTypeID,
+		Options:       options,
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute updated successfully")
@@ -261,7 +399,6 @@ func (h *Handler) UpdateAttribute(c *fiber.Ctx) error {
 // @Summary Delete an attribute
 // @Description Delete an attribute
 // @Tags Attributes
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param attribute_id path string true "Attribute ID"
@@ -281,7 +418,7 @@ func (h *Handler) DeleteAttribute(c *fiber.Ctx) error {
 		ShopID:      shopID,
 	}
 
-	objDB, err := h.Repository.DeleteAttribute(c.Context(), params)
+	err := h.Repository.DeleteAttribute(c.Context(), params)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute not found", nil)
@@ -289,211 +426,5 @@ func (h *Handler) DeleteAttribute(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete attribute", nil)
 	}
 
-	resp := models.Attribute{
-		ID:            objDB.AttributeID,
-		Title:         objDB.Title,
-		DataType:      objDB.DataType,
-		Unit:          objDB.Unit.AttributeUnit,
-		Required:      objDB.Required,
-		AppliesTo:     objDB.AppliesTo,
-		ProductTypeID: objDB.ProductTypeID,
-	}
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute deleted successfully")
-}
-
-// CreateAttributeOption Create a new attribute option
-// @Summary Create a new attribute option
-// @Description Create a new attribute option
-// @Tags Attributes
-// @Accept json
-// @Produce json
-// @Param shop_id path string true "Shop ID"
-// @Param attribute_id path string true "Attribute ID"
-// @Param option body models.AttributeOptionCreateParams true "Attribute Option"
-// @Success 200 {object} models.SuccessResponse{data=models.AttributeOption} "Attribute option created successfully"
-// @Failure 400 {object} models.ErrorResponse "Invalid input"
-// @Failure 401 {object} models.ErrorResponse "Unauthorized"
-// @Failure 403 {object} models.ErrorResponse "Forbidden"
-// @Failure 404 {object} models.ErrorResponse "Not Found"
-// @Failure 500 {object} models.ErrorResponse "Internal Server Error"
-// @Security OAuth2AccessCode
-// @Router /shops/{shop_id}/attributes/{attribute_id}/options [post]
-func (h *Handler) CreateAttributeOption(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
-	attributeIDStr := c.Params("attribute_id", "0")
-	attributeID, _ := strconv.ParseInt(attributeIDStr, 10, 64)
-
-	var option models.AttributeOptionCreateParams
-	if err := c.BodyParser(&option); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
-	}
-
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&option); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
-	}
-
-	param := db.CreateAttributeOptionParams{
-		Value:       option.Value,
-		ShopID:      shopID,
-		AttributeID: attributeID,
-	}
-
-	objDB, err := h.Repository.CreateAttributeOption(c.Context(), param)
-	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == errors.UniqueViolation {
-				return api.ErrorResponse(c, fiber.StatusConflict, "attribute-option already exists", nil)
-			}
-		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create attribute option", nil)
-	}
-
-	resp := models.AttributeOption{
-		ID:          objDB.AttributeOptionID,
-		Value:       objDB.Value,
-		AttributeID: objDB.AttributeID,
-	}
-	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Attribute option created successfully")
-}
-
-// GetAttributeOptions fetches all attribute options
-// @Summary Fetch all attribute options
-// @Description Fetch all attribute options
-// @Tags Attributes
-// @Accept json
-// @Produce json
-// @Param shop_id path string true "Shop ID"
-// @Param attribute_id path string true "Attribute ID"
-// @Success 200 {object} models.SuccessResponse{data=[]models.AttributeOption} "Attribute options fetched successfully"
-// @Failure 500 {object} models.ErrorResponse "Failed to fetch attribute options"
-// @Security OAuth2AccessCode
-// @Router /shops/{shop_id}/attributes/{attribute_id}/options [get]
-func (h *Handler) GetAttributeOptions(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
-	attributeIDStr := c.Params("attribute_id", "0")
-	attributeID, _ := strconv.ParseInt(attributeIDStr, 10, 64)
-
-	params := db.GetAttributeOptionsParams{
-		AttributeID: attributeID,
-		ShopID:      shopID,
-	}
-
-	objsDB, err := h.Repository.GetAttributeOptions(c.Context(), params)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attribute options", nil)
-	}
-
-	resp := make([]models.AttributeOption, len(objsDB))
-	for i, obj := range objsDB {
-		resp[i] = models.AttributeOption{
-			ID:          obj.AttributeOptionID,
-			Value:       obj.Value,
-			AttributeID: obj.AttributeID,
-		}
-	}
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute options fetched successfully")
-}
-
-// UpdateAttributeOption updates an attribute option
-// @Summary Update an attribute option
-// @Description Update an attribute option
-// @Tags Attributes
-// @Accept json
-// @Produce json
-// @Param shop_id path string true "Shop ID"
-// @Param attribute_option_id path string true "Attribute Option ID"
-// @Param option body models.AttributeOptionUpdateParams true "Attribute Option"
-// @Success 200 {object} models.SuccessResponse{data=models.AttributeOption} "Attribute option updated successfully"
-// @Failure 400 {object} models.ErrorResponse "Invalid request body"
-// @Failure 404 {object} models.ErrorResponse "Attribute option not found"
-// @Failure 500 {object} models.ErrorResponse "Failed to update attribute option"
-// @Security OAuth2AccessCode
-// @Router /shops/{shop_id}/attribute-options/{attribute_option_id} [put]
-func (h *Handler) UpdateAttributeOption(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
-	attributeOptionIDStr := c.Params("attribute_option_id", "0")
-	attributeOptionID, _ := strconv.ParseInt(attributeOptionIDStr, 10, 64)
-
-	var option models.AttributeOptionUpdateParams
-	if err := c.BodyParser(&option); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
-	}
-
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&option); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
-	}
-
-	param := db.UpdateAttributeOptionParams{
-		Value:             option.Value,
-		AttributeOptionID: attributeOptionID,
-		ShopID:            shopID,
-	}
-
-	objDB, err := h.Repository.UpdateAttributeOption(c.Context(), param)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute option not found", nil)
-		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update attribute option", nil)
-	}
-
-	resp := models.AttributeOption{
-		ID:          objDB.AttributeOptionID,
-		Value:       objDB.Value,
-		AttributeID: objDB.AttributeID,
-	}
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute option updated successfully")
-}
-
-// DeleteAttributeOption deletes an attribute option
-// @Summary Delete an attribute option
-// @Description Delete an attribute option
-// @Tags Attributes
-// @Accept json
-// @Produce json
-// @Param shop_id path string true "Shop ID"
-// @Param attribute_option_id path string true "Attribute Option ID"
-// @Success 200 {object} models.SuccessResponse{data=models.AttributeOption} "Attribute option deleted successfully"
-// @Failure 404 {object} models.ErrorResponse "Attribute option not found"
-// @Failure 500 {object} models.ErrorResponse "Failed to delete attribute option"
-// @Security OAuth2AccessCode
-// @Router /shops/{shop_id}/attribute-options/{attribute_option_id} [delete]
-func (h *Handler) DeleteAttributeOption(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
-	attributeOptionIDStr := c.Params("attribute_option_id", "0")
-	attributeOptionID, _ := strconv.ParseInt(attributeOptionIDStr, 10, 64)
-
-	params := db.DeleteAttributeOptionParams{
-		AttributeOptionID: attributeOptionID,
-		ShopID:            shopID,
-	}
-
-	objDB, err := h.Repository.DeleteAttributeOption(c.Context(), params)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute option not found", nil)
-		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete attribute option", nil)
-	}
-
-	resp := models.AttributeOption{
-		ID:          objDB.AttributeOptionID,
-		Value:       objDB.Value,
-		AttributeID: objDB.AttributeID,
-	}
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Attribute option deleted successfully")
+	return api.SuccessResponse(c, fiber.StatusOK, nil, "Attribute deleted successfully")
 }

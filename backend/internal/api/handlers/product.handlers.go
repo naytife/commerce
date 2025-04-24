@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
@@ -53,7 +54,6 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		}
 	}
 
-	// Additional validation for variants
 	if len(productArg.Variants) == 0 {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "At least one product variant is required", nil)
 	}
@@ -69,7 +69,6 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			)
 		}
 
-		// Additional business logic validation
 		if !variant.Price.Valid || variant.Price.Int == nil || variant.Price.Int.Sign() <= 0 {
 			return api.ErrorResponse(
 				c,
@@ -79,18 +78,45 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			)
 		}
 	}
-
-	// Prepare parameters for product creation
+	slug := slug.MakeLang(fmt.Sprint(productArg.Title), "en")
 	createProductParams := db.CreateProductParams{
 		Title:         productArg.Title,
 		Description:   productArg.Description,
 		ShopID:        shopID,
 		ProductTypeID: productTypeID,
 		Status:        db.ProductStatusDRAFT,
+		Slug:          slug,
+	}
+
+	// Get product type to access the sku_substring
+	productTypeParam := db.GetProductTypeParams{
+		ProductTypeID: productTypeID,
+		ShopID:        shopID,
+	}
+
+	productType, err := h.Repository.GetProductType(c.Context(), productTypeParam)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Product type not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product type", nil)
+	}
+
+	// Determine the SKU substring to use
+	skuSubstring := "SKU"
+	if productType.SkuSubstring != nil {
+		skuSubstring = *productType.SkuSubstring
+	} else {
+		// Use first 3 characters of product type title in uppercase
+		if len(productType.Title) >= 3 {
+			skuSubstring = strings.ToUpper(productType.Title[:3])
+		} else {
+			skuSubstring = strings.ToUpper(productType.Title)
+		}
 	}
 
 	// Execute transaction
-	err := h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
+	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
 		product, err := q.CreateProduct(c.Context(), createProductParams)
 		if err != nil {
 			return err
@@ -127,16 +153,18 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 				return err
 			}
 		}
-		fmt.Println(" Handle variants if provided")
-		// Handle variants if provided
-		variantParams := make([]db.UpsertProductVariantsParams, len(productArg.Variants))
+
+		// Create variants one by one with proper SKUs
 		for i, variant := range productArg.Variants {
-			// Generate a slug for the variant
+			if i > 0 && variant.IsDefault {
+				variant.IsDefault = false // Ensure only the first marked default is actually default
+			} else if i == 0 && !variant.IsDefault {
+				variant.IsDefault = true // Make first variant default if none specified
+			}
 
-			slug := slug.MakeLang(fmt.Sprint(product.Title), "en")
-
-			variantParams[i] = db.UpsertProductVariantsParams{
-				Slug:              slug,
+			// Create the variant first with a temporary placeholder SKU
+			// This ensures we get a variation_id
+			createVariantParam := db.CreateProductVariationParams{
 				Description:       variant.Description,
 				Price:             variant.Price,
 				AvailableQuantity: variant.AvailableQuantity,
@@ -145,59 +173,59 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 				SeoTitle:          variant.SeoTitle,
 				ProductID:         product.ProductID,
 				ShopID:            shopID,
+				IsDefault:         variant.IsDefault,
+				Sku:               fmt.Sprintf("TEMP-%d-%d", product.ProductID, i), // Temporary SKU
 			}
-		}
 
-		// Perform batch upsert for variants
-		variantBatch := q.UpsertProductVariants(c.Context(), variantParams)
-		var batchErr error
-		var variants []db.ProductVariation
-		variantBatch.Query(func(i int, variations []db.ProductVariation, err error) {
+			createdVariant, err := q.CreateProductVariation(c.Context(), createVariantParam)
 			if err != nil {
-				batchErr = err
-			}
-			if len(variations) > 0 {
-				variants = append(variants, variations...)
-			}
-		})
-
-		if batchErr != nil {
-			return batchErr
-		}
-
-		if err := variantBatch.Close(); err != nil {
-			return err
-		}
-
-		for i, variant := range productArg.Variants {
-			if len(variant.Attributes) == 0 {
-				continue
-			}
-
-			variantAttributeValuesParams := make([]db.BatchUpsertProductVariationAttributeValuesParams, len(variant.Attributes))
-			for j, attr := range variant.Attributes {
-				variantAttributeValuesParams[j] = db.BatchUpsertProductVariationAttributeValuesParams{
-					ProductVariationID: variants[i].ProductVariationID, // Use actual returned ID
-					Value:              attr.Value,
-					AttributeOptionID:  attr.AttributeOptionID,
-					AttributeID:        attr.AttributeID,
-					ShopID:             shopID,
-				}
-			}
-
-			variantAttributeBatch := q.BatchUpsertProductVariationAttributeValues(c.Context(), variantAttributeValuesParams)
-			variantAttributeBatch.Exec(func(i int, err error) {
-				if err != nil {
-					batchErr = err
-				}
-			})
-			if batchErr != nil {
-				return batchErr
-			}
-			if err := variantAttributeBatch.Close(); err != nil {
 				return err
 			}
+
+			// Now update with the proper SKU format
+			sku := fmt.Sprintf("%s-%d", skuSubstring, createdVariant.ProductVariationID)
+			updateParam := db.UpdateProductVariationSkuParams{
+				ProductVariationID: createdVariant.ProductVariationID,
+				Sku:                sku,
+				ShopID:             shopID,
+			}
+
+			_, err = q.UpdateProductVariationSku(c.Context(), updateParam)
+			if err != nil {
+				return err
+			}
+
+			// Handle variant attributes if any
+			if len(variant.Attributes) > 0 {
+				variantAttrParams := make([]db.BatchUpsertProductVariationAttributeValuesParams, len(variant.Attributes))
+				for i, attr := range variant.Attributes {
+					variantAttrParams[i] = db.BatchUpsertProductVariationAttributeValuesParams{
+						Value:              attr.Value,
+						AttributeOptionID:  attr.AttributeOptionID,
+						ProductVariationID: createdVariant.ProductVariationID,
+						AttributeID:        attr.AttributeID,
+						ShopID:             shopID,
+					}
+				}
+
+				batch := q.BatchUpsertProductVariationAttributeValues(c.Context(), variantAttrParams)
+				var batchErr error
+				batch.Exec(func(i int, err error) {
+					if err != nil {
+						batchErr = err
+					}
+				})
+
+				if batchErr != nil {
+					return fmt.Errorf("failed to create variant attributes: %w", batchErr)
+				}
+
+				if err := batch.Close(); err != nil {
+					return fmt.Errorf("failed to commit variant attribute creation: %w", err)
+				}
+			}
 		}
+
 		return nil
 	})
 
@@ -227,7 +255,6 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 // @Summary Fetch all products
 // @Description Fetch all products
 // @Tags Product
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param after query string false "After product ID"
@@ -267,6 +294,7 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	for i, prod := range objsDB {
 		var attributes []models.ProductAttribute
 		var variants []models.ProductVariant
+		var images []models.ProductImageResponse
 
 		if err := json.Unmarshal(prod.Attributes, &attributes); err != nil {
 			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
@@ -275,6 +303,11 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 		if err := json.Unmarshal(prod.Variants, &variants); err != nil {
 			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
 		}
+
+		if err := json.Unmarshal(prod.Images, &images); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
+		}
+
 		products[i] = models.Product{
 			ID:          prod.ProductID,
 			Title:       prod.Title,
@@ -283,7 +316,19 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 			UpdatedAt:   prod.UpdatedAt,
 			Attributes:  attributes,
 			Variants:    variants,
+			Images:      images,
 			Status:      prod.Status,
+		}
+
+		// Only set DefaultVariant if the variants array isn't empty
+		if len(variants) > 0 {
+			products[i].DefaultVariant = variants[0]
+			for j := range variants {
+				if variants[j].IsDefault {
+					products[i].DefaultVariant = variants[j]
+					break
+				}
+			}
 		}
 	}
 
@@ -295,7 +340,6 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 // @Summary Fetch a single product
 // @Description Fetch a single product
 // @Tags Product
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_id path string true "Product ID"
@@ -332,6 +376,7 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 	}
 	var attributes []models.ProductAttribute
 	var variants []models.ProductVariant
+	var images []models.ProductImageResponse
 
 	if err := json.Unmarshal(objDB.Attributes, &attributes); err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
@@ -339,6 +384,10 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 
 	if err := json.Unmarshal(objDB.Variants, &variants); err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+	}
+
+	if err := json.Unmarshal(objDB.Images, &images); err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
 	}
 
 	// Return the single query result directly
@@ -350,6 +399,7 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 		// CategoryID:  *objDB.CategoryID,
 		Attributes: attributes,
 		Variants:   variants,
+		Images:     images,
 		UpdatedAt:  objDB.UpdatedAt,
 		CreatedAt:  objDB.CreatedAt,
 	}, "Product fetched successfully")
@@ -359,7 +409,6 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 // @Summary Update a product
 // @Description Update a product
 // @Tags Product
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_id path string true "Product ID"
@@ -394,6 +443,30 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		return &fiber.Error{
 			Code:    fiber.ErrBadRequest.Code,
 			Message: errMsgs,
+		}
+	}
+
+	// Validate variants if provided
+	if len(product.Variants) > 0 {
+		for i, variant := range product.Variants {
+			if errs := validator.Validate(&variant); len(errs) > 0 {
+				errMsgs := models.FormatValidationErrors(errs)
+				return api.ErrorResponse(
+					c,
+					fiber.StatusBadRequest,
+					fmt.Sprintf("Invalid variant at position %d: %s", i+1, errMsgs),
+					nil,
+				)
+			}
+
+			if !variant.Price.Valid || variant.Price.Int == nil || variant.Price.Int.Sign() <= 0 {
+				return api.ErrorResponse(
+					c,
+					fiber.StatusBadRequest,
+					fmt.Sprintf("Invalid price for variant %d: price must be greater than 0", i+1),
+					nil,
+				)
+			}
 		}
 	}
 
@@ -458,6 +531,148 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 			}
 		}
 
+		// Handle variants update if provided
+		if len(product.Variants) > 0 {
+			// Track variant IDs that should be kept
+			variantIDs := make([]int64, 0, len(product.Variants))
+
+			// Update or insert variants
+			for i, variant := range product.Variants {
+				if variant.ID > 0 {
+					// Update existing variant
+					variantIDs = append(variantIDs, variant.ID)
+
+					// Create parameters for updating existing variant directly
+					updateVariantParam := db.UpdateProductVariationParams{
+						ProductVariationID: variant.ID,
+						Description:        &variant.Description,
+						Price:              variant.Price,
+						AvailableQuantity:  &variant.AvailableQuantity,
+						SeoDescription:     variant.SeoDescription,
+						SeoKeywords:        variant.SeoKeywords,
+						SeoTitle:           variant.SeoTitle,
+						IsDefault:          &variant.IsDefault,
+						ShopID:             shopID,
+					}
+
+					_, err := q.UpdateProductVariation(c.Context(), updateVariantParam)
+					if err != nil {
+						return fmt.Errorf("failed to update variant %d: %w", variant.ID, err)
+					}
+				} else {
+					// It's a new variant, generate a SKU and create
+					// Get product type to access the sku_substring
+					productTypeParam := db.GetProductTypeByProductParams{
+						ProductID: productID,
+						ShopID:    shopID,
+					}
+
+					productType, err := q.GetProductTypeByProduct(c.Context(), productTypeParam)
+					if err != nil {
+						return fmt.Errorf("failed to get product type: %w", err)
+					}
+
+					// Determine the SKU substring to use
+					skuSubstring := "SKU"
+					if productType.SkuSubstring != nil {
+						skuSubstring = *productType.SkuSubstring
+					} else {
+						// Use first 3 characters of product type title in uppercase
+						if len(productType.Title) >= 3 {
+							skuSubstring = strings.ToUpper(productType.Title[:3])
+						} else {
+							skuSubstring = strings.ToUpper(productType.Title)
+						}
+					}
+
+					// Create with temporary SKU
+					createVariantParam := db.CreateProductVariationParams{
+						Description:       variant.Description,
+						Price:             variant.Price,
+						AvailableQuantity: variant.AvailableQuantity,
+						SeoDescription:    variant.SeoDescription,
+						SeoKeywords:       variant.SeoKeywords,
+						SeoTitle:          variant.SeoTitle,
+						ProductID:         productID,
+						ShopID:            shopID,
+						IsDefault:         variant.IsDefault,
+						Sku:               fmt.Sprintf("TEMP-%d-%d", productID, i), // Temporary SKU
+					}
+
+					createdVariant, err := q.CreateProductVariation(c.Context(), createVariantParam)
+					if err != nil {
+						return fmt.Errorf("failed to create variant: %w", err)
+					}
+
+					variantIDs = append(variantIDs, createdVariant.ProductVariationID)
+
+					// Update with proper SKU
+					sku := fmt.Sprintf("%s-%d", skuSubstring, createdVariant.ProductVariationID)
+					updateParam := db.UpdateProductVariationSkuParams{
+						ProductVariationID: createdVariant.ProductVariationID,
+						Sku:                sku,
+						ShopID:             shopID,
+					}
+
+					_, err = q.UpdateProductVariationSku(c.Context(), updateParam)
+					if err != nil {
+						return fmt.Errorf("failed to update variant SKU: %w", err)
+					}
+				}
+
+				// Handle variant attributes if provided
+				if len(variant.Attributes) > 0 {
+					variantID := variant.ID
+					if variantID == 0 {
+						// If it was a newly created variant, get the ID from the last added ID
+						variantID = variantIDs[len(variantIDs)-1]
+					}
+
+					// Prepare attribute values for batch upsert
+					variantAttrParams := make([]db.BatchUpsertProductVariationAttributeValuesParams, len(variant.Attributes))
+					for j, attr := range variant.Attributes {
+						variantAttrParams[j] = db.BatchUpsertProductVariationAttributeValuesParams{
+							Value:              attr.Value,
+							AttributeOptionID:  attr.AttributeOptionID,
+							ProductVariationID: variantID,
+							AttributeID:        attr.AttributeID,
+							ShopID:             shopID,
+						}
+					}
+
+					// Perform batch upsert
+					batch := q.BatchUpsertProductVariationAttributeValues(c.Context(), variantAttrParams)
+					var batchErr error
+					batch.Exec(func(i int, err error) {
+						if err != nil {
+							batchErr = err
+						}
+					})
+
+					if batchErr != nil {
+						return fmt.Errorf("failed to update variant attributes: %w", batchErr)
+					}
+
+					if err := batch.Close(); err != nil {
+						return fmt.Errorf("failed to commit variant attribute update: %w", err)
+					}
+				}
+			}
+
+			// Delete any variants not in the update list
+			if len(variantIDs) > 0 {
+				deleteParams := db.DeleteProductVariantsParams{
+					ShopID:              shopID,
+					ProductID:           productID,
+					ProductVariationIds: variantIDs,
+				}
+				err := q.DeleteProductVariants(c.Context(), deleteParams)
+				if err != nil {
+					return fmt.Errorf("failed to delete removed variants: %w", err)
+				}
+			}
+		}
+
 		return nil
 	})
 
@@ -476,7 +691,6 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 // @Summary Delete a product
 // @Description Delete a product
 // @Tags Product
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_id path string true "Product ID"
@@ -511,7 +725,6 @@ func (h *Handler) DeleteProduct(c *fiber.Ctx) error {
 // @Summary Get products by product type
 // @Description Get products by product type
 // @Tags ProductType
-// @Accept json
 // @Produce json
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product Type ID"
@@ -552,9 +765,59 @@ func (h *Handler) GetProductsByType(c *fiber.Ctx) error {
 		Limit:         int32(limit),
 	}
 
-	products, err := h.Repository.GetProductsByType(c.Context(), param)
+	productsDB, err := h.Repository.GetProductsByType(c.Context(), param)
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch products", nil)
+	}
+
+	products := make([]models.Product, len(productsDB))
+	for i, prod := range productsDB {
+		var variants []models.ProductVariant
+		var images []models.ProductImageResponse
+
+		// Convert attributes to expected type
+		var attributesList []models.ProductAttribute
+		if attrs, ok := prod.Attributes.([]interface{}); ok {
+			for _, attr := range attrs {
+				if attrMap, ok := attr.(map[string]interface{}); ok {
+					attributesList = append(attributesList, models.ProductAttribute{
+						AttributeID:    int64(attrMap["attribute_id"].(float64)),
+						AttributeTitle: attrMap["title"].(string),
+					})
+				}
+			}
+		}
+
+		if err := json.Unmarshal(prod.Variants, &variants); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+		}
+
+		if err := json.Unmarshal(prod.Images, &images); err != nil {
+			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
+		}
+
+		products[i] = models.Product{
+			ID:          prod.ProductID,
+			Title:       prod.Title,
+			Description: prod.Description,
+			CreatedAt:   prod.CreatedAt,
+			UpdatedAt:   prod.UpdatedAt,
+			Attributes:  attributesList,
+			Variants:    variants,
+			Images:      images,
+			Status:      prod.Status,
+		}
+
+		// Only set DefaultVariant if the variants array isn't empty
+		if len(variants) > 0 {
+			products[i].DefaultVariant = variants[0]
+			for j := range variants {
+				if variants[j].IsDefault {
+					products[i].DefaultVariant = variants[j]
+					break
+				}
+			}
+		}
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, products, "Products fetched successfully")

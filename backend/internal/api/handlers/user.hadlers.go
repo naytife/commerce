@@ -64,7 +64,6 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 // @Summary      Fetch the currently authenticated user
 // @Description
 // @Tags         user
-// @Accept       json
 // @Produce      json
 // @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User fetched successfully"
 // @Security     OAuth2AccessCode

@@ -1,6 +1,6 @@
 -- name: CreateProductType :one
-INSERT INTO product_types ( title, shippable, digital, shop_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO product_types (title, shippable, digital, sku_substring, shop_id)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetProductTypes :many
@@ -14,7 +14,8 @@ UPDATE product_types
 SET 
     title = COALESCE(sqlc.narg('title'), title),
     shippable = COALESCE(sqlc.narg('shippable'), shippable),
-    digital = COALESCE(sqlc.narg('digital'), digital)
+    digital = COALESCE(sqlc.narg('digital'), digital),
+    sku_substring = COALESCE(sqlc.narg('sku_substring'), sku_substring)
 WHERE product_type_id = sqlc.arg('product_type_id') AND shop_id = sqlc.arg('shop_id')
 RETURNING *;
 

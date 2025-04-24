@@ -73,6 +73,58 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 	return i, err
 }
 
+const createShopImages = `-- name: CreateShopImages :one
+INSERT INTO shop_images (
+    favicon_url, 
+    logo_url, 
+    logo_url_dark, 
+    banner_url, 
+    banner_url_dark, 
+    cover_image_url, 
+    cover_image_url_dark,
+    shop_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark
+`
+
+type CreateShopImagesParams struct {
+	FaviconUrl        *string `json:"favicon_url"`
+	LogoUrl           *string `json:"logo_url"`
+	LogoUrlDark       *string `json:"logo_url_dark"`
+	BannerUrl         *string `json:"banner_url"`
+	BannerUrlDark     *string `json:"banner_url_dark"`
+	CoverImageUrl     *string `json:"cover_image_url"`
+	CoverImageUrlDark *string `json:"cover_image_url_dark"`
+	ShopID            int64   `json:"shop_id"`
+}
+
+func (q *Queries) CreateShopImages(ctx context.Context, arg CreateShopImagesParams) (ShopImage, error) {
+	row := q.db.QueryRow(ctx, createShopImages,
+		arg.FaviconUrl,
+		arg.LogoUrl,
+		arg.LogoUrlDark,
+		arg.BannerUrl,
+		arg.BannerUrlDark,
+		arg.CoverImageUrl,
+		arg.CoverImageUrlDark,
+		arg.ShopID,
+	)
+	var i ShopImage
+	err := row.Scan(
+		&i.ShopImageID,
+		&i.FaviconUrl,
+		&i.LogoUrl,
+		&i.BannerUrl,
+		&i.CoverImageUrl,
+		&i.ShopID,
+		&i.LogoUrlDark,
+		&i.BannerUrlDark,
+		&i.CoverImageUrlDark,
+	)
+	return i, err
+}
+
 const deleteShop = `-- name: DeleteShop :exec
 DELETE FROM shops
 WHERE shop_id = $1
@@ -162,7 +214,7 @@ func (q *Queries) GetShopIDBySubDomain(ctx context.Context, subdomain string) (i
 }
 
 const getShopImages = `-- name: GetShopImages :one
-SELECT shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id FROM shop_images
+SELECT shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark FROM shop_images
 WHERE shop_id = $1
 `
 
@@ -176,6 +228,9 @@ func (q *Queries) GetShopImages(ctx context.Context, shopID int64) (ShopImage, e
 		&i.BannerUrl,
 		&i.CoverImageUrl,
 		&i.ShopID,
+		&i.LogoUrlDark,
+		&i.BannerUrlDark,
+		&i.CoverImageUrlDark,
 	)
 	return i, err
 }
@@ -229,26 +284,28 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 const updateShop = `-- name: UpdateShop :one
 UPDATE shops
 SET 
-    title = COALESCE($1, title),
-    currency_code = COALESCE($2, currency_code),
-    about = COALESCE($3, about),
-    status = COALESCE($4, status),
-    phone_number = COALESCE($5, phone_number),
-    whatsapp_link = COALESCE($6, whatsapp_link),
-    whatsapp_phone_number = COALESCE($7, whatsapp_phone_number),
-    facebook_link = COALESCE($8, facebook_link),
-    instagram_link = COALESCE($9, instagram_link),
-    seo_description = COALESCE($10, seo_description),
-    seo_keywords = COALESCE($11, seo_keywords),
-    seo_title = COALESCE($12, seo_title),
-    address = COALESCE($13, address),
-    email = COALESCE($14, email),
+    domain = COALESCE($1, custom_domain),
+    title = COALESCE($2, title),
+    currency_code = COALESCE($3, currency_code),
+    about = COALESCE($4, about),
+    status = COALESCE($5, status),
+    phone_number = COALESCE($6, phone_number),
+    whatsapp_link = COALESCE($7, whatsapp_link),
+    whatsapp_phone_number = COALESCE($8, whatsapp_phone_number),
+    facebook_link = COALESCE($9, facebook_link),
+    instagram_link = COALESCE($10, instagram_link),
+    seo_description = COALESCE($11, seo_description),
+    seo_keywords = COALESCE($12, seo_keywords),
+    seo_title = COALESCE($13, seo_title),
+    address = COALESCE($14, address),
+    email = COALESCE($15, email),
     updated_at = NOW()
-WHERE shop_id = $15
+WHERE shop_id = $16
 RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain
 `
 
 type UpdateShopParams struct {
+	CustomDomain        *string  `json:"custom_domain"`
 	Title               *string  `json:"title"`
 	CurrencyCode        *string  `json:"currency_code"`
 	About               *string  `json:"about"`
@@ -268,6 +325,7 @@ type UpdateShopParams struct {
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
 	row := q.db.QueryRow(ctx, updateShop,
+		arg.CustomDomain,
 		arg.Title,
 		arg.CurrencyCode,
 		arg.About,
@@ -306,6 +364,57 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.UpdatedAt,
 		&i.CreatedAt,
 		&i.Subdomain,
+	)
+	return i, err
+}
+
+const updateShopImages = `-- name: UpdateShopImages :one
+UPDATE shop_images
+SET 
+    favicon_url = COALESCE($1, favicon_url),
+    logo_url = COALESCE($2, logo_url),
+    logo_url_dark = COALESCE($3, logo_url_dark),
+    banner_url = COALESCE($4, banner_url),
+    banner_url_dark = COALESCE($5, banner_url_dark),
+    cover_image_url = COALESCE($6, cover_image_url),
+    cover_image_url_dark = COALESCE($7, cover_image_url_dark)
+WHERE shop_id = $8
+RETURNING shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark
+`
+
+type UpdateShopImagesParams struct {
+	FaviconUrl        *string `json:"favicon_url"`
+	LogoUrl           *string `json:"logo_url"`
+	LogoUrlDark       *string `json:"logo_url_dark"`
+	BannerUrl         *string `json:"banner_url"`
+	BannerUrlDark     *string `json:"banner_url_dark"`
+	CoverImageUrl     *string `json:"cover_image_url"`
+	CoverImageUrlDark *string `json:"cover_image_url_dark"`
+	ShopID            int64   `json:"shop_id"`
+}
+
+func (q *Queries) UpdateShopImages(ctx context.Context, arg UpdateShopImagesParams) (ShopImage, error) {
+	row := q.db.QueryRow(ctx, updateShopImages,
+		arg.FaviconUrl,
+		arg.LogoUrl,
+		arg.LogoUrlDark,
+		arg.BannerUrl,
+		arg.BannerUrlDark,
+		arg.CoverImageUrl,
+		arg.CoverImageUrlDark,
+		arg.ShopID,
+	)
+	var i ShopImage
+	err := row.Scan(
+		&i.ShopImageID,
+		&i.FaviconUrl,
+		&i.LogoUrl,
+		&i.BannerUrl,
+		&i.CoverImageUrl,
+		&i.ShopID,
+		&i.LogoUrlDark,
+		&i.BannerUrlDark,
+		&i.CoverImageUrlDark,
 	)
 	return i, err
 }

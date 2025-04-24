@@ -36,9 +36,15 @@ func (r *repoSvc) WithTx(ctx context.Context, txFn func(*Queries) error) error {
 	return err
 }
 
+// PgConn returns the underlying pgxpool.Pool for direct database access
+func (r *repoSvc) PgConn() *pgxpool.Pool {
+	return r.db
+}
+
 type Repository interface {
 	WithTx(ctx context.Context, txFn func(*Queries) error) error
 	SetShopIDInSession(ctx context.Context, shopID int64) error
+	PgConn() *pgxpool.Pool
 	// USER
 	UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error)
 	GetUser(ctx context.Context, email *string) (User, error)
@@ -62,16 +68,15 @@ type Repository interface {
 	UpdateProductType(ctx context.Context, arg UpdateProductTypeParams) (ProductType, error)
 	// ATTRIBUTE
 	CreateAttribute(ctx context.Context, arg CreateAttributeParams) (Attribute, error)
-	DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) (Attribute, error)
+	DeleteAttribute(ctx context.Context, arg DeleteAttributeParams) error
 	GetAttribute(ctx context.Context, arg GetAttributeParams) (GetAttributeRow, error)
 	GetAttributes(ctx context.Context, arg GetAttributesParams) ([]GetAttributesRow, error)
 	UpdateAttribute(ctx context.Context, arg UpdateAttributeParams) (Attribute, error)
-	GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]Attribute, error)
-	GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]Attribute, error)
+	GetProductsAttributes(ctx context.Context, arg GetProductsAttributesParams) ([]GetProductsAttributesRow, error)
+	GetVariationsAttributes(ctx context.Context, arg GetVariationsAttributesParams) ([]GetVariationsAttributesRow, error)
 	// ATTRIBUTE-OPTION
-	CreateAttributeOption(ctx context.Context, arg CreateAttributeOptionParams) (AttributeOption, error)
-	DeleteAttributeOption(ctx context.Context, arg DeleteAttributeOptionParams) (AttributeOption, error)
-	GetAttributeOption(ctx context.Context, arg GetAttributeOptionParams) (AttributeOption, error)
+	BatchUpsertAttributeOption(ctx context.Context, arg []BatchUpsertAttributeOptionParams) *BatchUpsertAttributeOptionBatchResults
+	BatchDeleteAttributeOptions(ctx context.Context, arg []BatchDeleteAttributeOptionsParams) *BatchDeleteAttributeOptionsBatchResults
 	GetAttributeOptions(ctx context.Context, arg GetAttributeOptionsParams) ([]AttributeOption, error)
 	UpdateAttributeOption(ctx context.Context, arg UpdateAttributeOptionParams) (AttributeOption, error)
 	// ATTRIBUTE-VALUE
@@ -89,6 +94,7 @@ type Repository interface {
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error)
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
+	GetProductById(ctx context.Context, arg GetProductByIdParams) (Product, error)
 	DeleteProduct(ctx context.Context, arg DeleteProductParams) error
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) error
 	GetProductsByType(ctx context.Context, arg GetProductsByTypeParams) ([]GetProductsByTypeRow, error)
@@ -97,6 +103,11 @@ type Repository interface {
 	// CreateProductAllowedAttribute(ctx context.Context, arg CreateProductAllowedAttributeParams) ([]byte, error)
 	// DeleteProductAllowedAttribute(ctx context.Context, arg DeleteProductAllowedAttributeParams) ([]byte, error)
 	UpsertProductVariants(ctx context.Context, arg []UpsertProductVariantsParams) *UpsertProductVariantsBatchResults
+	// PRODUCT IMAGES
+	CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error)
+	GetProductImages(ctx context.Context, arg GetProductImagesParams) ([]ProductImage, error)
+	DeleteProductImage(ctx context.Context, arg DeleteProductImageParams) error
+	DeleteAllProductImages(ctx context.Context, arg DeleteAllProductImagesParams) error
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {

@@ -20,6 +20,8 @@ type ProductNotFoundError implements UserError {
 }
 type Product implements Node {
   id: ID!
+  productId: Int!
+  slug: String!
   title: String!
   description: String!
   attributes: [ProductAttribute!]!
@@ -38,15 +40,16 @@ enum ProductStockStatus {
 }
 type ProductVariant implements Node {
   id: ID!
-  slug: String!
+  variationId: Int!
   price: Float!
   availableQuantity: Int!
   description: String!
+  isDefault: Boolean!
   attributes: [ProductAttribute!]!
   stockStatus: ProductStockStatus!
 }
 type ProductAttribute {
-  attribute_title: String!
+  title: String!
   value: String!
 }
 

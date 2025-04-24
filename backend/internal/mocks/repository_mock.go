@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
+	pgxpool "github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/petrejonn/naytife/internal/db"
 )
 
@@ -36,6 +37,34 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// BatchDeleteAttributeOptions mocks base method.
+func (m *MockRepository) BatchDeleteAttributeOptions(ctx context.Context, arg []db.BatchDeleteAttributeOptionsParams) *db.BatchDeleteAttributeOptionsBatchResults {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchDeleteAttributeOptions", ctx, arg)
+	ret0, _ := ret[0].(*db.BatchDeleteAttributeOptionsBatchResults)
+	return ret0
+}
+
+// BatchDeleteAttributeOptions indicates an expected call of BatchDeleteAttributeOptions.
+func (mr *MockRepositoryMockRecorder) BatchDeleteAttributeOptions(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchDeleteAttributeOptions", reflect.TypeOf((*MockRepository)(nil).BatchDeleteAttributeOptions), ctx, arg)
+}
+
+// BatchUpsertAttributeOption mocks base method.
+func (m *MockRepository) BatchUpsertAttributeOption(ctx context.Context, arg []db.BatchUpsertAttributeOptionParams) *db.BatchUpsertAttributeOptionBatchResults {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchUpsertAttributeOption", ctx, arg)
+	ret0, _ := ret[0].(*db.BatchUpsertAttributeOptionBatchResults)
+	return ret0
+}
+
+// BatchUpsertAttributeOption indicates an expected call of BatchUpsertAttributeOption.
+func (mr *MockRepositoryMockRecorder) BatchUpsertAttributeOption(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchUpsertAttributeOption", reflect.TypeOf((*MockRepository)(nil).BatchUpsertAttributeOption), ctx, arg)
+}
+
 // CreateAttribute mocks base method.
 func (m *MockRepository) CreateAttribute(ctx context.Context, arg db.CreateAttributeParams) (db.Attribute, error) {
 	m.ctrl.T.Helper()
@@ -49,21 +78,6 @@ func (m *MockRepository) CreateAttribute(ctx context.Context, arg db.CreateAttri
 func (mr *MockRepositoryMockRecorder) CreateAttribute(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAttribute", reflect.TypeOf((*MockRepository)(nil).CreateAttribute), ctx, arg)
-}
-
-// CreateAttributeOption mocks base method.
-func (m *MockRepository) CreateAttributeOption(ctx context.Context, arg db.CreateAttributeOptionParams) (db.AttributeOption, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAttributeOption", ctx, arg)
-	ret0, _ := ret[0].(db.AttributeOption)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateAttributeOption indicates an expected call of CreateAttributeOption.
-func (mr *MockRepositoryMockRecorder) CreateAttributeOption(ctx, arg interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAttributeOption", reflect.TypeOf((*MockRepository)(nil).CreateAttributeOption), ctx, arg)
 }
 
 // CreateCategory mocks base method.
@@ -96,6 +110,21 @@ func (mr *MockRepositoryMockRecorder) CreateProduct(ctx, arg interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProduct", reflect.TypeOf((*MockRepository)(nil).CreateProduct), ctx, arg)
 }
 
+// CreateProductImage mocks base method.
+func (m *MockRepository) CreateProductImage(ctx context.Context, arg db.CreateProductImageParams) (db.ProductImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateProductImage", ctx, arg)
+	ret0, _ := ret[0].(db.ProductImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateProductImage indicates an expected call of CreateProductImage.
+func (mr *MockRepositoryMockRecorder) CreateProductImage(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProductImage", reflect.TypeOf((*MockRepository)(nil).CreateProductImage), ctx, arg)
+}
+
 // CreateProductType mocks base method.
 func (m *MockRepository) CreateProductType(ctx context.Context, arg db.CreateProductTypeParams) (db.ProductType, error) {
 	m.ctrl.T.Helper()
@@ -126,34 +155,32 @@ func (mr *MockRepositoryMockRecorder) CreateShop(ctx, shopArg interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateShop", reflect.TypeOf((*MockRepository)(nil).CreateShop), ctx, shopArg)
 }
 
+// DeleteAllProductImages mocks base method.
+func (m *MockRepository) DeleteAllProductImages(ctx context.Context, arg db.DeleteAllProductImagesParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllProductImages", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAllProductImages indicates an expected call of DeleteAllProductImages.
+func (mr *MockRepositoryMockRecorder) DeleteAllProductImages(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllProductImages", reflect.TypeOf((*MockRepository)(nil).DeleteAllProductImages), ctx, arg)
+}
+
 // DeleteAttribute mocks base method.
-func (m *MockRepository) DeleteAttribute(ctx context.Context, arg db.DeleteAttributeParams) (db.Attribute, error) {
+func (m *MockRepository) DeleteAttribute(ctx context.Context, arg db.DeleteAttributeParams) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAttribute", ctx, arg)
-	ret0, _ := ret[0].(db.Attribute)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // DeleteAttribute indicates an expected call of DeleteAttribute.
 func (mr *MockRepositoryMockRecorder) DeleteAttribute(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAttribute", reflect.TypeOf((*MockRepository)(nil).DeleteAttribute), ctx, arg)
-}
-
-// DeleteAttributeOption mocks base method.
-func (m *MockRepository) DeleteAttributeOption(ctx context.Context, arg db.DeleteAttributeOptionParams) (db.AttributeOption, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAttributeOption", ctx, arg)
-	ret0, _ := ret[0].(db.AttributeOption)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteAttributeOption indicates an expected call of DeleteAttributeOption.
-func (mr *MockRepositoryMockRecorder) DeleteAttributeOption(ctx, arg interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAttributeOption", reflect.TypeOf((*MockRepository)(nil).DeleteAttributeOption), ctx, arg)
 }
 
 // DeleteProduct mocks base method.
@@ -168,6 +195,20 @@ func (m *MockRepository) DeleteProduct(ctx context.Context, arg db.DeleteProduct
 func (mr *MockRepositoryMockRecorder) DeleteProduct(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProduct", reflect.TypeOf((*MockRepository)(nil).DeleteProduct), ctx, arg)
+}
+
+// DeleteProductImage mocks base method.
+func (m *MockRepository) DeleteProductImage(ctx context.Context, arg db.DeleteProductImageParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteProductImage", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteProductImage indicates an expected call of DeleteProductImage.
+func (mr *MockRepositoryMockRecorder) DeleteProductImage(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProductImage", reflect.TypeOf((*MockRepository)(nil).DeleteProductImage), ctx, arg)
 }
 
 // DeleteProductType mocks base method.
@@ -212,21 +253,6 @@ func (m *MockRepository) GetAttribute(ctx context.Context, arg db.GetAttributePa
 func (mr *MockRepositoryMockRecorder) GetAttribute(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttribute", reflect.TypeOf((*MockRepository)(nil).GetAttribute), ctx, arg)
-}
-
-// GetAttributeOption mocks base method.
-func (m *MockRepository) GetAttributeOption(ctx context.Context, arg db.GetAttributeOptionParams) (db.AttributeOption, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAttributeOption", ctx, arg)
-	ret0, _ := ret[0].(db.AttributeOption)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAttributeOption indicates an expected call of GetAttributeOption.
-func (mr *MockRepositoryMockRecorder) GetAttributeOption(ctx, arg interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttributeOption", reflect.TypeOf((*MockRepository)(nil).GetAttributeOption), ctx, arg)
 }
 
 // GetAttributeOptions mocks base method.
@@ -334,6 +360,36 @@ func (mr *MockRepositoryMockRecorder) GetProductAttributeValues(ctx, arg interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductAttributeValues", reflect.TypeOf((*MockRepository)(nil).GetProductAttributeValues), ctx, arg)
 }
 
+// GetProductById mocks base method.
+func (m *MockRepository) GetProductById(ctx context.Context, arg db.GetProductByIdParams) (db.Product, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductById", ctx, arg)
+	ret0, _ := ret[0].(db.Product)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductById indicates an expected call of GetProductById.
+func (mr *MockRepositoryMockRecorder) GetProductById(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductById", reflect.TypeOf((*MockRepository)(nil).GetProductById), ctx, arg)
+}
+
+// GetProductImages mocks base method.
+func (m *MockRepository) GetProductImages(ctx context.Context, arg db.GetProductImagesParams) ([]db.ProductImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductImages", ctx, arg)
+	ret0, _ := ret[0].([]db.ProductImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductImages indicates an expected call of GetProductImages.
+func (mr *MockRepositoryMockRecorder) GetProductImages(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductImages", reflect.TypeOf((*MockRepository)(nil).GetProductImages), ctx, arg)
+}
+
 // GetProductType mocks base method.
 func (m *MockRepository) GetProductType(ctx context.Context, arg db.GetProductTypeParams) (db.ProductType, error) {
 	m.ctrl.T.Helper()
@@ -380,10 +436,10 @@ func (mr *MockRepositoryMockRecorder) GetProducts(ctx, arg interface{}) *gomock.
 }
 
 // GetProductsAttributes mocks base method.
-func (m *MockRepository) GetProductsAttributes(ctx context.Context, arg db.GetProductsAttributesParams) ([]db.Attribute, error) {
+func (m *MockRepository) GetProductsAttributes(ctx context.Context, arg db.GetProductsAttributesParams) ([]db.GetProductsAttributesRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProductsAttributes", ctx, arg)
-	ret0, _ := ret[0].([]db.Attribute)
+	ret0, _ := ret[0].([]db.GetProductsAttributesRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -560,10 +616,10 @@ func (mr *MockRepositoryMockRecorder) GetUserBySubWithShops(ctx, sub interface{}
 }
 
 // GetVariationsAttributes mocks base method.
-func (m *MockRepository) GetVariationsAttributes(ctx context.Context, arg db.GetVariationsAttributesParams) ([]db.Attribute, error) {
+func (m *MockRepository) GetVariationsAttributes(ctx context.Context, arg db.GetVariationsAttributesParams) ([]db.GetVariationsAttributesRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVariationsAttributes", ctx, arg)
-	ret0, _ := ret[0].([]db.Attribute)
+	ret0, _ := ret[0].([]db.GetVariationsAttributesRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -572,6 +628,20 @@ func (m *MockRepository) GetVariationsAttributes(ctx context.Context, arg db.Get
 func (mr *MockRepositoryMockRecorder) GetVariationsAttributes(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVariationsAttributes", reflect.TypeOf((*MockRepository)(nil).GetVariationsAttributes), ctx, arg)
+}
+
+// PgConn mocks base method.
+func (m *MockRepository) PgConn() *pgxpool.Pool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PgConn")
+	ret0, _ := ret[0].(*pgxpool.Pool)
+	return ret0
+}
+
+// PgConn indicates an expected call of PgConn.
+func (mr *MockRepositoryMockRecorder) PgConn() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PgConn", reflect.TypeOf((*MockRepository)(nil).PgConn))
 }
 
 // SetShopIDInSession mocks base method.

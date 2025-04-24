@@ -1,4 +1,3 @@
-basePath: /api/v1
 definitions:
   db.AttributeAppliesTo:
     enum:
@@ -14,12 +13,14 @@ definitions:
     - Number
     - Date
     - Option
+    - Color
     type: string
     x-enum-varnames:
     - AttributeDataTypeText
     - AttributeDataTypeNumber
     - AttributeDataTypeDate
     - AttributeDataTypeOption
+    - AttributeDataTypeColor
   db.AttributeUnit:
     enum:
     - KG
@@ -76,7 +77,13 @@ definitions:
         - Text
         - Number
         - Date
+        - Option
+        - Color
         example: Text
+      options:
+        items:
+          $ref: '#/definitions/models.AttributeOptionCreateParams'
+        type: array
       required:
         type: boolean
       title:
@@ -114,6 +121,8 @@ definitions:
     type: object
   models.AttributeOptionUpdateParams:
     properties:
+      attribute_option_id:
+        type: integer
       value:
         example: XL
         maxLength: 255
@@ -135,7 +144,13 @@ definitions:
         - Text
         - Number
         - Date
+        - Option
+        - Color
         example: Text
+      options:
+        items:
+          $ref: '#/definitions/models.AttributeOptionUpdateParams'
+        type: array
       required:
         type: boolean
       title:
@@ -194,8 +209,14 @@ definitions:
         example: "2025-02-09T09:38:25Z"
         format: date-time
         type: string
+      default_variant:
+        $ref: '#/definitions/models.ProductVariant'
       description:
         type: string
+      images:
+        items:
+          $ref: '#/definitions/models.ProductImageResponse'
+        type: array
       product_id:
         type: integer
       status:
@@ -217,7 +238,7 @@ definitions:
         type: integer
       attribute_option_id:
         type: integer
-      attribute_title:
+      title:
         type: string
       value:
         type: string
@@ -251,6 +272,32 @@ definitions:
     - attributes
     - variants
     type: object
+  models.ProductImageCreateParams:
+    properties:
+      alt:
+        type: string
+      url:
+        type: string
+    required:
+    - alt
+    - url
+    type: object
+  models.ProductImageResponse:
+    properties:
+      alt:
+        type: string
+      id:
+        type: integer
+      url:
+        type: string
+    type: object
+  models.ProductImagesResponse:
+    properties:
+      images:
+        items:
+          $ref: '#/definitions/models.ProductImageResponse'
+        type: array
+    type: object
   models.ProductType:
     properties:
       digital:
@@ -259,6 +306,8 @@ definitions:
         type: integer
       shippable:
         type: boolean
+      sku_substring:
+        type: string
       title:
         type: string
     type: object
@@ -269,6 +318,9 @@ definitions:
         type: boolean
       shippable:
         type: boolean
+      sku_substring:
+        example: BK
+        type: string
       title:
         example: Book
         type: string
@@ -280,6 +332,9 @@ definitions:
         type: boolean
       shippable:
         type: boolean
+      sku_substring:
+        example: BK
+        type: string
       title:
         example: Book
         type: string
@@ -294,9 +349,17 @@ definitions:
         type: string
       title:
         type: string
+      variants:
+        items:
+          $ref: '#/definitions/models.ProductVariantUpdateParams'
+        type: array
     type: object
   models.ProductVariant:
     properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttribute'
+        type: array
       available_quantity:
         type: integer
       created_at:
@@ -305,10 +368,12 @@ definitions:
         type: string
       description:
         type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
       price:
         type: number
-      product_variation_id:
-        type: integer
       seo_description:
         type: string
       seo_keywords:
@@ -336,7 +401,11 @@ definitions:
         minimum: 1
         type: integer
       description:
+        description: SKU will be generated automatically from product type's sku_substring
+          and variation_id
         type: string
+      is_default:
+        type: boolean
       price:
         type: number
       seo_description:
@@ -347,12 +416,38 @@ definitions:
         type: array
       seo_title:
         type: string
-      sku:
+    required:
+    - available_quantity
+    - price
+    type: object
+  models.ProductVariantUpdateParams:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttributeValuesBatchUpsertParams'
+        type: array
+      available_quantity:
+        minimum: 1
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
+      price:
+        type: number
+      seo_description:
+        type: string
+      seo_keywords:
+        items:
+          type: string
+        type: array
+      seo_title:
         type: string
     required:
     - available_quantity
     - price
-    - sku
     type: object
   models.RegisterUserParams:
     properties:
@@ -397,6 +492,8 @@ definitions:
         type: string
       facebook_link:
         type: string
+      images:
+        $ref: '#/definitions/models.ShopImagesResponse'
       instagram_link:
         type: string
       phone_number:
@@ -452,6 +549,75 @@ definitions:
     - subdomain
     - title
     type: object
+  models.ShopImagesResponse:
+    properties:
+      banner_url:
+        type: string
+      banner_url_dark:
+        type: string
+      cover_image_url:
+        type: string
+      cover_image_url_dark:
+        type: string
+      favicon_url:
+        type: string
+      logo_url:
+        type: string
+      logo_url_dark:
+        type: string
+      shop_image_id:
+        type: integer
+    type: object
+  models.ShopImagesUpdateParams:
+    properties:
+      banner_url:
+        type: string
+      banner_url_dark:
+        type: string
+      cover_image_url:
+        type: string
+      cover_image_url_dark:
+        type: string
+      favicon_url:
+        type: string
+      logo_url:
+        type: string
+      logo_url_dark:
+        type: string
+    type: object
+  models.ShopUpdateParams:
+    properties:
+      about:
+        type: string
+      address:
+        type: string
+      currency_code:
+        type: string
+      email:
+        type: string
+      facebook_link:
+        type: string
+      instagram_link:
+        type: string
+      phone_number:
+        type: string
+      seo_description:
+        type: string
+      seo_keywords:
+        items:
+          type: string
+        type: array
+      seo_title:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      whatsapp_link:
+        type: string
+      whatsapp_phone_number:
+        type: string
+    type: object
   models.SuccessResponse:
     description: Generic API response
     properties:
@@ -490,11 +656,35 @@ definitions:
         type: string
       provider_id:
         type: string
+      shops:
+        items:
+          $ref: '#/definitions/models.UserShopResponse'
+        type: array
       user_id:
         description: 'TODO: add sub fields'
         type: string
     type: object
-host: localhost:8000
+  models.UserShopResponse:
+    properties:
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      custom_domain:
+        type: string
+      shop_id:
+        type: integer
+      status:
+        type: string
+      subdomain:
+        type: string
+      title:
+        type: string
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+    type: object
 info:
   contact: {}
   description: This is the Naytife API documentation
@@ -529,8 +719,6 @@ paths:
       - auth
   /me:
     get:
-      consumes:
-      - application/json
       produces:
       - application/json
       responses:
@@ -551,8 +739,6 @@ paths:
       - user
   /shops:
     get:
-      consumes:
-      - application/json
       produces:
       - application/json
       responses:
@@ -621,8 +807,6 @@ paths:
       - shops
   /shops/{shop_id}:
     delete:
-      consumes:
-      - application/json
       parameters:
       - description: Shop ID
         in: path
@@ -654,8 +838,6 @@ paths:
       tags:
       - shops
     get:
-      consumes:
-      - application/json
       parameters:
       - description: Shop ID
         in: path
@@ -687,101 +869,52 @@ paths:
       summary: Fetch a shop
       tags:
       - shops
-  /shops/{shop_id}/attribute-options/{attribute_option_id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete an attribute option
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        type: string
-      - description: Attribute Option ID
-        in: path
-        name: attribute_option_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Attribute option deleted successfully
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.SuccessResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.AttributeOption'
-              type: object
-        "404":
-          description: Attribute option not found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Failed to delete attribute option
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - OAuth2AccessCode: []
-      summary: Delete an attribute option
-      tags:
-      - Attributes
     put:
       consumes:
       - application/json
-      description: Update an attribute option
       parameters:
       - description: Shop ID
         in: path
         name: shop_id
         required: true
         type: string
-      - description: Attribute Option ID
-        in: path
-        name: attribute_option_id
-        required: true
-        type: string
-      - description: Attribute Option
+      - description: Shop update parameters
         in: body
-        name: option
+        name: shop
         required: true
         schema:
-          $ref: '#/definitions/models.AttributeOptionUpdateParams'
+          $ref: '#/definitions/models.ShopUpdateParams'
       produces:
       - application/json
       responses:
         "200":
-          description: Attribute option updated successfully
+          description: Shop updated successfully
           schema:
             allOf:
             - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.AttributeOption'
+                  $ref: '#/definitions/models.Shop'
               type: object
         "400":
           description: Invalid request body
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "404":
-          description: Attribute option not found
+          description: Shop not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
-          description: Failed to update attribute option
+          description: Internal server error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
-      summary: Update an attribute option
+      summary: Update a shop
       tags:
-      - Attributes
+      - shops
   /shops/{shop_id}/attributes/{attribute_id}:
     delete:
-      consumes:
-      - application/json
       description: Delete an attribute
       parameters:
       - description: Shop ID
@@ -820,8 +953,6 @@ paths:
       tags:
       - Attributes
     get:
-      consumes:
-      - application/json
       description: Fetch a single attribute
       parameters:
       - description: Shop ID
@@ -860,8 +991,6 @@ paths:
       tags:
       - Attributes
     put:
-      consumes:
-      - application/json
       description: Update an attribute
       parameters:
       - description: Shop ID
@@ -909,107 +1038,54 @@ paths:
       summary: Update an attribute
       tags:
       - Attributes
-  /shops/{shop_id}/attributes/{attribute_id}/options:
-    get:
+  /shops/{shop_id}/images:
+    put:
       consumes:
       - application/json
-      description: Fetch all attribute options
+      description: Update shop images (logo, favicon, banner, etc)
       parameters:
       - description: Shop ID
         in: path
         name: shop_id
         required: true
         type: string
-      - description: Attribute ID
-        in: path
-        name: attribute_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Attribute options fetched successfully
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.SuccessResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.AttributeOption'
-                  type: array
-              type: object
-        "500":
-          description: Failed to fetch attribute options
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - OAuth2AccessCode: []
-      summary: Fetch all attribute options
-      tags:
-      - Attributes
-    post:
-      consumes:
-      - application/json
-      description: Create a new attribute option
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        type: string
-      - description: Attribute ID
-        in: path
-        name: attribute_id
-        required: true
-        type: string
-      - description: Attribute Option
+      - description: Shop images object
         in: body
-        name: option
+        name: images
         required: true
         schema:
-          $ref: '#/definitions/models.AttributeOptionCreateParams'
+          $ref: '#/definitions/models.ShopImagesUpdateParams'
       produces:
       - application/json
       responses:
         "200":
-          description: Attribute option created successfully
+          description: Shop images updated successfully
           schema:
             allOf:
             - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.AttributeOption'
+                  $ref: '#/definitions/models.ShopImagesResponse'
               type: object
         "400":
-          description: Invalid input
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
+          description: Bad request
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "404":
-          description: Not Found
+          description: Shop not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Internal server error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - OAuth2AccessCode: []
-      summary: Create a new attribute option
+      summary: Update shop images
       tags:
-      - Attributes
+      - shops
   /shops/{shop_id}/product-types:
     get:
-      consumes:
-      - application/json
       description: Fetch all product types
       parameters:
       - description: Shop ID
@@ -1085,8 +1161,6 @@ paths:
       - ProductType
   /shops/{shop_id}/product-types/{product_type_id}:
     delete:
-      consumes:
-      - application/json
       description: Delete a product type
       parameters:
       - description: Shop ID
@@ -1125,8 +1199,6 @@ paths:
       tags:
       - ProductType
     get:
-      consumes:
-      - application/json
       description: Fetch a single product type
       parameters:
       - description: Shop ID
@@ -1220,8 +1292,6 @@ paths:
       - ProductType
   /shops/{shop_id}/product-types/{product_type_id}/attributes:
     get:
-      consumes:
-      - application/json
       description: Fetch all attributes
       parameters:
       - description: Shop ID
@@ -1321,8 +1391,6 @@ paths:
       - ProductType
   /shops/{shop_id}/product-types/{product_type_id}/products:
     get:
-      consumes:
-      - application/json
       description: Get products by product type
       parameters:
       - description: Shop ID
@@ -1422,8 +1490,6 @@ paths:
       - ProductType
   /shops/{shop_id}/products:
     get:
-      consumes:
-      - application/json
       description: Fetch all products
       parameters:
       - description: Shop ID
@@ -1464,8 +1530,6 @@ paths:
       - Product
   /shops/{shop_id}/products/{product_id}:
     delete:
-      consumes:
-      - application/json
       description: Delete a product
       parameters:
       - description: Shop ID
@@ -1504,8 +1568,6 @@ paths:
       tags:
       - Product
     get:
-      consumes:
-      - application/json
       description: Fetch a single product
       parameters:
       - description: Shop ID
@@ -1544,8 +1606,6 @@ paths:
       tags:
       - Product
     put:
-      consumes:
-      - application/json
       description: Update a product
       parameters:
       - description: Shop ID
@@ -1593,10 +1653,145 @@ paths:
       summary: Update a product
       tags:
       - Product
-  /shops/subdomain/{subdomain}:
+  /shops/{shop_id}/products/{product_id}/images:
     get:
+      description: Get all images for a product
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Images retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductImagesResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Get all images for a product
+      tags:
+      - Product Images
+    post:
       consumes:
       - application/json
+      description: Add a new image to a product by providing the URL and alt text
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      - description: Image data
+        in: body
+        name: image
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductImageCreateParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image added successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProductImageResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Add a new image to a product
+      tags:
+      - Product Images
+  /shops/{shop_id}/products/{product_id}/images/{image_id}:
+    delete:
+      description: Delete a product image by ID
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: string
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image deleted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete a product image
+      tags:
+      - Product Images
+  /shops/subdomain/{subdomain}:
+    get:
       parameters:
       - description: Shop Subdomain
         in: path
@@ -1628,8 +1823,6 @@ paths:
       summary: Fetch a shop by subdomain
       tags:
       - shops
-schemes:
-- http
 securityDefinitions:
   XUserIdAuth:
     in: header

@@ -17,6 +17,60 @@ var (
 	ErrBatchAlreadyClosed = errors.New("batch already closed")
 )
 
+const batchDeleteAttributeOptions = `-- name: BatchDeleteAttributeOptions :batchexec
+DELETE FROM attribute_options
+WHERE shop_id = $1
+AND attribute_id = $2
+AND attribute_option_id != ALL($3::bigint[])
+`
+
+type BatchDeleteAttributeOptionsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type BatchDeleteAttributeOptionsParams struct {
+	ShopID             int64   `json:"shop_id"`
+	AttributeID        int64   `json:"attribute_id"`
+	AttributeOptionIds []int64 `json:"attribute_option_ids"`
+}
+
+func (q *Queries) BatchDeleteAttributeOptions(ctx context.Context, arg []BatchDeleteAttributeOptionsParams) *BatchDeleteAttributeOptionsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ShopID,
+			a.AttributeID,
+			a.AttributeOptionIds,
+		}
+		batch.Queue(batchDeleteAttributeOptions, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &BatchDeleteAttributeOptionsBatchResults{br, len(arg), false}
+}
+
+func (b *BatchDeleteAttributeOptionsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *BatchDeleteAttributeOptionsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const batchDeleteProductAttributeValues = `-- name: BatchDeleteProductAttributeValues :batchexec
 DELETE FROM product_attribute_values 
 WHERE product_id = $1 
@@ -121,6 +175,83 @@ func (b *BatchDeleteProductVariationAttributeValuesBatchResults) Exec(f func(int
 }
 
 func (b *BatchDeleteProductVariationAttributeValuesBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
+const batchUpsertAttributeOption = `-- name: BatchUpsertAttributeOption :batchmany
+INSERT INTO attribute_options (value, shop_id, attribute_id)
+VALUES ($1, $2, $3)
+ON CONFLICT (value, shop_id, attribute_id)
+DO UPDATE SET 
+    value = EXCLUDED.value
+WHERE attribute_options.value IS DISTINCT FROM EXCLUDED.value
+RETURNING attribute_option_id, value, shop_id, attribute_id
+`
+
+type BatchUpsertAttributeOptionBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type BatchUpsertAttributeOptionParams struct {
+	Value       string `json:"value"`
+	ShopID      int64  `json:"shop_id"`
+	AttributeID int64  `json:"attribute_id"`
+}
+
+func (q *Queries) BatchUpsertAttributeOption(ctx context.Context, arg []BatchUpsertAttributeOptionParams) *BatchUpsertAttributeOptionBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.Value,
+			a.ShopID,
+			a.AttributeID,
+		}
+		batch.Queue(batchUpsertAttributeOption, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &BatchUpsertAttributeOptionBatchResults{br, len(arg), false}
+}
+
+func (b *BatchUpsertAttributeOptionBatchResults) Query(f func(int, []AttributeOption, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		var items []AttributeOption
+		if b.closed {
+			if f != nil {
+				f(t, items, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		err := func() error {
+			rows, err := b.br.Query()
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var i AttributeOption
+				if err := rows.Scan(
+					&i.AttributeOptionID,
+					&i.Value,
+					&i.ShopID,
+					&i.AttributeID,
+				); err != nil {
+					return err
+				}
+				items = append(items, i)
+			}
+			return rows.Err()
+		}()
+		if f != nil {
+			f(t, items, err)
+		}
+	}
+}
+
+func (b *BatchUpsertAttributeOptionBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }
@@ -251,80 +382,26 @@ func (b *BatchUpsertProductVariationAttributeValuesBatchResults) Close() error {
 	return b.br.Close()
 }
 
-const deleteProductVariants = `-- name: DeleteProductVariants :batchexec
-DELETE FROM product_variations
-WHERE shop_id = $1 AND product_id = $2
-AND product_variation_id != ALL($3::bigint[])
-`
-
-type DeleteProductVariantsBatchResults struct {
-	br     pgx.BatchResults
-	tot    int
-	closed bool
-}
-
-type DeleteProductVariantsParams struct {
-	ShopID              int64   `json:"shop_id"`
-	ProductID           int64   `json:"product_id"`
-	ProductVariationIds []int64 `json:"product_variation_ids"`
-}
-
-func (q *Queries) DeleteProductVariants(ctx context.Context, arg []DeleteProductVariantsParams) *DeleteProductVariantsBatchResults {
-	batch := &pgx.Batch{}
-	for _, a := range arg {
-		vals := []interface{}{
-			a.ShopID,
-			a.ProductID,
-			a.ProductVariationIds,
-		}
-		batch.Queue(deleteProductVariants, vals...)
-	}
-	br := q.db.SendBatch(ctx, batch)
-	return &DeleteProductVariantsBatchResults{br, len(arg), false}
-}
-
-func (b *DeleteProductVariantsBatchResults) Exec(f func(int, error)) {
-	defer b.br.Close()
-	for t := 0; t < b.tot; t++ {
-		if b.closed {
-			if f != nil {
-				f(t, ErrBatchAlreadyClosed)
-			}
-			continue
-		}
-		_, err := b.br.Exec()
-		if f != nil {
-			f(t, err)
-		}
-	}
-}
-
-func (b *DeleteProductVariantsBatchResults) Close() error {
-	b.closed = true
-	return b.br.Close()
-}
-
 const upsertProductVariants = `-- name: UpsertProductVariants :batchmany
 INSERT INTO product_variations (
-    slug, description, price, sku, available_quantity,
+    description, price, sku, available_quantity,
     seo_description, seo_keywords, seo_title,
-    product_id, shop_id
+    product_id, shop_id, is_default
 )
 VALUES (
     $1, $2, $3, $4, $5,
     $6, $7, $8,
     $9, $10
 )
-ON CONFLICT (slug, shop_id)
+ON CONFLICT (sku, shop_id)
 DO UPDATE SET
     description = EXCLUDED.description,
     price = EXCLUDED.price,
-    sku = EXCLUDED.sku,
     available_quantity = EXCLUDED.available_quantity,
     seo_description = EXCLUDED.seo_description,
     seo_keywords = EXCLUDED.seo_keywords,
     seo_title = EXCLUDED.seo_title
-RETURNING product_variation_id, sku, slug, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
 `
 
 type UpsertProductVariantsBatchResults struct {
@@ -334,7 +411,6 @@ type UpsertProductVariantsBatchResults struct {
 }
 
 type UpsertProductVariantsParams struct {
-	Slug              string         `json:"slug"`
 	Description       string         `json:"description"`
 	Price             pgtype.Numeric `json:"price"`
 	Sku               string         `json:"sku"`
@@ -344,13 +420,13 @@ type UpsertProductVariantsParams struct {
 	SeoTitle          *string        `json:"seo_title"`
 	ProductID         int64          `json:"product_id"`
 	ShopID            int64          `json:"shop_id"`
+	IsDefault         bool           `json:"is_default"`
 }
 
 func (q *Queries) UpsertProductVariants(ctx context.Context, arg []UpsertProductVariantsParams) *UpsertProductVariantsBatchResults {
 	batch := &pgx.Batch{}
 	for _, a := range arg {
 		vals := []interface{}{
-			a.Slug,
 			a.Description,
 			a.Price,
 			a.Sku,
@@ -360,6 +436,7 @@ func (q *Queries) UpsertProductVariants(ctx context.Context, arg []UpsertProduct
 			a.SeoTitle,
 			a.ProductID,
 			a.ShopID,
+			a.IsDefault,
 		}
 		batch.Queue(upsertProductVariants, vals...)
 	}
@@ -388,7 +465,6 @@ func (b *UpsertProductVariantsBatchResults) Query(f func(int, []ProductVariation
 				if err := rows.Scan(
 					&i.ProductVariationID,
 					&i.Sku,
-					&i.Slug,
 					&i.Description,
 					&i.Price,
 					&i.AvailableQuantity,
@@ -399,6 +475,7 @@ func (b *UpsertProductVariantsBatchResults) Query(f func(int, []ProductVariation
 					&i.UpdatedAt,
 					&i.ProductID,
 					&i.ShopID,
+					&i.IsDefault,
 				); err != nil {
 					return err
 				}

@@ -104,9 +104,8 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 // @Summary      Fetch all shops
 // @Description
 // @Tags         shops
-// @Accept       json
 // @Produce      json
-// @Success      200  {object}   models.SuccessResponse{data=[]models.Shop} "Shops fetched successfully"
+// @Success      200  {object}  models.SuccessResponse{data=[]models.Shop}  "Shops fetched successfully"
 // @Failure      401  {object}   models.ErrorResponse "Unauthorized"
 // @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
@@ -121,7 +120,7 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 	if err != nil {
 		api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get shops", nil)
 	}
-	var resp []models.Shop
+	var shops []models.Shop
 	for _, obj := range objsDB {
 		shop := models.Shop{
 			ID:                  obj.ShopID,
@@ -143,16 +142,33 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 			SeoKeywords:         obj.SeoKeywords,
 			SeoTitle:            obj.SeoTitle,
 		}
-		resp = append(resp, shop)
+
+		// Fetch shop images
+		shopImages, imgErr := h.Repository.GetShopImages(c.Context(), obj.ShopID)
+		if imgErr == nil {
+			// Only add images if successfully retrieved
+			shop.Images = &models.ShopImagesResponse{
+				ID:                shopImages.ShopImageID,
+				FaviconUrl:        shopImages.FaviconUrl,
+				LogoUrl:           shopImages.LogoUrl,
+				LogoUrlDark:       shopImages.LogoUrlDark,
+				BannerUrl:         shopImages.BannerUrl,
+				BannerUrlDark:     shopImages.BannerUrlDark,
+				CoverImageUrl:     shopImages.CoverImageUrl,
+				CoverImageUrlDark: shopImages.CoverImageUrlDark,
+			}
+		}
+
+		shops = append(shops, shop)
 	}
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shops retrieved")
+
+	return api.SuccessResponse(c, fiber.StatusOK, shops, "Shops retrieved")
 }
 
 // DeleteShop deletes a shop
 // @Summary      Delete a shop
 // @Description
 // @Tags         shops
-// @Accept       json
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Success      200  {object}   models.SuccessResponse "Shop deleted successfully"
@@ -178,7 +194,6 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 // @Summary      Fetch a shop
 // @Description
 // @Tags         shops
-// @Accept       json
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop fetched successfully"
@@ -216,6 +231,23 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
 	}
+
+	// Fetch shop images
+	shopImages, err := h.Repository.GetShopImages(c.Context(), shopID)
+	if err == nil {
+		// Only add images if successfully retrieved
+		resp.Images = &models.ShopImagesResponse{
+			ID:                shopImages.ShopImageID,
+			FaviconUrl:        shopImages.FaviconUrl,
+			LogoUrl:           shopImages.LogoUrl,
+			LogoUrlDark:       shopImages.LogoUrlDark,
+			BannerUrl:         shopImages.BannerUrl,
+			BannerUrlDark:     shopImages.BannerUrlDark,
+			CoverImageUrl:     shopImages.CoverImageUrl,
+			CoverImageUrlDark: shopImages.CoverImageUrlDark,
+		}
+	}
+
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
 }
 
@@ -223,7 +255,6 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 // @Summary      Fetch a shop by subdomain
 // @Description
 // @Tags         shops
-// @Accept       json
 // @Produce      json
 // @Param        subdomain path string true "Shop Subdomain"
 // @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop fetched successfully"
@@ -249,7 +280,6 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 		ID:                  objDB.ShopID,
 		Title:               objDB.Title,
 		Subdomain:           objDB.Subdomain,
-		CustomDomain:        objDB.Domain,
 		CurrencyCode:        objDB.CurrencyCode,
 		Status:              objDB.Status,
 		CreatedAt:           objDB.CreatedAt,
@@ -266,9 +296,40 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
 	}
+
+	// Fetch shop images
+	shopImages, err := h.Repository.GetShopImages(c.Context(), objDB.ShopID)
+	if err == nil {
+		// Only add images if successfully retrieved
+		resp.Images = &models.ShopImagesResponse{
+			ID:                shopImages.ShopImageID,
+			FaviconUrl:        shopImages.FaviconUrl,
+			LogoUrl:           shopImages.LogoUrl,
+			LogoUrlDark:       shopImages.LogoUrlDark,
+			BannerUrl:         shopImages.BannerUrl,
+			BannerUrlDark:     shopImages.BannerUrlDark,
+			CoverImageUrl:     shopImages.CoverImageUrl,
+			CoverImageUrlDark: shopImages.CoverImageUrlDark,
+		}
+	}
+
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
 }
 
+// UpdateShop updates a shop
+// @Summary      Update a shop
+// @Description
+// @Tags         shops
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        shop body models.ShopUpdateParams true "Shop update parameters"
+// @Success      200  {object}   models.SuccessResponse{data=models.Shop} "Shop updated successfully"
+// @Failure      400  {object}   models.ErrorResponse "Invalid request body"
+// @Failure      404  {object}   models.ErrorResponse "Shop not found"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id} [put]
 func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, _ := strconv.ParseInt(shopIDStr, 10, 64)
@@ -334,4 +395,122 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		SeoTitle:            objDB.SeoTitle,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
+}
+
+// UpdateShopImages updates the shop images
+// @Summary      Update shop images
+// @Description  Update shop images (logo, favicon, banner, etc)
+// @Tags         shops
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        images body models.ShopImagesUpdateParams true "Shop images object"
+// @Success      200  {object}   models.SuccessResponse{data=models.ShopImagesResponse} "Shop images updated successfully"
+// @Failure      400  {object}   models.ErrorResponse "Bad request"
+// @Failure      404  {object}   models.ErrorResponse "Shop not found"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id}/images [put]
+func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
+	// Parse shop ID from params
+	shopIDStr := c.Params("shop_id", "0")
+	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Verify shop exists
+	_, err = h.Repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to verify shop", nil)
+	}
+
+	// Parse request body
+	var imageParams models.ShopImagesUpdateParams
+	if err := c.BodyParser(&imageParams); err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	// Check if shop images record exists
+	var updatedImages db.ShopImage
+	var exists bool
+
+	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
+		// Try to get existing shop images
+		_, err := q.GetShopImages(c.Context(), shopID)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				// No existing record, we'll create a new one
+				exists = false
+				return nil
+			}
+			return err
+		}
+
+		exists = true
+		return nil
+	})
+
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to check shop images", nil)
+	}
+
+	// Update or create shop images
+	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
+		if exists {
+			// Update existing record
+			updatedImgs, err := q.UpdateShopImages(c.Context(), db.UpdateShopImagesParams{
+				ShopID:            shopID,
+				FaviconUrl:        imageParams.FaviconUrl,
+				LogoUrl:           imageParams.LogoUrl,
+				LogoUrlDark:       imageParams.LogoUrlDark,
+				BannerUrl:         imageParams.BannerUrl,
+				BannerUrlDark:     imageParams.BannerUrlDark,
+				CoverImageUrl:     imageParams.CoverImageUrl,
+				CoverImageUrlDark: imageParams.CoverImageUrlDark,
+			})
+			if err != nil {
+				return err
+			}
+			updatedImages = updatedImgs
+		} else {
+			// Create new record
+			createdImgs, err := q.CreateShopImages(c.Context(), db.CreateShopImagesParams{
+				ShopID:            shopID,
+				FaviconUrl:        imageParams.FaviconUrl,
+				LogoUrl:           imageParams.LogoUrl,
+				LogoUrlDark:       imageParams.LogoUrlDark,
+				BannerUrl:         imageParams.BannerUrl,
+				BannerUrlDark:     imageParams.BannerUrlDark,
+				CoverImageUrl:     imageParams.CoverImageUrl,
+				CoverImageUrlDark: imageParams.CoverImageUrlDark,
+			})
+			if err != nil {
+				return err
+			}
+			updatedImages = createdImgs
+		}
+		return nil
+	})
+
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop images", nil)
+	}
+
+	// Return success response
+	response := models.ShopImagesResponse{
+		ID:                updatedImages.ShopImageID,
+		FaviconUrl:        updatedImages.FaviconUrl,
+		LogoUrl:           updatedImages.LogoUrl,
+		LogoUrlDark:       updatedImages.LogoUrlDark,
+		BannerUrl:         updatedImages.BannerUrl,
+		BannerUrlDark:     updatedImages.BannerUrlDark,
+		CoverImageUrl:     updatedImages.CoverImageUrl,
+		CoverImageUrlDark: updatedImages.CoverImageUrlDark,
+	}
+
+	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
 }

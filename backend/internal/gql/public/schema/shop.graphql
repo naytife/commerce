@@ -33,7 +33,10 @@ type Shop implements Node {
 }
 type ShopImages {
   siteLogo: Image
+  siteLogoDark: Image
   favicon: Image
   banner: Image
+  bannerDark: Image
   coverImage: Image
+  coverImageDark: Image
 }

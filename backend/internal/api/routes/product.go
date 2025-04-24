@@ -15,4 +15,9 @@ func ProductRouter(app fiber.Router, repo db.Repository) {
 	app.Get("/shops/:shop_id/products/:product_id", handler.GetProduct)
 	app.Put("/shops/:shop_id/products/:product_id", handler.UpdateProduct)
 	app.Delete("/shops/:shop_id/products/:product_id", handler.DeleteProduct)
+
+	// Product images routes
+	app.Post("/shops/:shop_id/products/:product_id/images", handler.AddProductImage)
+	app.Get("/shops/:shop_id/products/:product_id/images", handler.GetProductImages)
+	app.Delete("/shops/:shop_id/products/:product_id/images/:image_id", handler.DeleteProductImage)
 }

@@ -1,0 +1,61 @@
+@token = no token
+@shop_id = 2
+@product_type_id = 4
+@attribute_id = 25
+@attribute_option_id = 1
+@baseUrl = http://localhost:8000/api/v1
+
+
+### Create Attribute
+POST {{baseUrl}}/shops/{{shop_id}}/product-types/{{product_type_id}}/attributes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Color3",
+  "data_type": "Text",
+  "unit": "",
+  "required": true,
+  "applies_to": "Product",
+  "options": [
+    { "value": "Red" },
+    { "value": "Blue" }
+  ]
+}
+
+### Get Attributes
+GET {{baseUrl}}/shops/{{shop_id}}/product-types/{{product_type_id}}/attributes
+Authorization: Bearer {{token}}
+
+### Get Variant Attributes
+GET {{baseUrl}}/shops/{{shop_id}}/product-types/{{product_type_id}}/attributes?for=Product
+Authorization: Bearer {{token}}
+
+### Get Variant Attributes
+GET {{baseUrl}}/shops/{{shop_id}}/product-types/{{product_type_id}}/attributes?for=ProductVariation
+Authorization: Bearer {{token}}
+
+### Get Attribute
+GET {{baseUrl}}/shops/{{shop_id}}/attributes/{{attribute_id}}
+Authorization: Bearer {{token}}
+
+### Update Attribute
+PUT {{baseUrl}}/shops/{{shop_id}}/attributes/{{attribute_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Color5",
+  "data_type": "Text",
+  "unit": "",
+  "required": true,
+  "applies_to": "Product",
+  "options": [
+    { "value": "Red" },
+    { "value": "Blue" }
+  ]
+}
+
+### Delete Attribute
+DELETE {{baseUrl}}/shops/{{shop_id}}/attributes/{{attribute_id}}
+Authorization: Bearer {{token}}

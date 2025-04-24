@@ -3,6 +3,7 @@
 package model
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -22,7 +23,7 @@ type UserError interface {
 }
 
 type AddCartItemInput struct {
-	ProductID string `json:"productId"`
+	ProductID string `json:"product_id"`
 	Quantity  int    `json:"quantity"`
 }
 
@@ -52,8 +53,8 @@ type Category struct {
 	Description *string            `json:"description,omitempty"`
 	Products    *ProductConnection `json:"products,omitempty"`
 	Images      *CategoryImages    `json:"images,omitempty"`
-	UpdatedAt   time.Time          `json:"updatedAt"`
-	CreatedAt   time.Time          `json:"createdAt"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+	CreatedAt   time.Time          `json:"created_at"`
 }
 
 func (Category) IsNode()            {}
@@ -61,8 +62,8 @@ func (this Category) GetID() string { return this.ID }
 
 type CategoryConnection struct {
 	Edges      []CategoryEdge `json:"edges"`
-	PageInfo   *PageInfo      `json:"pageInfo"`
-	TotalCount int            `json:"totalCount"`
+	PageInfo   *PageInfo      `json:"page_info"`
+	TotalCount int            `json:"total_count"`
 }
 
 type CategoryEdge struct {
@@ -96,48 +97,50 @@ func (this CategoryNotFoundError) GetPath() []string {
 
 type Image struct {
 	URL     string  `json:"url"`
-	AltText *string `json:"altText,omitempty"`
+	AltText *string `json:"alt_text,omitempty"`
 }
 
 type ImageInput struct {
 	URL     string  `json:"url"`
-	AltText *string `json:"altText,omitempty"`
+	AltText *string `json:"alt_text,omitempty"`
 }
 
 type Mutation struct {
 }
 
 type PageInfo struct {
-	StartCursor     string `json:"startCursor"`
-	EndCursor       string `json:"endCursor"`
-	HasNextPage     bool   `json:"hasNextPage"`
-	HasPreviousPage bool   `json:"hasPreviousPage"`
+	StartCursor     string `json:"start_cursor"`
+	EndCursor       string `json:"end_cursor"`
+	HasNextPage     bool   `json:"has_next_page"`
+	HasPreviousPage bool   `json:"has_previous_page"`
 }
 
 type Product struct {
 	ID             string             `json:"id"`
+	ProductID      int                `json:"product_id"`
+	Slug           string             `json:"slug"`
 	Title          string             `json:"title"`
 	Description    string             `json:"description"`
 	Attributes     []ProductAttribute `json:"attributes"`
-	DefaultVariant *ProductVariant    `json:"defaultVariant"`
+	DefaultVariant *ProductVariant    `json:"default_variant"`
 	Variants       []ProductVariant   `json:"variants"`
 	Images         []Image            `json:"images"`
-	UpdatedAt      time.Time          `json:"updatedAt"`
-	CreatedAt      time.Time          `json:"createdAt"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+	CreatedAt      time.Time          `json:"created_at"`
 }
 
 func (Product) IsNode()            {}
 func (this Product) GetID() string { return this.ID }
 
 type ProductAttribute struct {
-	AttributeTitle string `json:"attribute_title"`
-	Value          string `json:"value"`
+	Title string `json:"title"`
+	Value string `json:"value"`
 }
 
 type ProductConnection struct {
 	Edges      []ProductEdge `json:"edges"`
-	PageInfo   *PageInfo     `json:"pageInfo"`
-	TotalCount int           `json:"totalCount"`
+	PageInfo   *PageInfo     `json:"page_info"`
+	TotalCount int           `json:"total_count"`
 }
 
 type ProductEdge struct {
@@ -167,12 +170,13 @@ func (this ProductNotFoundError) GetPath() []string {
 
 type ProductVariant struct {
 	ID                string             `json:"id"`
-	Slug              string             `json:"slug"`
+	VariationID       int                `json:"variation_id"`
 	Price             float64            `json:"price"`
-	AvailableQuantity int                `json:"availableQuantity"`
+	AvailableQuantity int                `json:"available_quantity"`
 	Description       string             `json:"description"`
+	IsDefault         bool               `json:"is_default"`
 	Attributes        []ProductAttribute `json:"attributes"`
-	StockStatus       ProductStockStatus `json:"stockStatus"`
+	StockStatus       ProductStockStatus `json:"stock_status"`
 }
 
 func (ProductVariant) IsNode()            {}
@@ -182,29 +186,29 @@ type Query struct {
 }
 
 type RemoveCartItemInput struct {
-	ProductID string `json:"productId"`
+	ProductID string `json:"product_id"`
 }
 
 type Shop struct {
 	ID                   string              `json:"id"`
 	Title                string              `json:"title"`
-	DefaultDomain        string              `json:"defaultDomain"`
-	ContactPhone         *string             `json:"contactPhone,omitempty"`
-	ContactEmail         *string             `json:"contactEmail,omitempty"`
+	DefaultDomain        string              `json:"default_domain"`
+	ContactPhone         *string             `json:"contact_phone,omitempty"`
+	ContactEmail         *string             `json:"contact_email,omitempty"`
 	Address              *ShopAddress        `json:"address"`
 	Products             *ProductConnection  `json:"products,omitempty"`
 	Categories           *CategoryConnection `json:"categories,omitempty"`
-	WhatsAppNumber       *string             `json:"whatsAppNumber,omitempty"`
-	WhatsAppLink         *string             `json:"whatsAppLink,omitempty"`
-	FacebookLink         *string             `json:"facebookLink,omitempty"`
-	InstagramLink        *string             `json:"instagramLink,omitempty"`
+	WhatsAppNumber       *string             `json:"whats_app_number,omitempty"`
+	WhatsAppLink         *string             `json:"whats_app_link,omitempty"`
+	FacebookLink         *string             `json:"facebook_link,omitempty"`
+	InstagramLink        *string             `json:"instagram_link,omitempty"`
 	Images               *ShopImages         `json:"images"`
-	CurrencyCode         string              `json:"currencyCode"`
+	CurrencyCode         string              `json:"currency_code"`
 	About                *string             `json:"about,omitempty"`
-	ShopProductsCategory *string             `json:"shopProductsCategory,omitempty"`
-	SeoDescription       *string             `json:"seoDescription,omitempty"`
-	SeoKeywords          []string            `json:"seoKeywords"`
-	SeoTitle             *string             `json:"seoTitle,omitempty"`
+	ShopProductsCategory *string             `json:"shop_products_category,omitempty"`
+	SeoDescription       *string             `json:"seo_description,omitempty"`
+	SeoKeywords          []string            `json:"seo_keywords"`
+	SeoTitle             *string             `json:"seo_title,omitempty"`
 }
 
 func (Shop) IsNode()            {}
@@ -219,14 +223,17 @@ type ShopAddressInput struct {
 }
 
 type ShopImages struct {
-	SiteLogo   *Image `json:"siteLogo,omitempty"`
-	Favicon    *Image `json:"favicon,omitempty"`
-	Banner     *Image `json:"banner,omitempty"`
-	CoverImage *Image `json:"coverImage,omitempty"`
+	SiteLogo       *Image `json:"site_logo,omitempty"`
+	SiteLogoDark   *Image `json:"site_logo_dark,omitempty"`
+	Favicon        *Image `json:"favicon,omitempty"`
+	Banner         *Image `json:"banner,omitempty"`
+	BannerDark     *Image `json:"banner_dark,omitempty"`
+	CoverImage     *Image `json:"cover_image,omitempty"`
+	CoverImageDark *Image `json:"cover_image_dark,omitempty"`
 }
 
 type UpdateCartItemInput struct {
-	ProductID string `json:"productId"`
+	ProductID string `json:"product_id"`
 	Quantity  int    `json:"quantity"`
 }
 
@@ -279,6 +286,20 @@ func (e ErrorCode) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+func (e *ErrorCode) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ErrorCode) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type ProductStockStatus string
 
 const (
@@ -320,4 +341,18 @@ func (e *ProductStockStatus) UnmarshalGQL(v any) error {
 
 func (e ProductStockStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ProductStockStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ProductStockStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

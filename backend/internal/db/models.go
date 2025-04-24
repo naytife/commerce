@@ -61,6 +61,7 @@ const (
 	AttributeDataTypeNumber AttributeDataType = "Number"
 	AttributeDataTypeDate   AttributeDataType = "Date"
 	AttributeDataTypeOption AttributeDataType = "Option"
+	AttributeDataTypeColor  AttributeDataType = "Color"
 )
 
 func (e *AttributeDataType) Scan(src interface{}) error {
@@ -240,6 +241,7 @@ type Product struct {
 	CategoryID    *int64             `json:"category_id"`
 	ShopID        int64              `json:"shop_id"`
 	Status        ProductStatus      `json:"status"`
+	Slug          string             `json:"slug"`
 }
 
 type ProductAttributeValue struct {
@@ -260,17 +262,17 @@ type ProductImage struct {
 }
 
 type ProductType struct {
-	ProductTypeID int64  `json:"product_type_id"`
-	Title         string `json:"title"`
-	Shippable     bool   `json:"shippable"`
-	Digital       bool   `json:"digital"`
-	ShopID        int64  `json:"shop_id"`
+	ProductTypeID int64   `json:"product_type_id"`
+	Title         string  `json:"title"`
+	Shippable     bool    `json:"shippable"`
+	Digital       bool    `json:"digital"`
+	ShopID        int64   `json:"shop_id"`
+	SkuSubstring  *string `json:"sku_substring"`
 }
 
 type ProductVariation struct {
 	ProductVariationID int64              `json:"product_variation_id"`
 	Sku                string             `json:"sku"`
-	Slug               string             `json:"slug"`
 	Description        string             `json:"description"`
 	Price              pgtype.Numeric     `json:"price"`
 	AvailableQuantity  int64              `json:"available_quantity"`
@@ -281,6 +283,7 @@ type ProductVariation struct {
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	ProductID          int64              `json:"product_id"`
 	ShopID             int64              `json:"shop_id"`
+	IsDefault          bool               `json:"is_default"`
 }
 
 type ProductVariationAttributeValue struct {
@@ -316,12 +319,15 @@ type Shop struct {
 }
 
 type ShopImage struct {
-	ShopImageID   int64   `json:"shop_image_id"`
-	FaviconUrl    *string `json:"favicon_url"`
-	LogoUrl       *string `json:"logo_url"`
-	BannerUrl     *string `json:"banner_url"`
-	CoverImageUrl *string `json:"cover_image_url"`
-	ShopID        int64   `json:"shop_id"`
+	ShopImageID       int64   `json:"shop_image_id"`
+	FaviconUrl        *string `json:"favicon_url"`
+	LogoUrl           *string `json:"logo_url"`
+	BannerUrl         *string `json:"banner_url"`
+	CoverImageUrl     *string `json:"cover_image_url"`
+	ShopID            int64   `json:"shop_id"`
+	LogoUrlDark       *string `json:"logo_url_dark"`
+	BannerUrlDark     *string `json:"banner_url_dark"`
+	CoverImageUrlDark *string `json:"cover_image_url_dark"`
 }
 
 type ShoppingCart struct {
