@@ -261,7 +261,7 @@
 						on:click={() =>
 							cart.add(
 								{
-									id: typedProduct.node.id,
+									id: typedProduct.node.defaultVariant.variationId.toString(),
 									title: typedProduct.node.title,
 									price: typedProduct.node.defaultVariant.price,
 									image: typedProduct.node.images[0]?.url,
