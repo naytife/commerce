@@ -5,7 +5,7 @@ import { sequence } from '@sveltejs/kit/hooks';
 
 async function authorizationHandle({ event, resolve }) {
   // Protect any routes under /authenticated
-  if (event.url.pathname.startsWith('/admin')) {
+  if (event.url.pathname.startsWith('/account')) {
     const session = await event.locals.auth();
     if (!session || session.error==='RefreshTokenError') {
       // Redirect to the signin page

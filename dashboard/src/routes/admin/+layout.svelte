@@ -9,7 +9,8 @@
 		Settings,
 		ShoppingCart,
 		Workflow,
-		UsersRound
+		UsersRound,
+		Boxes
 	} from 'lucide-svelte';
 
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
@@ -23,11 +24,22 @@
 	import type { PageData } from './$types' 
 	import { setContext } from 'svelte';
 	import { writable } from 'svelte/store';
+	import type { Session as AuthSession } from '@auth/sveltekit';
+	import { onMount } from 'svelte';
+	import { fetchShopIdFromSubdomain, currentShopId } from '$lib/api';
+	
+	interface CustomSession extends AuthSession {
+		access_token?: string;
+		user?: {
+			name?: string;
+			email?: string;
+		};
+	}
 	let storeId=2;
-	export let data: PageData
+	export let data: PageData & { session: CustomSession | null };
 
 	// Create a writable store for the session to make it reactive
-	const sessionStore = writable(data.session)
+	const sessionStore = writable<CustomSession | null>(data.session);
 
 	// Update the store whenever data.session changes
 	$: sessionStore.set(data.session)
@@ -47,6 +59,51 @@
 
 	// Share authFetch via context
 	setContext('authFetch', authFetch)
+
+	// Function to get breadcrumb items based on current route
+	$: breadcrumbItems = () => {
+		const path = $page.url.pathname;
+		const items = [];
+
+		// Always add Dashboard as first item
+		items.push({ label: 'Dashboard', href: '/admin', type: 'link' });
+
+		// Add other items based on path
+		if (path.includes('/product-types')) {
+			items.push({ label: 'Product Types', href: '/admin/product-types', type: 'link' });
+			if (path.includes('/create')) {
+				items.push({ label: 'Create', type: 'page' });
+			} else if (path.match(/\/product-types\/\d+/)) {
+				items.push({ label: 'Edit', type: 'page' });
+			}
+		} else if (path.includes('/products')) {
+			items.push({ label: 'Products', href: '/admin/products', type: 'link' });
+			if (path.includes('/create')) {
+				items.push({ label: 'Create', type: 'page' });
+			} else if (path.match(/\/products\/\d+/)) {
+				items.push({ label: 'Edit', type: 'page' });
+			}
+		} else if (path.includes('/categories')) {
+			items.push({ label: 'Categories', href: '/admin/categories', type: 'link' });
+			if (path.includes('/create')) {
+				items.push({ label: 'Create', type: 'page' });
+			}
+		} else if (path.includes('/settings')) {
+			items.push({ label: 'Settings', href: '/admin/settings', type: 'link' });
+			if (path.includes('/domain')) {
+				items.push({ label: 'Domain', type: 'page' });
+			} else if (path.includes('/socials')) {
+				items.push({ label: 'Social', type: 'page' });
+			}
+		}
+
+		return items;
+	};
+
+	// Add this to initialize shop ID on page load
+	onMount(async () => {
+		await fetchShopIdFromSubdomain()
+	})
 </script>
 
 <div class="flex min-h-screen w-full flex-col bg-muted/40">
@@ -90,12 +147,12 @@
 			<Tooltip.Root>
 				<Tooltip.Trigger asChild let:builder>
 					<a
-						href="/admin/products"
+						href="/admin/product-types"
 						class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
 						use:builder.action
 						{...builder}
 					>
-						<Package class="h-5 w-5" />
+						<Boxes class="h-5 w-5" />
 						<span class="sr-only">Products</span>
 					</a>
 				</Tooltip.Trigger>
@@ -226,21 +283,18 @@
 			</Sheet.Root>
 			<Breadcrumb.Root class="hidden md:flex">
 				<Breadcrumb.List>
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="/admin">Dashboard</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="/admin/{storeId}/products">Products</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="/admin/{storeId}/categories">Categories</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Page>All Products</Breadcrumb.Page>
-					</Breadcrumb.Item>
+					{#each breadcrumbItems() as item, i}
+						{#if i > 0}
+							<Breadcrumb.Separator />
+						{/if}
+						<Breadcrumb.Item>
+							{#if item.type === 'link'}
+								<Breadcrumb.Link href={item.href}>{item.label}</Breadcrumb.Link>
+							{:else}
+								<Breadcrumb.Page>{item.label}</Breadcrumb.Page>
+							{/if}
+						</Breadcrumb.Item>
+					{/each}
 				</Breadcrumb.List>
 			</Breadcrumb.Root>
 			<div class="relative ml-auto flex-1 md:grow-0">

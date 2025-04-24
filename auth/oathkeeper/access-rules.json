@@ -6,7 +6,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/api/v1/docs",
+      "url": "https://api.naytife.com/v1/docs",
       "methods": [
         "GET"
       ]
@@ -32,7 +32,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/api/v1/docs/<**>",
+      "url": "https://api.naytife.com/v1/docs/<**>",
       "methods": [
         "GET"
       ]
@@ -58,7 +58,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/api/v1/auth/<{register}>",
+      "url": "https://api.naytife.com/v1/auth/<{register}>",
       "methods": [
         "POST"
       ]
@@ -84,7 +84,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/api/v1/<{shops}><**>",
+      "url": "https://api.naytife.com/v1/<{shops}><**>",
       "methods": [
         "OPTIONS"
       ]
@@ -110,7 +110,7 @@
       "url": "http://backend.apps.svc.cluster.local:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/api/v1/<{shops}><**>",
+      "url": "https://api.naytife.com/v1/<{shops}><**>",
       "methods": [
         "GET",
         "POST",

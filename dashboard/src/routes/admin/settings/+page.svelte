@@ -1,97 +1,106 @@
 <script lang="ts">
-	import * as Card from '$lib/components/ui/card';
-	import * as Form from '$lib/components/ui/form';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import { Tabs as TabsPrimitive } from 'bits-ui';
 	import type { PageData } from './$types';
-	import { api } from '$lib/api'
-	import type { Product } from '$lib/types'
+	import { api } from '$lib/api';
+	import type { Shop } from '$lib/types';
 	import { getContext } from 'svelte';
-	import { createQuery } from '@tanstack/svelte-query';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
+	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+	import { setContext } from 'svelte';
+	
+	// Import tab components
+	import GeneralTab from '$lib/components/admin/settings/GeneralTab.svelte';
+	import SEOTab from '$lib/components/admin/settings/SEOTab.svelte';
+	import SocialTab from '$lib/components/admin/settings/SocialTab.svelte';
+	import DomainTab from '$lib/components/admin/settings/DomainTab.svelte';
+	import PaymentsTab from '$lib/components/admin/settings/PaymentsTab.svelte';
+	import ImagesTab from '$lib/components/admin/settings/ImagesTab.svelte';
 
-	export let data: PageData
-	const authFetch:(input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> = getContext('authFetch')
+	export let data: PageData;
+	const authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> = getContext('authFetch');
+	
+	// Make authFetch available to all child components
+	setContext('authFetch', authFetch);
+	
+	// Get query client for refetching
+	const queryClient = useQueryClient();
+	
+	// Function to refetch shop data
+	async function refetchShopData() {
+		await queryClient.invalidateQueries({
+			queryKey: ['shop', 'gossip']
+		});
+	}
+	
+	// Make refetchShopData available to child components
+	setContext('refetchShopData', refetchShopData);
 
-	$:productQuery = createQuery<Product>({
-		queryKey: ['shop', "gossip"],
-		queryFn: () => api(authFetch).getShop('gossip'),
-	})
+	$: shopQuery = createQuery<Shop, Error>({
+		queryKey: ['shop'],
+		queryFn: () => api(authFetch).getShop()
+	});
+
+	// Initialize shop data from query
+	let shop: Partial<Shop> = {};
+	$: if ($shopQuery.data) {
+		shop = { ...$shopQuery.data };
+	}
+
+	// Define tab values
+	const tabs = [
+		{ id: 'general', title: 'General' },
+		{ id: 'images', title: 'Images' },
+		{ id: 'seo', title: 'SEO' },
+		{ id: 'social', title: 'Social Media' },
+		{ id: 'domain', title: 'Domain' },
+		{ id: 'payments', title: 'Payment Methods' }
+	];
+	let activeTab = 'general';
+	
+	// Currency display value
+	$: currencyDisplay = shop.currency_code || "Select currency";
 </script>
 
-<Card.Root>
-	<Card.Header>
-		<Card.Title>General Settings</Card.Title>
-	</Card.Header>
-	<Card.Content>
-		<form method="POST" class="space-y-8"  id="general-settings-form">
-			<div class="flex w-full flex-col gap-3">
-					<Label for="store-name">Store Name</Label>
-					<Input />
-					<p class="text-muted-foreground text-sm">Enter your shop name.</p>
-			</div>
-			<div class="flex w-full flex-col gap-3">
-				<Label for="email">Email</Label>
-				<Input type="email" id="email" />
-				<p class="text-muted-foreground text-sm">Store contact email address.</p>
-			</div>
-
-			<div class="flex w-full flex-col gap-3">
-				<Label for="address">Address</Label>
-				<Textarea id="address" />
-				<p class="text-muted-foreground text-sm">Store physical address.</p>
-			</div>
-
-			<div class="flex w-full flex-col gap-3">
-				<Label for="about">About</Label>
-				<Textarea id="about" />
-				<p class="text-muted-foreground text-sm">Tell customers about your store.</p>
-			</div>
-
-			<div class="flex w-full flex-col gap-3">
-				<Label for="phone">Contact Phone Number</Label>
-				<Input id="phone" type="tel" />
-				<p class="text-muted-foreground text-sm">Store contact number.</p>
-			</div>
-			<div class="flex w-full flex-col gap-3">
-				<Label for="currency">Currency</Label>
-				<Select.Root>
-					<Select.Trigger id="currency" aria-label="currency">
-						<Select.Value  />
-					</Select.Trigger>
-					<Select.Content>
-							<Select.Item value="NGN" label="NGN">
-								NGN
-							</Select.Item>
-							<Select.Item value="USD" label="USD">
-								USD
-							</Select.Item>
-					</Select.Content>
-				</Select.Root>
-			
-				<p class="text-muted-foreground text-sm">Store's primary currency.</p>
-			</div>
-			<!-- <div>
-		<Form.Fieldset {form} name="phones">
-			<Form.Legend>Contact Phones</Form.Legend>
-			{#each $formData.phones as _, i}
-				<Form.ElementField {form} name="phones[{i}]">
-					<Form.Description>Add store contact phone numbers</Form.Description>
-					<Form.Control let:attrs>
-						<Input {...attrs} bind:value={$formData.phones[i]} />
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.ElementField>
+<div class="space-y-6">
+	<h2 class="text-2xl font-bold">Store Settings</h2>
+	
+	<TabsPrimitive.Root value={activeTab} onValueChange={(val) => {
+		if (val) activeTab = val; 
+	}}>
+		<Tabs.List class="grid grid-cols-6 w-full max-w-4xl">
+			{#each tabs as tab}
+				<Tabs.Trigger value={tab.id} class="w-full">{tab.title}</Tabs.Trigger>
 			{/each}
-		</Form.Fieldset>
-		<Button type="button" variant="outline" size="sm" class="mt-2" on:click={addPhone}>
-			Add Phone
-		</Button>
-	</div> -->
+		</Tabs.List>
+		
+		<!-- General Settings Tab -->
+		<Tabs.Content value="general" class="mt-6">
+			<GeneralTab {shop} />
+		</Tabs.Content>
 
-			<Form.Button>Update</Form.Button>
-		</form>
-	</Card.Content>
-	<Card.Footer></Card.Footer>
-</Card.Root>
+		<!-- Images Settings Tab -->
+		<Tabs.Content value="images" class="mt-6">
+			<ImagesTab {shop} />
+		</Tabs.Content>
+		
+		<!-- SEO Settings Tab -->
+		<Tabs.Content value="seo" class="mt-6">
+			<SEOTab {shop} />
+		</Tabs.Content>
+		
+		<!-- Social Media Tab -->
+		<Tabs.Content value="social" class="mt-6">
+			<SocialTab {shop} />
+		</Tabs.Content>
+		
+		<!-- Domain Settings Tab -->
+		<Tabs.Content value="domain" class="mt-6">
+			<DomainTab {shop} />
+		</Tabs.Content>
+
+		<!-- Payment Methods Tab -->
+		<Tabs.Content value="payments" class="mt-6">
+			<PaymentsTab {shop} />
+		</Tabs.Content>
+	</TabsPrimitive.Root>
+</div>

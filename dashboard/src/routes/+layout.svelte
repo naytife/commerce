@@ -4,6 +4,7 @@
 	import { ModeWatcher } from 'mode-watcher'
 	import '../app.css'
 	import { QueryClientProvider } from '@tanstack/svelte-query'
+	import { Toaster } from '$lib/components/ui/sonner'
 	import type { PageData } from './$types'
 
 	export let data: PageData
@@ -29,9 +30,10 @@
 
 	// Share authFetch via context
 	setContext('authFetch', authFetch)
-  </script>
-  
-  <QueryClientProvider client={data.queryClient}>
+</script>
+
+<QueryClientProvider client={data.queryClient}>
 	<ModeWatcher defaultMode={'light'} />
 	<slot></slot>
-  </QueryClientProvider>
+	<Toaster />
+</QueryClientProvider>

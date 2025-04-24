@@ -3,7 +3,9 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response>;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
