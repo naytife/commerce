@@ -3,7 +3,7 @@
 /** @type {import('houdini').ConfigFile} */
 const config = {
     "watchSchema": {
-        "url":  'http://gossip.localhost:8080/api/query'
+        "url":  'http://gossip.localhost:8000/query'
     },
     "runtimeDir": ".houdini",
     "plugins": {

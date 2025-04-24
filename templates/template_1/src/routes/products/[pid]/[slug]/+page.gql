@@ -1,11 +1,6 @@
-query ProductsQuery {
-
-  products {
-    totalCount
-    edges {
-      cursor
-      node {
-        id
+query ProductQuery($pid:ID!) {
+  product(id: $pid) {
+       id
         productId
         slug
         title
@@ -32,7 +27,17 @@ query ProductsQuery {
           description
           stockStatus
         }
-      }
-    }
+        variants {
+          id
+          variationId
+          attributes{
+            title
+            value
+          }
+          price
+          availableQuantity
+          description
+          stockStatus
+        }
   }
 }
