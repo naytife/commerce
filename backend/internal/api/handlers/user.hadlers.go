@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/petrejonn/naytife/internal/api"
@@ -35,8 +37,8 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	}
 	objDB, err := h.Repository.UpsertUser(c.Context(), db.UpsertUserParams{
 		Sub:            param.Email,
-		ProviderID:     param.ProviderID,
-		Provider:       param.Provider,
+		AuthProviderID: param.ProviderID,
+		AuthProvider:   param.Provider,
 		Email:          param.Email,
 		Name:           param.Name,
 		Locale:         param.Locale,
@@ -48,13 +50,13 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	}
 	resp := models.UserResponse{
 		UserID:         objDB.UserID,
-		Provider:       objDB.Provider,
+		Provider:       objDB.AuthProvider,
 		Email:          objDB.Email,
 		Name:           objDB.Name,
 		ProfilePicture: objDB.ProfilePicture,
 		CreatedAt:      objDB.CreatedAt,
 		LastLogin:      objDB.LastLogin,
-		ProviderID:     objDB.ProviderID,
+		ProviderID:     objDB.AuthProviderID,
 		Locale:         objDB.Locale,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "User created or updated successfully")
@@ -67,7 +69,6 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 // @Produce      json
 // @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User fetched successfully"
 // @Security     OAuth2AccessCode
-// @Security XUserIdAuth
 // @Router       /me [get]
 func (h *Handler) GetMe(c *fiber.Ctx) error {
 	userIDStr, _ := c.Locals("user_id").(string)
@@ -81,16 +82,47 @@ func (h *Handler) GetMe(c *fiber.Ctx) error {
 	}
 	resp := models.UserResponse{
 		UserID:         objDB.UserID,
-		Provider:       objDB.Provider,
+		Provider:       objDB.AuthProvider,
 		Email:          objDB.Email,
 		Name:           objDB.Name,
 		ProfilePicture: objDB.ProfilePicture,
 		CreatedAt:      objDB.CreatedAt,
 		LastLogin:      objDB.LastLogin,
-		ProviderID:     objDB.ProviderID,
+		ProviderID:     objDB.AuthProviderID,
 		Locale:         objDB.Locale,
 		Shops:          shops,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "User fetched successfully")
 
+}
+
+// GetUser fetches a user by email
+// @Summary      Fetch a user by email
+// @Description
+// @Tags         user
+// @Produce      json
+// @Param        email query string true "User email"
+// @Success      200  {object}   models.SuccessResponse{data=models.UserResponse} "User fetched successfully"
+// @Router       /userinfo [get]
+func (h *Handler) GetUser(c *fiber.Ctx) error {
+	email := c.Query("email")
+	objDB, err := h.Repository.GetUser(c.Context(), &email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "User not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user", nil)
+	}
+	resp := models.UserResponse{
+		UserID:         objDB.UserID,
+		Provider:       objDB.AuthProvider,
+		Email:          objDB.Email,
+		Name:           objDB.Name,
+		ProfilePicture: objDB.ProfilePicture,
+		CreatedAt:      objDB.CreatedAt,
+		LastLogin:      objDB.LastLogin,
+		ProviderID:     objDB.AuthProviderID,
+		Locale:         objDB.Locale,
+	}
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "User fetched successfully")
 }
