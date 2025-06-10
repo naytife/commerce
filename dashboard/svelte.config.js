@@ -10,6 +10,10 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		alias: {
+		},
+		// Add CSRF configuration to allow cross-site form submissions for auth
+		csrf: {
+			checkOrigin: false
 		}
 	}
 };

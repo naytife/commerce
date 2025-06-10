@@ -1,0 +1,289 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hydra-secret
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/part-of: naytife-platform
+type: Opaque
+data:
+  # postgres://postgres:naytife-postgres-2024@postgres.naytife.svc.cluster.local:5432/naytifedb?search_path=hydra&sslmode=disable
+  dsn: cG9zdGdyZXM6Ly9wb3N0Z3JlczpuYXl0aWZlLXBvc3RncmVzLTIwMjRAcG9zdGdyZXMubmF5dGlmZS5zdmMuY2x1c3Rlci5sb2NhbDo1NDMyL25heXRpZmVkYj9zZWFyY2hfcGF0aD1oeWRyYSZzc2xtb2RlPWRpc2FibGU=
+  # HydraSystemSecret2024!
+  system-secret: SHlkcmFTeXN0ZW1TZWNyZXQyMDI0IQ==
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra-config
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  hydra.yml: |
+    # Hydra configuration for k3s development
+    serve:
+      public:
+        port: 4444
+        host: 0.0.0.0
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - "*"
+      admin:
+        port: 4445
+        host: 0.0.0.0
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - "*"
+    
+    urls:
+      self:
+        issuer: http://127.0.0.1:8080/
+      login: http://127.0.0.1:8080/login
+      consent: http://127.0.0.1:8080/consent
+      logout: http://127.0.0.1:8080/logout
+      error: http://127.0.0.1:8080/error
+      post_logout_redirect: http://127.0.0.1:8080/
+    
+    oidc:
+      subject_identifiers:
+        supported_types:
+          - public
+      dynamic_client_registration:
+        enabled: false
+    
+    oauth2:
+      session:
+        encrypt_at_rest: false
+      pkce:
+        enforced: false
+        enforced_for_public_clients: false
+    
+    log:
+      level: info
+      format: json
+    
+    secrets:
+      cookie:
+        - HydraCookieSecret2024!
+      system:
+        - HydraSystemSecret2024!
+    
+    ttl:
+      access_token: 1h
+      refresh_token: 720h
+      id_token: 1h
+      auth_code: 10m
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hydra-migrate
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: migrate
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  template:
+    metadata:
+      labels:
+        app: hydra-migrate
+        app.kubernetes.io/name: hydra
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+      containers:
+      - name: hydra-migrate
+        image: oryd/hydra:v2.2.0
+        command:
+        - hydra
+        - migrate
+        - sql
+        - -e
+        - --yes
+        - --config
+        - /etc/config/hydra.yml
+        env:
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              name: hydra-secret
+              key: dsn
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: hydra-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hydra
+  template:
+    metadata:
+      labels:
+        app: hydra
+        app.kubernetes.io/name: hydra
+        app.kubernetes.io/part-of: naytife-platform
+    spec:
+      containers:
+      - name: hydra
+        image: oryd/hydra:v2.2.0
+        command:
+        - hydra
+        - serve
+        - all
+        - --dev
+        - --config
+        - /etc/config/hydra.yml
+        ports:
+        - containerPort: 4444
+          name: public
+        - containerPort: 4445
+          name: admin
+        env:
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              name: hydra-secret
+              key: dsn
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health/alive
+            port: 4445
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 4445
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: config-volume
+        configMap:
+          name: hydra-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-public
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: public
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4444
+    targetPort: 4444
+    name: public
+  selector:
+    app: hydra
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-admin
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: admin
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4445
+    targetPort: 4445
+    name: admin
+  selector:
+    app: hydra
+---
+# NodePort services for external access during development
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-public-nodeport
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: public
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4444
+    targetPort: 4444
+    name: public
+  selector:
+    app: hydra
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hydra-admin-nodeport
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: admin
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4445
+    targetPort: 4445
+    name: admin
+  selector:
+    app: hydra

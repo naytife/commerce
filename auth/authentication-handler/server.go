@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 
 var (
 	hydraAdminURL    string
+	backendURL       string
 	googleProvider   *OAuthProvider
 	oauthProviders   = map[string]*OAuthProvider{}
 	hydraAdminClient *hydra.APIClient
@@ -37,6 +39,13 @@ func init() {
 	if hydraAdminURL == "" {
 		log.Fatal("HYDRA_ADMIN_URL not set")
 	}
+	log.Printf("Hydra Admin URL: %s", hydraAdminURL)
+
+	backendURL = os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		log.Fatal("BACKEND_URL not set")
+	}
+	log.Printf("Backend URL: %s", backendURL)
 
 	googleProvider = NewOAuthProvider(google.Endpoint, "google", os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), os.Getenv("LOGIN_HANDLER_REDIRECT_URI"))
 	oauthProviders["google"] = googleProvider
@@ -77,7 +86,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		StrictRouting:  true,
 		ServerHeader:   "Fiber",
-		ReadBufferSize: 8192,
+		ReadBufferSize: 16384,
 	})
 
 	app.Use(func(c *fiber.Ctx) error {
@@ -106,9 +115,58 @@ func handleLogin(c *fiber.Ctx) error {
 	if loginChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing login_challenge")
 	}
+	log.Printf("Calling Hydra Admin for login challenge: %s", loginChallenge)
+	loginRequest, _, err := hydraAdminClient.OAuth2API.GetOAuth2LoginRequest(context.Background()).LoginChallenge(loginChallenge).Execute()
+	if err != nil {
+		log.Printf("Failed to get login request: %v", err)
+		return c.Status(http.StatusInternalServerError).SendString("Failed to get login request")
+	}
+	// Extract shop_id from request_url
+	parsedURL, err := url.Parse(loginRequest.RequestUrl)
+	if err != nil {
+		log.Printf("Invalid request_url: %v", err)
+		return c.Status(http.StatusInternalServerError).SendString("Invalid request_url")
+	}
+	query := parsedURL.Query()
+	shopID := query.Get("shop_id")
+	log.Printf("shop_id extracted from request_url: %s", shopID)
+
+	appType := query.Get("app_type")
+	log.Printf("app_type extracted from request_url: %s", appType)
+	if appType == "" {
+		return c.Status(http.StatusBadRequest).SendString("Missing app_type")
+	}
+
+	// Only require shop_id for storefront app type
+	if appType == "storefront" && shopID == "" {
+		return c.Status(http.StatusBadRequest).SendString("Missing shop_id for storefront app")
+	}
+
+	// app_type was already extracted above
+
+	// Only set shop_id cookie if appType is "storefront"
+	if appType == "storefront" {
+		c.Cookie(&fiber.Cookie{
+			Name:     "shop_id",
+			Value:    shopID,
+			Expires:  time.Now().Add(10 * time.Minute),
+			Secure:   true,
+			SameSite: "Lax",
+			HTTPOnly: true,
+		})
+	}
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "login_challenge",
 		Value:    loginChallenge,
+		Expires:  time.Now().Add(10 * time.Minute),
+		Secure:   true,
+		SameSite: "Lax",
+		HTTPOnly: true,
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "app_type",
+		Value:    appType,
 		Expires:  time.Now().Add(10 * time.Minute),
 		Secure:   true,
 		SameSite: "Lax",
@@ -120,16 +178,23 @@ func handleLogin(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to generate state")
 	}
 
+	log.Printf("Generated OAuth state: %s", state)
+
+	// Store the OAuth2 state in a secure cookie for CSRF protection
 	c.Cookie(&fiber.Cookie{
 		Name:     "oauthstate",
 		Value:    state,
 		Expires:  time.Now().Add(10 * time.Minute),
 		Secure:   true,
-		SameSite: "None",
+		SameSite: "None", // Changed from "Lax" to "None"
 		HTTPOnly: true,
 	})
 
+	// Append shop_id to the auth URL
 	authURL := oauthProvider.OAuth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	authURL += "&shop_id=" + url.QueryEscape(shopID)
+	log.Printf("Redirecting to auth URL: %s", authURL)
+
 	return c.Redirect(authURL)
 }
 
@@ -139,6 +204,18 @@ func handleCallback(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).SendString("Invalid OAuth state")
 	}
 
+	// Retrieve app_type and shop_id from cookies
+	appType := c.Cookies("app_type")
+	if appType == "" {
+		return c.Status(http.StatusBadRequest).SendString("Missing app_type cookie")
+	}
+	shopID := c.Cookies("shop_id")
+	log.Printf("shop_id from cookie: %s", shopID)
+
+	// Only require shop_id cookie for storefront app type
+	if appType == "storefront" && shopID == "" {
+		return c.Status(http.StatusBadRequest).SendString("Missing shop_id cookie for storefront app")
+	}
 	code := c.Query("code")
 	if code == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing authorization code")
@@ -161,15 +238,22 @@ func handleCallback(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to fetch user info: " + err.Error())
 	}
 
-	if err := registerUser(client, userInfo); err != nil {
-		return c.Status(http.StatusInternalServerError).SendString("Failed to register user: " + err.Error())
+	// Pre-flight: only register if the user does not already exist
+	exists, err = userExists(client, userInfo.Email, appType, shopID)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString("Failed to check user existence: " + err.Error())
+	}
+	if !exists {
+		if err := registerUser(client, userInfo, appType, shopID); err != nil {
+			return c.Status(http.StatusInternalServerError).SendString("Failed to register user: " + err.Error())
+		}
 	}
 
 	loginChallenge := c.Cookies("login_challenge")
 	if loginChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing login_challenge")
 	}
-	redirectTo, err := acceptHydraLogin(loginChallenge, userInfo)
+	redirectTo, err := acceptHydraLogin(loginChallenge, userInfo, shopID, appType)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to accept login in Hydra: " + err.Error())
 	}
@@ -191,26 +275,63 @@ func fetchUserInfo(client *http.Client) (*GoogleUserInfo, error) {
 	return &userInfo, nil
 }
 
-func registerUser(client *http.Client, userInfo *GoogleUserInfo) error {
-	// Marshal userInfo to JSON
-	// TODO: send provider
-	userInfoJSON, err := json.Marshal(userInfo)
-	if err != nil {
-		return err // Handle JSON marshalling error
+func userExists(client *http.Client, email, appType, shopID string) (bool, error) {
+	var urlStr string
+	if appType == "dashboard" {
+		// Call the admin endpoint
+		urlStr = fmt.Sprintf("%s/v1/userinfo?email=%s", backendURL, url.QueryEscape(email))
+	} else if appType == "storefront" {
+		// Call the customer endpoint only if appType is "storefront"
+		urlStr = fmt.Sprintf("%s/v1/customerinfo?subdomain=%s&email=%s", backendURL, url.QueryEscape(shopID), url.QueryEscape(email))
+	} else {
+		return false, fmt.Errorf("unsupported app_type: %s", appType)
 	}
 
-	// Use bytes.NewReader to create an io.Reader
-	resp, err := client.Post("https://api.naytife.com/api/v1/auth/register", "application/json", bytes.NewReader(userInfoJSON))
+	resp, err := client.Get(urlStr)
 	if err != nil {
-		return err // Handle HTTP POST error
+		return false, err
 	}
 	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusNotFound:
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected status %d from user existence check", resp.StatusCode)
+	}
+}
 
-	// Check for a successful response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to send user info: status code %d", resp.StatusCode)
+func registerUser(client *http.Client, userInfo *GoogleUserInfo, appType, shopID string) error {
+	var urlStr string
+	if appType == "storefront" {
+		// Call the register customer endpoint
+		urlStr = fmt.Sprintf("%s/v1/auth/register-customer", backendURL)
+	} else {
+		// Call the register user endpoint for admin
+		urlStr = fmt.Sprintf("%s/v1/auth/register", backendURL)
 	}
 
+	payload := map[string]interface{}{
+		"email":    userInfo.Email,
+		"name":     userInfo.Name,
+		"app_type": appType,
+	}
+	if appType == "storefront" {
+		payload["shop_id"] = shopID // Only include shop_id if appType is "storefront"
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Post(urlStr, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to register user: status %d", resp.StatusCode)
+	}
 	return nil
 }
 
@@ -226,12 +347,21 @@ type GoogleUserInfo struct {
 	Locale        string `json:"locale"`
 }
 
-func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo) (*hydra.OAuth2RedirectTo, error) {
+func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo, shopID, appType string) (*hydra.OAuth2RedirectTo, error) {
+	// Create a new map to hold the context data
+	contextData := make(map[string]interface{})
+
+	// Only include shop_id if appType is "storefront"
+	if appType == "storefront" {
+		contextData["shop_id"] = shopID
+	}
+
 	// Accept the login request
 	acceptRequest := hydra.AcceptOAuth2LoginRequest{
 		Subject:     *hydra.PtrString(user.Email),
 		Remember:    hydra.PtrBool(true),
 		RememberFor: hydra.PtrInt64(3600),
+		Context:     contextData, // Assign the map here
 	}
 
 	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2LoginRequest(context.Background()).
@@ -257,7 +387,7 @@ func handleConsent(c *fiber.Ctx) error {
 	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2ConsentRequest(context.Background()).
 		ConsentChallenge(consentChallenge).
 		AcceptOAuth2ConsentRequest(hydra.AcceptOAuth2ConsentRequest{
-			GrantAccessTokenAudience: consentRequest.RequestedAccessTokenAudience, // List any audiences for the token
+			GrantAccessTokenAudience: consentRequest.RequestedAccessTokenAudience,
 			GrantScope:               consentRequest.RequestedScope,
 			Remember:                 hydra.PtrBool(true),
 			RememberFor:              hydra.PtrInt64(3600),
@@ -266,5 +396,4 @@ func handleConsent(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to accept Hydra consent request: %w", err)
 	}
 	return c.Redirect(redirectTo.RedirectTo)
-
 }

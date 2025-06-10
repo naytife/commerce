@@ -1,24 +1,58 @@
-# create-svelte
+# Naytife Dashboard - Admin Interface
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+SvelteKit-based admin dashboard for managing the Naytife Commerce Platform.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- 📊 Store analytics and reporting
+- 🛍️ Product catalog management
+- 📦 Order processing and fulfillment
+- 👥 Customer management
+- 💳 Payment and billing oversight
+- ⚙️ Platform configuration
+- 🔐 OAuth2 authentication
+
+## Development
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
+# Install dependencies
+npm install
 
-# create a new project in my-app
-npm create svelte@latest my-app
+# Start development server
+npm run dev
+
+# Open in browser
+npm run dev -- --open
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Building
 
 ```bash
+# Create production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Testing
+
+```bash
+# Run unit tests
+npm run test
+
+# Run e2e tests with Playwright
+npm run test:e2e
+```
+
+## Integration
+
+The dashboard integrates with:
+- **Backend API**: REST endpoints for data management
+- **Authentication**: OAuth2 via Ory Hydra
+- **File Storage**: Cloudflare R2 for asset management
+
+For complete platform setup, see the [main deployment guide](../DEPLOYMENT_GUIDE.md).
 npm run dev
 
 # or start the server and open the app in a new browser tab

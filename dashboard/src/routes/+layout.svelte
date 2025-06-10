@@ -1,39 +1,21 @@
 <script lang="ts">
-	import { writable } from 'svelte/store'
-	import { setContext } from 'svelte'
-	import { ModeWatcher } from 'mode-watcher'
 	import '../app.css'
 	import { QueryClientProvider } from '@tanstack/svelte-query'
-	import { Toaster } from '$lib/components/ui/sonner'
-	import type { PageData } from './$types'
-
-	export let data: PageData
-
-	// Create a writable store for the session to make it reactive
-	const sessionStore = writable(data.session)
-
-	// Update the store whenever data.session changes
-	$: sessionStore.set(data.session)
-
-	// Define an authenticated fetch function that uses the latest session
-	const authFetch = async (url: string, options: RequestInit = {}) => {
-		const session = $sessionStore
-		const accessToken = session?.access_token
-		if (accessToken) {
-		options.headers = {
-			...options.headers,
-			Authorization: `Bearer ${accessToken}`,
-		}
-		}
-		return fetch(url, options)
-	}
-
-	// Share authFetch via context
-	setContext('authFetch', authFetch)
+	import { ModeWatcher } from 'mode-watcher';
+	import { Toaster } from 'svelte-sonner';
+	export let data: { queryClient: any }
 </script>
 
 <QueryClientProvider client={data.queryClient}>
-	<ModeWatcher defaultMode={'light'} />
-	<slot></slot>
-	<Toaster />
+	<ModeWatcher defaultMode={'dark'} />
+	<slot />
+	<Toaster 
+		theme="dark"
+		position="top-right"
+		closeButton={true}
+		richColors={true}
+		toastOptions={{
+			style: 'background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);'
+		}}
+	/>
 </QueryClientProvider>

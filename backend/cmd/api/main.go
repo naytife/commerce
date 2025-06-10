@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
 	"github.com/petrejonn/naytife/config"
@@ -15,18 +15,18 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 	publicgraph "github.com/petrejonn/naytife/internal/gql/public"
 	"github.com/petrejonn/naytife/internal/middleware"
+	"github.com/petrejonn/naytife/internal/services"
 )
 
 // @title Naytife API Docs
 // @version 1.0
 // @description This is the Naytife API documentation
-// @servers.url http://localhost:8000/v1
-// securityDefinitions.oauth2.accessCode OAuth2AccessCode
-// @tokenUrl https://auth.naytife.com/oauth2/token
-// @authorizationUrl https://auth.naytife.com/oauth2/auth
-// @securityDefinitions.apikey XUserIdAuth
+// @servers.url http://127.0.0.1:8080/v1
+// @securitydefinitions.oauth2.accessCode OAuth2AccessCode
+// @tokenurl http://127.0.0.1:8080/oauth2/token
+// @authorizationurl http://127.0.0.1:8080/oauth2/auth
 // @in header
-// @name X-User-Id
+
 func main() {
 	env, err := config.LoadConfig()
 	if err != nil {
@@ -40,6 +40,20 @@ func main() {
 	defer dbase.Close()
 
 	repo := db.NewRepository(dbase)
+
+	// Initialize services
+	stripeService := services.NewStripeService(repo)
+	paypalService := services.NewPayPalService(repo)
+	paystackService := services.NewPaystackService(repo)
+	flutterwaveService := services.NewFlutterwaveService(repo)
+
+	// Initialize payment processor factory
+	paymentProcessorFactory := services.NewPaymentProcessorFactory(
+		stripeService,
+		paypalService,
+		paystackService,
+		flutterwaveService,
+	)
 
 	app := fiber.New(fiber.Config{
 		ReadBufferSize: 8192,
@@ -68,12 +82,26 @@ func main() {
 		},
 	})
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowMethods: "GET,POST,OPTIONS,DELETE,PUT,PATCH",
-		AllowHeaders: "Content-Type,Authorization,X-User-Id",
-	}))
+	// Note: CORS is handled by Oathkeeper, so we don't need the CORS middleware here
 	app.Use(logger.New())
+
+	// Health check endpoints for Kubernetes
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status":    "healthy",
+			"service":   "naytife-backend",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	})
+
+	app.Get("/ready", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status":    "ready",
+			"service":   "naytife-backend",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	})
+
 	app.Get("/v1/docs/swagger.json", func(c *fiber.Ctx) error {
 		return c.SendFile("docs/swagger.json")
 	})
@@ -81,14 +109,17 @@ func main() {
 		URL:         fmt.Sprintf("%s/v1/docs/swagger.json", env.API_URL),
 		DeepLinking: false,
 		// Expand ("list") or Collapse ("none") tag groups by default
-		DocExpansion: "none",
+		DocExpansion: "list",
 		// Prefill OAuth ClientId on Authorize popup
 		OAuth: &swagger.OAuthConfig{
 			AppName:      "Naytife API",
-			ClientId:     "bcb8b621-1519-4127-b4d2-6187b48eba99",
-			ClientSecret: "Zr1-2LBQgiR5.0SzF~AT8.rPut",
-			Scopes:       []string{"openid", "offline", "hydra.openid", "introspect"},
+			ClientId:     "d39beaaa-9c53-48e7-b82a-37ff52127473",
+			ClientSecret: "-tzS7OuCyHjTZUxtfx5TxGR1f.",
+			Scopes:       []string{"openid", "offline", "profile", "email", "offline_access"},
 			UseBasicAuthenticationWithAccessCodeGrant: true,
+			AdditionalQueryStringParams: map[string]string{
+				"app_type": "dashboard",
+			},
 		},
 		PersistAuthorization: true,
 		// Ability to change OAuth2 redirect uri location
@@ -104,6 +135,13 @@ func main() {
 	routes.AttributeRouter(api, repo)
 	routes.UserRouter(api, repo)
 	routes.CartRouter(api, repo)
+	routes.CheckoutRouter(api, repo, paymentProcessorFactory)
+	routes.PaymentRouter(api, repo, paymentProcessorFactory)
+	routes.PaymentMethodsRouter(api, repo)
+	routes.OrderRouter(api, repo)
+	routes.CustomerRouter(api, repo)
+	routes.InventoryRouter(api, repo)
+	routes.WebhookRouter(v1, repo, paymentProcessorFactory)
 
 	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))
 

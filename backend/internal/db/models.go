@@ -142,6 +142,140 @@ func (ns NullAttributeUnit) Value() (driver.Value, error) {
 	return string(ns.AttributeUnit), nil
 }
 
+type OrderStatusType string
+
+const (
+	OrderStatusTypePending    OrderStatusType = "pending"
+	OrderStatusTypeProcessing OrderStatusType = "processing"
+	OrderStatusTypeCompleted  OrderStatusType = "completed"
+	OrderStatusTypeCancelled  OrderStatusType = "cancelled"
+	OrderStatusTypeRefunded   OrderStatusType = "refunded"
+)
+
+func (e *OrderStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrderStatusType(s)
+	case string:
+		*e = OrderStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrderStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullOrderStatusType struct {
+	OrderStatusType OrderStatusType `json:"order_status_type"`
+	Valid           bool            `json:"valid"` // Valid is true if OrderStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrderStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrderStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrderStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrderStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrderStatusType), nil
+}
+
+type PaymentMethodType string
+
+const (
+	PaymentMethodTypeFlutterwave PaymentMethodType = "flutterwave"
+	PaymentMethodTypePaystack    PaymentMethodType = "paystack"
+	PaymentMethodTypePaypal      PaymentMethodType = "paypal"
+	PaymentMethodTypeStripe      PaymentMethodType = "stripe"
+)
+
+func (e *PaymentMethodType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentMethodType(s)
+	case string:
+		*e = PaymentMethodType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentMethodType: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentMethodType struct {
+	PaymentMethodType PaymentMethodType `json:"payment_method_type"`
+	Valid             bool              `json:"valid"` // Valid is true if PaymentMethodType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentMethodType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentMethodType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentMethodType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentMethodType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentMethodType), nil
+}
+
+type PaymentStatusType string
+
+const (
+	PaymentStatusTypePending       PaymentStatusType = "pending"
+	PaymentStatusTypePaid          PaymentStatusType = "paid"
+	PaymentStatusTypeFailed        PaymentStatusType = "failed"
+	PaymentStatusTypeRefunded      PaymentStatusType = "refunded"
+	PaymentStatusTypePartialRefund PaymentStatusType = "partial_refund"
+)
+
+func (e *PaymentStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentStatusType(s)
+	case string:
+		*e = PaymentStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentStatusType struct {
+	PaymentStatusType PaymentStatusType `json:"payment_status_type"`
+	Valid             bool              `json:"valid"` // Valid is true if PaymentStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentStatusType), nil
+}
+
 type ProductStatus string
 
 const (
@@ -185,6 +319,51 @@ func (ns NullProductStatus) Value() (driver.Value, error) {
 	return string(ns.ProductStatus), nil
 }
 
+type ShippingStatusType string
+
+const (
+	ShippingStatusTypePending   ShippingStatusType = "pending"
+	ShippingStatusTypeShipped   ShippingStatusType = "shipped"
+	ShippingStatusTypeDelivered ShippingStatusType = "delivered"
+	ShippingStatusTypeCancelled ShippingStatusType = "cancelled"
+	ShippingStatusTypeReturned  ShippingStatusType = "returned"
+)
+
+func (e *ShippingStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ShippingStatusType(s)
+	case string:
+		*e = ShippingStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ShippingStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullShippingStatusType struct {
+	ShippingStatusType ShippingStatusType `json:"shipping_status_type"`
+	Valid              bool               `json:"valid"` // Valid is true if ShippingStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullShippingStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ShippingStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ShippingStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullShippingStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ShippingStatusType), nil
+}
+
 type Attribute struct {
 	AttributeID   int64              `json:"attribute_id"`
 	Title         string             `json:"title"`
@@ -192,8 +371,8 @@ type Attribute struct {
 	Unit          NullAttributeUnit  `json:"unit"`
 	Required      bool               `json:"required"`
 	AppliesTo     AttributeAppliesTo `json:"applies_to"`
-	ShopID        int64              `json:"shop_id"`
 	ProductTypeID int64              `json:"product_type_id"`
+	ShopID        int64              `json:"shop_id"`
 }
 
 type AttributeOption struct {
@@ -213,12 +392,26 @@ type Category struct {
 }
 
 type Order struct {
-	OrderID    int64              `json:"order_id"`
-	Status     string             `json:"status"`
-	TotalPrice pgtype.Numeric     `json:"total_price"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
-	UserID     uuid.UUID          `json:"user_id"`
+	OrderID         int64              `json:"order_id"`
+	Status          OrderStatusType    `json:"status"`
+	Amount          pgtype.Numeric     `json:"amount"`
+	Discount        pgtype.Numeric     `json:"discount"`
+	ShippingCost    pgtype.Numeric     `json:"shipping_cost"`
+	Tax             pgtype.Numeric     `json:"tax"`
+	ShippingAddress string             `json:"shipping_address"`
+	PaymentMethod   PaymentMethodType  `json:"payment_method"`
+	PaymentStatus   PaymentStatusType  `json:"payment_status"`
+	ShippingMethod  string             `json:"shipping_method"`
+	ShippingStatus  ShippingStatusType `json:"shipping_status"`
+	TransactionID   *string            `json:"transaction_id"`
+	Username        string             `json:"username"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ShopCustomerID  pgtype.UUID        `json:"shop_customer_id"`
+	ShopID          int64              `json:"shop_id"`
+	CustomerName    string             `json:"customer_name"`
+	CustomerEmail   *string            `json:"customer_email"`
+	CustomerPhone   *string            `json:"customer_phone"`
 }
 
 type OrderItem struct {
@@ -229,19 +422,20 @@ type OrderItem struct {
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	ProductVariationID int64              `json:"product_variation_id"`
 	OrderID            int64              `json:"order_id"`
+	ShopID             int64              `json:"shop_id"`
 }
 
 type Product struct {
 	ProductID     int64              `json:"product_id"`
+	Slug          string             `json:"slug"`
 	Title         string             `json:"title"`
 	Description   string             `json:"description"`
+	Status        ProductStatus      `json:"status"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 	ProductTypeID int64              `json:"product_type_id"`
 	CategoryID    *int64             `json:"category_id"`
 	ShopID        int64              `json:"shop_id"`
-	Status        ProductStatus      `json:"status"`
-	Slug          string             `json:"slug"`
 }
 
 type ProductAttributeValue struct {
@@ -266,8 +460,8 @@ type ProductType struct {
 	Title         string  `json:"title"`
 	Shippable     bool    `json:"shippable"`
 	Digital       bool    `json:"digital"`
-	ShopID        int64   `json:"shop_id"`
 	SkuSubstring  *string `json:"sku_substring"`
+	ShopID        int64   `json:"shop_id"`
 }
 
 type ProductVariation struct {
@@ -279,11 +473,11 @@ type ProductVariation struct {
 	SeoDescription     *string            `json:"seo_description"`
 	SeoKeywords        []string           `json:"seo_keywords"`
 	SeoTitle           *string            `json:"seo_title"`
+	IsDefault          bool               `json:"is_default"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	ProductID          int64              `json:"product_id"`
 	ShopID             int64              `json:"shop_id"`
-	IsDefault          bool               `json:"is_default"`
 }
 
 type ProductVariationAttributeValue struct {
@@ -299,7 +493,7 @@ type Shop struct {
 	ShopID              int64              `json:"shop_id"`
 	OwnerID             uuid.UUID          `json:"owner_id"`
 	Title               string             `json:"title"`
-	Domain              string             `json:"domain"`
+	Subdomain           string             `json:"subdomain"`
 	Email               string             `json:"email"`
 	CurrencyCode        string             `json:"currency_code"`
 	Status              string             `json:"status"`
@@ -315,45 +509,68 @@ type Shop struct {
 	SeoTitle            *string            `json:"seo_title"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
-	Subdomain           string             `json:"subdomain"`
+}
+
+type ShopCustomer struct {
+	ShopCustomerID uuid.UUID          `json:"shop_customer_id"`
+	Sub            *string            `json:"sub"`
+	ShopID         int64              `json:"shop_id"`
+	Email          string             `json:"email"`
+	Name           *string            `json:"name"`
+	Locale         *string            `json:"locale"`
+	ProfilePicture *string            `json:"profile_picture"`
+	VerifiedEmail  *bool              `json:"verified_email"`
+	AuthProvider   *string            `json:"auth_provider"`
+	AuthProviderID *string            `json:"auth_provider_id"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	LastLogin      pgtype.Timestamptz `json:"last_login"`
 }
 
 type ShopImage struct {
 	ShopImageID       int64   `json:"shop_image_id"`
 	FaviconUrl        *string `json:"favicon_url"`
 	LogoUrl           *string `json:"logo_url"`
-	BannerUrl         *string `json:"banner_url"`
-	CoverImageUrl     *string `json:"cover_image_url"`
-	ShopID            int64   `json:"shop_id"`
 	LogoUrlDark       *string `json:"logo_url_dark"`
+	BannerUrl         *string `json:"banner_url"`
 	BannerUrlDark     *string `json:"banner_url_dark"`
+	CoverImageUrl     *string `json:"cover_image_url"`
 	CoverImageUrlDark *string `json:"cover_image_url_dark"`
+	ShopID            int64   `json:"shop_id"`
 }
 
-type ShoppingCart struct {
-	ShoppingCartID int64     `json:"shopping_cart_id"`
-	UserID         uuid.UUID `json:"user_id"`
+type ShopPaymentMethod struct {
+	PaymentMethodID int64              `json:"payment_method_id"`
+	ShopID          int64              `json:"shop_id"`
+	MethodType      PaymentMethodType  `json:"method_type"`
+	IsEnabled       bool               `json:"is_enabled"`
+	Attributes      []byte             `json:"attributes"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
-type ShoppingCartItem struct {
-	ShoppingCartItemID int64              `json:"shopping_cart_item_id"`
-	Quantity           int64              `json:"quantity"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+type StockMovement struct {
+	MovementID         int64              `json:"movement_id"`
 	ProductVariationID int64              `json:"product_variation_id"`
-	ShoppingCartID     int64              `json:"shopping_cart_id"`
+	ShopID             int64              `json:"shop_id"`
+	MovementType       string             `json:"movement_type"`
+	QuantityChange     int32              `json:"quantity_change"`
+	QuantityBefore     int32              `json:"quantity_before"`
+	QuantityAfter      int32              `json:"quantity_after"`
+	ReferenceID        *int64             `json:"reference_id"`
+	Notes              *string            `json:"notes"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 }
 
 type User struct {
 	UserID         uuid.UUID        `json:"user_id"`
 	Sub            *string          `json:"sub"`
 	Email          *string          `json:"email"`
-	Provider       *string          `json:"provider"`
-	ProviderID     *string          `json:"provider_id"`
+	AuthProvider   *string          `json:"auth_provider"`
+	AuthProviderID *string          `json:"auth_provider_id"`
 	Name           *string          `json:"name"`
 	Locale         *string          `json:"locale"`
 	ProfilePicture *string          `json:"profile_picture"`
+	VerifiedEmail  *bool            `json:"verified_email"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	LastLogin      pgtype.Timestamp `json:"last_login"`
-	VerifiedEmail  *bool            `json:"verified_email"`
 }

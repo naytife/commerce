@@ -1,191 +1,236 @@
 <script lang="ts">
 	import '../app.css';
 	import { cart } from '$lib/stores/cart';
+	import { currencyCode, currencySymbol } from '$lib/stores/currency';
+	import { theme, toggleTheme } from '$lib/stores/theme';
+	import { Sun, Moon, ShoppingBag, User, Menu } from 'lucide-svelte';
 	import type { LayoutData } from './$houdini';
 	export let data: LayoutData;
 	const { ShopQuery } = data;
+	$: if ($ShopQuery.data?.shop?.currencyCode) currencyCode.set($ShopQuery.data?.shop?.currencyCode);
 </script>
-<nav class="bg-white dark:bg-gray-800 antialiased">
-	<div class="max-w-screen-xl px-4 mx-auto 2xl:px-0 py-4">
-	  <div class="flex items-center justify-between">
-  
-		<div class="flex items-center space-x-8">
-		  <div class="shrink-0">
-			<a href="/" title="" class="">
-			  <img class="block w-auto h-8 dark:hidden" src="{$ShopQuery.data.shop?.images.siteLogo?.url}" alt="{$ShopQuery.data.shop?.images.siteLogo?.altText}">
-			  <img class="hidden w-auto h-8 dark:block" src="{$ShopQuery.data.shop?.images.siteLogoDark?.url}" alt="{$ShopQuery.data.shop?.images.siteLogoDark?.altText}">
-			</a>
-		  </div>
-  
-		  <ul class="hidden lg:flex items-center justify-start gap-6 md:gap-8 py-3 sm:justify-center">
-			<li>
-			  <a href="/" title="" class="flex text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500">
-				Home
-			  </a>
-			</li>
-		  </ul>
-		</div>
-  
-		<div class="flex items-center lg:space-x-2">
-  
-		  <button id="myCartDropdownButton1" data-dropdown-toggle="myCartDropdown1" type="button" class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white">
-			<span class="sr-only">
-			  Cart
-			</span>
-			<svg class="w-5 h-5 lg:me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-			  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h1.5L9 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-8.5-3h9.25L19 7H7.312"/>
-			</svg> 
-			<span class="hidden sm:flex">My Cart</span>
-			<svg class="hidden sm:flex w-4 h-4 text-gray-900 dark:text-white ms-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-			  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
-			</svg>              
-		  </button>
-  
-		  <div id="myCartDropdown1" class="hidden z-10 mx-auto max-w-sm space-y-4 overflow-hidden rounded-lg bg-white p-4 antialiased shadow-lg dark:bg-gray-800">
-			{#if $cart.length > 0}
-				{#each $cart as item (item.id)}
-					<div class="grid grid-cols-2">
-						<div>
-							<a href={`/products/${item.id}/${item.slug}`} class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline">{item.title}</a>
-							<p class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400">${item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-						</div>
-						<div class="flex items-center justify-end gap-6">
-							<p class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
-							<button type="button" on:click={() => cart.remove(item.id)} class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600">
-								<span class="sr-only">Remove</span>
-								<svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-								  <path fill-rule="evenodd" d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z" clip-rule="evenodd" />
-								</svg>
-							</button>
-						</div>
-					</div>
-				{/each}
-				<a href="/cart" title="" class="mb-2 me-2 inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" role="button">Proceed to Cart</a>
-			{:else}
-				<p class="text-sm text-gray-500 dark:text-gray-400">Your cart is empty</p>
-			{/if}
-		  </div>
-  
-		  <button id="userDropdownButton1" data-dropdown-toggle="userDropdown1" type="button" class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white">
-			<svg class="w-5 h-5 me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-			  <path stroke="currentColor" stroke-width="2" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-			</svg>              
-			Account
-			<svg class="w-4 h-4 text-gray-900 dark:text-white ms-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-			  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
-			</svg> 
-		  </button>
-  
-		  <div id="userDropdown1" class="hidden z-10 w-56 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white antialiased shadow dark:divide-gray-600 dark:bg-gray-700">
-			<ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> My Account </a></li>
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> My Orders </a></li>
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> Settings </a></li>
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> Favourites </a></li>
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> Delivery Addresses </a></li>
-			  <li><a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> Billing Data </a></li>
-			</ul>
-		
-			<div class="p-2 text-sm font-medium text-gray-900 dark:text-white">
-			  <a href="#" title="" class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"> Sign Out </a>
+
+<nav class="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 antialiased">
+	<div class="max-w-7xl mx-auto px-6 py-5">
+		<div class="flex items-center justify-between">
+			<div class="flex items-center space-x-12">
+				<div class="shrink-0">
+					<a href="/" class="inline-flex items-center">
+						<img class="h-10 w-auto dark:hidden" src="{$ShopQuery.data?.shop?.images.siteLogo?.url}" alt="{$ShopQuery.data?.shop?.images.siteLogo?.altText}">
+						<img class="h-10 w-auto hidden dark:block" src="{$ShopQuery.data?.shop?.images.siteLogoDark?.url}" alt="{$ShopQuery.data?.shop?.images.siteLogoDark?.altText}">
+					</a>
+				</div>
+
+				<ul class="hidden lg:flex items-center space-x-8">
+					<li>
+						<a href="/" class="text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 border-b-2 border-transparent hover:border-primary-700 dark:hover:border-primary-500 py-1 transition-all duration-200">
+							Home
+						</a>
+					</li>
+				</ul>
 			</div>
-		  </div>
-  
-		  <button type="button" data-collapse-toggle="ecommerce-navbar-menu-1" aria-controls="ecommerce-navbar-menu-1" aria-expanded="false" class="inline-flex lg:hidden items-center justify-center hover:bg-gray-100 rounded-md dark:hover:bg-gray-700 p-2 text-gray-900 dark:text-white">
-			<span class="sr-only">
-			  Open Menu
-			</span>
-			<svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-			  <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h14"/>
-			</svg>                
-		  </button>
+
+			<div class="flex items-center space-x-6">
+				<button id="myCartDropdownButton1" data-dropdown-toggle="myCartDropdown1" class="group relative inline-flex items-center justify-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-900 dark:text-white transition-colors duration-200">
+					<span class="sr-only">Cart</span>
+					<ShoppingBag class="w-5 h-5 lg:mr-2" />
+					<span class="hidden sm:inline-flex uppercase tracking-wider text-xs font-semibold">My Cart</span>
+					{#if $cart.length > 0}
+						<span class="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-primary-700 text-white text-[10px] font-bold">{$cart.length}</span>
+					{/if}
+				</button>
+
+				<div id="myCartDropdown1" class="hidden z-10 w-80 p-0 overflow-hidden bg-white shadow-xl dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+					<div class="p-4 border-b border-gray-100 dark:border-gray-800">
+						<h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900 dark:text-white">Your Cart</h3>
+					</div>
+					{#if $cart.length > 0}
+						<div class="max-h-96 overflow-y-auto">
+							{#each $cart as item (item.id)}
+								<div class="grid grid-cols-[auto_1fr_auto] gap-4 p-4 border-b border-gray-100 dark:border-gray-800">
+									<div class="w-16 h-16 bg-gray-100 dark:bg-gray-800"></div>
+									<div>
+										<a href={`/products/${item.id}/${item.slug}`} class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-700 dark:hover:text-primary-500">{item.title}</a>
+										<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
+										<p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{$currencySymbol}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+									</div>
+									<button type="button" on:click={() => cart.remove(item.id)} class="self-start text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-500 transition-colors duration-200">
+										<span class="sr-only">Remove</span>
+										<svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+										</svg>
+									</button>
+								</div>
+							{/each}
+						</div>
+						<div class="p-4 bg-gray-50 dark:bg-gray-800">
+							<a href="/cart" class="block w-full px-5 py-3 bg-primary-700 hover:bg-primary-800 focus:ring-2 focus:ring-primary-700 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-center text-sm font-medium uppercase tracking-wider text-white transition-all duration-200">
+								Proceed to Cart
+							</a>
+						</div>
+					{:else}
+						<div class="p-6 text-center">
+							<p class="text-sm text-gray-500 dark:text-gray-400">Your cart is empty</p>
+						</div>
+					{/if}
+				</div>
+
+				<button id="userDropdownButton1" data-dropdown-toggle="userDropdown1" class="inline-flex items-center justify-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-900 dark:text-white transition-colors duration-200">
+					<User class="w-5 h-5 lg:mr-2" />
+					<span class="hidden lg:inline-flex uppercase tracking-wider text-xs font-semibold">Account</span>
+				</button>
+
+				<div id="userDropdown1" class="hidden z-10 w-56 bg-white shadow-xl dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+					<div class="p-4 border-b border-gray-100 dark:border-gray-800">
+						<h3 class="text-sm font-semibold uppercase tracking-wider text-gray-900 dark:text-white">Account</h3>
+					</div>
+					<ul class="p-2">
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> My Account </a></li>
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> My Orders </a></li>
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> Settings </a></li>
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> Favourites </a></li>
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> Delivery Addresses </a></li>
+						<li><a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> Billing Data </a></li>
+					</ul>
+					<div class="p-2 border-t border-gray-100 dark:border-gray-800">
+						<a href="#" class="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"> Sign Out </a>
+					</div>
+				</div>
+
+				<button type="button" data-collapse-toggle="ecommerce-navbar-menu-1" aria-controls="ecommerce-navbar-menu-1" aria-expanded="false" class="inline-flex lg:hidden items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 p-2 text-gray-900 dark:text-white transition-colors duration-200">
+					<span class="sr-only">Open Menu</span>
+					<Menu class="w-5 h-5" />
+				</button>
+
+				<button 
+					on:click={toggleTheme} 
+					type="button" 
+					class="inline-flex items-center justify-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-900 dark:text-white transition-colors duration-200"
+				>
+					<span class="sr-only">Toggle theme</span>
+					{#if $theme === 'dark'}
+						<Sun class="w-5 h-5" />
+					{:else}
+						<Moon class="w-5 h-5" />
+					{/if}
+				</button>
+			</div>
 		</div>
-	  </div>
-  
-	  <div id="ecommerce-navbar-menu-1" class="bg-gray-50 dark:bg-gray-700 dark:border-gray-600 border border-gray-200 rounded-lg py-3 hidden px-4 mt-4">
-		<ul class="text-gray-900 dark:text-white text-sm font-medium dark:text-white space-y-3">
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Home</a>
-		  </li>
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Best Sellers</a>
-		  </li>
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Gift Ideas</a>
-		  </li>
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Games</a>
-		  </li>
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Electronics</a>
-		  </li>
-		  <li>
-			<a href="#" class="hover:text-primary-700 dark:hover:text-primary-500">Home & Garden</a>
-		  </li>
-		</ul>
-	  </div>
+
+		<div id="ecommerce-navbar-menu-1" class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-4 px-4 mt-4 hidden">
+			<ul class="space-y-4">
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Home</a>
+				</li>
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Best Sellers</a>
+				</li>
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Gift Ideas</a>
+				</li>
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Games</a>
+				</li>
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Electronics</a>
+				</li>
+				<li>
+					<a href="#" class="block text-sm uppercase tracking-wider font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 transition-colors duration-200">Home & Garden</a>
+				</li>
+			</ul>
+		</div>
 	</div>
-  </nav>
+</nav>
+
 <slot />
 
-<footer class="p-4 bg-white sm:p-6 dark:bg-gray-800">
-    <div class="mx-auto max-w-screen-xl">
-        <div class="md:flex md:justify-between">
-            <div class="mb-6 md:mb-0">
-                <a href="/" class="flex items-center">
-                    <img src="{$ShopQuery.data.shop?.images.siteLogo.url}" class="mr-3 h-8" alt="FlowBite Logo" />
-                    <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">{$ShopQuery.data.shop?.title}</span>
-                </a>
-            </div>
-            <div class="grid grid-cols-2 gap-8 sm:gap-6">
-                <div>
-                    <h2 class="mb-6 text-sm font-semibold text-gray-900 uppercase dark:text-white">Follow us</h2>
-                    <ul class="text-gray-600 dark:text-gray-400">
-                        <li class="mb-4">
-                            <a href="{$ShopQuery.data.shop.whatsAppLink}" class="hover:underline">WhatsApp</a>
-                        </li>
-                        <li class="mb-4">
-                            <a href="{$ShopQuery.data.shop.instagramLink}" class="hover:underline">Instagram</a>
-                        </li>
-                        <li>
-                            <a href="{$ShopQuery.data.shop.facebookLink}" class="hover:underline">Facebook</a>
-                        </li>
-                    </ul>
-                </div>
-                <div>
-                    <h2 class="mb-6 text-sm font-semibold text-gray-900 uppercase dark:text-white">Legal</h2>
-                    <ul class="text-gray-600 dark:text-gray-400">
-                        <li class="mb-4">
-                            <a href="#" class="hover:underline">Privacy Policy</a>
-                        </li>
-                        <li>
-                            <a href="#" class="hover:underline">Terms &amp; Conditions</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        <hr class="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
-        <div class="sm:flex sm:items-center sm:justify-between">
-            <span class="text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2025 <a href="{$ShopQuery.data.shop?.customDomain}" class="hover:underline">{$ShopQuery.data.shop?.title}</a>. All Rights Reserved.
-            </span>
-            <div class="flex mt-4 space-x-6 sm:justify-center sm:mt-0">
-                <a href="#" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" /></svg>
-                </a>
-                <a href="#" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" /></svg>
-                </a>
-                <a href="#" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
-                </a>
-                <a href="#" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
-                </a>
-                <a href="#" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.51 0 10-4.48 10-10S17.51 2 12 2zm6.605 4.61a8.502 8.502 0 011.93 5.314c-.281-.054-3.101-.629-5.943-.271-.065-.141-.12-.293-.184-.445a25.416 25.416 0 00-.564-1.236c3.145-1.28 4.577-3.124 4.761-3.362zM12 3.475c2.17 0 4.154.813 5.662 2.148-.152.216-1.443 1.941-4.48 3.08-1.399-2.57-2.95-4.675-3.189-5A8.687 8.687 0 0112 3.475zm-3.633.803a53.896 53.896 0 013.167 4.935c-3.992 1.063-7.517 1.04-7.896 1.04a8.581 8.581 0 014.729-5.975zM3.453 12.01v-.26c.37.01 4.512.065 8.775-1.215.25.477.477.965.694 1.453-.109.033-.228.065-.336.098-4.404 1.42-6.747 5.303-6.942 5.629a8.522 8.522 0 01-2.19-5.705zM12 20.547a8.482 8.482 0 01-5.239-1.8c.152-.315 1.888-3.656 6.703-5.337.022-.01.033-.01.054-.022a35.318 35.318 0 011.823 6.475 8.4 8.4 0 01-3.341.684zm4.761-1.465c-.086-.52-.542-3.015-1.659-6.084 2.679-.423 5.022.271 5.314.369a8.468 8.468 0 01-3.655 5.715z" clip-rule="evenodd" /></svg>
-                </a>
-            </div>
-        </div>
-    </div>
+<footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+	<div class="max-w-7xl mx-auto px-6 py-12">
+		<div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+			<div class="col-span-1 md:col-span-2">
+				<a href="/" class="flex items-center space-x-4">
+					<img src="{$ShopQuery.data?.shop?.images.siteLogo?.url}" class="h-10" alt="{$ShopQuery.data?.shop?.title} Logo" />
+					<span class="text-xl font-serif font-medium text-gray-900 dark:text-white">{$ShopQuery.data?.shop?.title}</span>
+				</a>
+				<p class="mt-6 text-sm text-gray-600 dark:text-gray-400 max-w-sm">
+					Premium quality products curated for the discerning customer. Discover the difference that quality makes.
+				</p>
+				<div class="mt-8 flex space-x-6">
+					<a href="{$ShopQuery.data?.shop?.facebookLink}" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+						<span class="sr-only">Facebook</span>
+						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" />
+						</svg>
+					</a>
+					<a href="{$ShopQuery.data?.shop?.instagramLink}" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+						<span class="sr-only">Instagram</span>
+						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" />
+						</svg>
+					</a>
+					<a href="{$ShopQuery.data?.shop?.whatsAppLink}" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+						<span class="sr-only">WhatsApp</span>
+						<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+						</svg>
+					</a>
+				</div>
+			</div>
+			<div>
+				<h3 class="text-sm uppercase tracking-wider font-semibold text-gray-900 dark:text-white">Shop</h3>
+				<ul class="mt-4 space-y-4">
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							New Arrivals
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Best Sellers
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Collections
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Gift Cards
+						</a>
+					</li>
+				</ul>
+			</div>
+			<div>
+				<h3 class="text-sm uppercase tracking-wider font-semibold text-gray-900 dark:text-white">Legal</h3>
+				<ul class="mt-4 space-y-4">
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Privacy Policy
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Terms & Conditions
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Shipping Policy
+						</a>
+					</li>
+					<li>
+						<a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+							Returns & Exchanges
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+			<p class="text-sm text-gray-500 dark:text-gray-400">
+				© {new Date().getFullYear()} <a href="{$ShopQuery.data?.shop?.defaultDomain}" class="hover:text-gray-900 dark:hover:text-white">{$ShopQuery.data?.shop?.title}</a>. All Rights Reserved.
+			</p>
+		</div>
+	</div>
 </footer>

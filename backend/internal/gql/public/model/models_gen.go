@@ -22,30 +22,6 @@ type UserError interface {
 	GetPath() []string
 }
 
-type AddCartItemInput struct {
-	ProductID string `json:"product_id"`
-	Quantity  int    `json:"quantity"`
-}
-
-type Cart struct {
-	ID    string     `json:"id"`
-	Items []CartItem `json:"items"`
-	Total float64    `json:"total"`
-}
-
-type CartItem struct {
-	ID       string       `json:"id"`
-	Product  *CartProduct `json:"product"`
-	Quantity int          `json:"quantity"`
-}
-
-type CartProduct struct {
-	ID    string  `json:"id"`
-	Title string  `json:"title"`
-	Price float64 `json:"price"`
-	Image string  `json:"image"`
-}
-
 type Category struct {
 	ID          string             `json:"id"`
 	Slug        string             `json:"slug"`
@@ -95,6 +71,31 @@ func (this CategoryNotFoundError) GetPath() []string {
 	return interfaceSlice
 }
 
+type CreateOrderInput struct {
+	CustomerID      *string                `json:"customer_id,omitempty"`
+	ShippingAddress string                 `json:"shipping_address"`
+	ShippingMethod  string                 `json:"shipping_method"`
+	PaymentMethod   PaymentMethodType      `json:"payment_method"`
+	Discount        *float64               `json:"discount,omitempty"`
+	ShippingCost    *float64               `json:"shipping_cost,omitempty"`
+	Tax             *float64               `json:"tax,omitempty"`
+	Items           []CreateOrderItemInput `json:"items"`
+	FullName        *string                `json:"full_name,omitempty"`
+	Email           *string                `json:"email,omitempty"`
+	PhoneNumber     *string                `json:"phone_number,omitempty"`
+}
+
+type CreateOrderItemInput struct {
+	ProductVariationID string  `json:"product_variation_id"`
+	Quantity           int     `json:"quantity"`
+	Price              float64 `json:"price"`
+}
+
+type CreateOrderPayload struct {
+	Order  *Order      `json:"order,omitempty"`
+	Errors []UserError `json:"errors"`
+}
+
 type Image struct {
 	URL     string  `json:"url"`
 	AltText *string `json:"alt_text,omitempty"`
@@ -107,6 +108,56 @@ type ImageInput struct {
 
 type Mutation struct {
 }
+
+type Order struct {
+	ID              string             `json:"id"`
+	OrderID         int                `json:"order_id"`
+	Status          OrderStatusType    `json:"status"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
+	CustomerID      *string            `json:"customer_id,omitempty"`
+	Amount          float64            `json:"amount"`
+	Discount        float64            `json:"discount"`
+	ShippingCost    float64            `json:"shipping_cost"`
+	Tax             float64            `json:"tax"`
+	ShippingAddress string             `json:"shipping_address"`
+	PaymentMethod   PaymentMethodType  `json:"payment_method"`
+	PaymentStatus   PaymentStatusType  `json:"payment_status"`
+	ShippingMethod  string             `json:"shipping_method"`
+	ShippingStatus  ShippingStatusType `json:"shipping_status"`
+	TransactionID   *string            `json:"transaction_id,omitempty"`
+	Username        string             `json:"username"`
+	ShopID          string             `json:"shop_id"`
+	Items           []OrderItem        `json:"items"`
+	CustomerName    string             `json:"customer_name"`
+	CustomerEmail   *string            `json:"customer_email,omitempty"`
+	CustomerPhone   *string            `json:"customer_phone,omitempty"`
+}
+
+func (Order) IsNode()            {}
+func (this Order) GetID() string { return this.ID }
+
+type OrderConnection struct {
+	Edges      []OrderEdge `json:"edges"`
+	PageInfo   *PageInfo   `json:"page_info"`
+	TotalCount int         `json:"total_count"`
+}
+
+type OrderEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *Order `json:"node"`
+}
+
+type OrderItem struct {
+	ID                 string  `json:"id"`
+	OrderItemID        int     `json:"order_item_id"`
+	Quantity           int     `json:"quantity"`
+	Price              float64 `json:"price"`
+	ProductVariationID string  `json:"product_variation_id"`
+}
+
+func (OrderItem) IsNode()            {}
+func (this OrderItem) GetID() string { return this.ID }
 
 type PageInfo struct {
 	StartCursor     string `json:"start_cursor"`
@@ -185,10 +236,6 @@ func (this ProductVariant) GetID() string { return this.ID }
 type Query struct {
 }
 
-type RemoveCartItemInput struct {
-	ProductID string `json:"product_id"`
-}
-
 type Shop struct {
 	ID                   string              `json:"id"`
 	Title                string              `json:"title"`
@@ -232,9 +279,14 @@ type ShopImages struct {
 	CoverImageDark *Image `json:"cover_image_dark,omitempty"`
 }
 
-type UpdateCartItemInput struct {
-	ProductID string `json:"product_id"`
-	Quantity  int    `json:"quantity"`
+type UpdateOrderStatusInput struct {
+	OrderID string          `json:"order_id"`
+	Status  OrderStatusType `json:"status"`
+}
+
+type UpdateOrderStatusPayload struct {
+	Order  *Order      `json:"order,omitempty"`
+	Errors []UserError `json:"errors"`
 }
 
 type ErrorCode string
@@ -300,6 +352,187 @@ func (e ErrorCode) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+type OrderStatusType string
+
+const (
+	OrderStatusTypePending    OrderStatusType = "PENDING"
+	OrderStatusTypeProcessing OrderStatusType = "PROCESSING"
+	OrderStatusTypeCompleted  OrderStatusType = "COMPLETED"
+	OrderStatusTypeCancelled  OrderStatusType = "CANCELLED"
+	OrderStatusTypeRefunded   OrderStatusType = "REFUNDED"
+)
+
+var AllOrderStatusType = []OrderStatusType{
+	OrderStatusTypePending,
+	OrderStatusTypeProcessing,
+	OrderStatusTypeCompleted,
+	OrderStatusTypeCancelled,
+	OrderStatusTypeRefunded,
+}
+
+func (e OrderStatusType) IsValid() bool {
+	switch e {
+	case OrderStatusTypePending, OrderStatusTypeProcessing, OrderStatusTypeCompleted, OrderStatusTypeCancelled, OrderStatusTypeRefunded:
+		return true
+	}
+	return false
+}
+
+func (e OrderStatusType) String() string {
+	return string(e)
+}
+
+func (e *OrderStatusType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = OrderStatusType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid OrderStatusType", str)
+	}
+	return nil
+}
+
+func (e OrderStatusType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *OrderStatusType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e OrderStatusType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PaymentMethodType string
+
+const (
+	PaymentMethodTypeFlutterwave PaymentMethodType = "FLUTTERWAVE"
+	PaymentMethodTypePaystack    PaymentMethodType = "PAYSTACK"
+	PaymentMethodTypePaypal      PaymentMethodType = "PAYPAL"
+	PaymentMethodTypeStripe      PaymentMethodType = "STRIPE"
+)
+
+var AllPaymentMethodType = []PaymentMethodType{
+	PaymentMethodTypeFlutterwave,
+	PaymentMethodTypePaystack,
+	PaymentMethodTypePaypal,
+	PaymentMethodTypeStripe,
+}
+
+func (e PaymentMethodType) IsValid() bool {
+	switch e {
+	case PaymentMethodTypeFlutterwave, PaymentMethodTypePaystack, PaymentMethodTypePaypal, PaymentMethodTypeStripe:
+		return true
+	}
+	return false
+}
+
+func (e PaymentMethodType) String() string {
+	return string(e)
+}
+
+func (e *PaymentMethodType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PaymentMethodType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PaymentMethodType", str)
+	}
+	return nil
+}
+
+func (e PaymentMethodType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PaymentMethodType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PaymentMethodType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PaymentStatusType string
+
+const (
+	PaymentStatusTypePending       PaymentStatusType = "PENDING"
+	PaymentStatusTypePaid          PaymentStatusType = "PAID"
+	PaymentStatusTypeFailed        PaymentStatusType = "FAILED"
+	PaymentStatusTypeRefunded      PaymentStatusType = "REFUNDED"
+	PaymentStatusTypePartialRefund PaymentStatusType = "PARTIAL_REFUND"
+)
+
+var AllPaymentStatusType = []PaymentStatusType{
+	PaymentStatusTypePending,
+	PaymentStatusTypePaid,
+	PaymentStatusTypeFailed,
+	PaymentStatusTypeRefunded,
+	PaymentStatusTypePartialRefund,
+}
+
+func (e PaymentStatusType) IsValid() bool {
+	switch e {
+	case PaymentStatusTypePending, PaymentStatusTypePaid, PaymentStatusTypeFailed, PaymentStatusTypeRefunded, PaymentStatusTypePartialRefund:
+		return true
+	}
+	return false
+}
+
+func (e PaymentStatusType) String() string {
+	return string(e)
+}
+
+func (e *PaymentStatusType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PaymentStatusType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PaymentStatusType", str)
+	}
+	return nil
+}
+
+func (e PaymentStatusType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PaymentStatusType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PaymentStatusType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type ProductStockStatus string
 
 const (
@@ -352,6 +585,67 @@ func (e *ProductStockStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ProductStockStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ShippingStatusType string
+
+const (
+	ShippingStatusTypePending   ShippingStatusType = "PENDING"
+	ShippingStatusTypeShipped   ShippingStatusType = "SHIPPED"
+	ShippingStatusTypeDelivered ShippingStatusType = "DELIVERED"
+	ShippingStatusTypeCancelled ShippingStatusType = "CANCELLED"
+	ShippingStatusTypeReturned  ShippingStatusType = "RETURNED"
+)
+
+var AllShippingStatusType = []ShippingStatusType{
+	ShippingStatusTypePending,
+	ShippingStatusTypeShipped,
+	ShippingStatusTypeDelivered,
+	ShippingStatusTypeCancelled,
+	ShippingStatusTypeReturned,
+}
+
+func (e ShippingStatusType) IsValid() bool {
+	switch e {
+	case ShippingStatusTypePending, ShippingStatusTypeShipped, ShippingStatusTypeDelivered, ShippingStatusTypeCancelled, ShippingStatusTypeReturned:
+		return true
+	}
+	return false
+}
+
+func (e ShippingStatusType) String() string {
+	return string(e)
+}
+
+func (e *ShippingStatusType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ShippingStatusType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ShippingStatusType", str)
+	}
+	return nil
+}
+
+func (e ShippingStatusType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ShippingStatusType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ShippingStatusType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

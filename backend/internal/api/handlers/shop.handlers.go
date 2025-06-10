@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -41,7 +42,20 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	userSub, _ := c.Locals("user_id").(string)
 	var shop models.ShopCreateParams
 	c.BodyParser(&shop)
-	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
+
+	var user db.User
+	var err error
+
+	// Development mode bypass
+	devMode := os.Getenv("DEV_MODE")
+	if devMode == "true" {
+		// Use the test user we created
+		testEmail := "test@example.com"
+		user, err = h.Repository.GetUser(c.Context(), &testEmail)
+	} else {
+		user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
+	}
+
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
@@ -112,7 +126,20 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 // @Router       /shops [get]
 func (h *Handler) GetShops(c *fiber.Ctx) error {
 	userSub, _ := c.Locals("user_id").(string)
-	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
+
+	var user db.User
+	var err error
+
+	// Development mode bypass
+	devMode := os.Getenv("DEV_MODE")
+	if devMode == "true" {
+		// Use the test user we created
+		testEmail := "test@example.com"
+		user, err = h.Repository.GetUser(c.Context(), &testEmail)
+	} else {
+		user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
+	}
+
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
@@ -147,7 +174,7 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 		shopImages, imgErr := h.Repository.GetShopImages(c.Context(), obj.ShopID)
 		if imgErr == nil {
 			// Only add images if successfully retrieved
-			shop.Images = &models.ShopImagesResponse{
+			shop.Images = &models.ShopImagesData{
 				ID:                shopImages.ShopImageID,
 				FaviconUrl:        shopImages.FaviconUrl,
 				LogoUrl:           shopImages.LogoUrl,
@@ -236,7 +263,7 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 	shopImages, err := h.Repository.GetShopImages(c.Context(), shopID)
 	if err == nil {
 		// Only add images if successfully retrieved
-		resp.Images = &models.ShopImagesResponse{
+		resp.Images = &models.ShopImagesData{
 			ID:                shopImages.ShopImageID,
 			FaviconUrl:        shopImages.FaviconUrl,
 			LogoUrl:           shopImages.LogoUrl,
@@ -301,7 +328,7 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 	shopImages, err := h.Repository.GetShopImages(c.Context(), objDB.ShopID)
 	if err == nil {
 		// Only add images if successfully retrieved
-		resp.Images = &models.ShopImagesResponse{
+		resp.Images = &models.ShopImagesData{
 			ID:                shopImages.ShopImageID,
 			FaviconUrl:        shopImages.FaviconUrl,
 			LogoUrl:           shopImages.LogoUrl,
@@ -405,7 +432,7 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Param        images body models.ShopImagesUpdateParams true "Shop images object"
-// @Success      200  {object}   models.SuccessResponse{data=models.ShopImagesResponse} "Shop images updated successfully"
+// @Success      200  {object}   models.SuccessResponse{data=models.ShopImagesData} "Shop images updated successfully"
 // @Failure      400  {object}   models.ErrorResponse "Bad request"
 // @Failure      404  {object}   models.ErrorResponse "Shop not found"
 // @Failure      500  {object}   models.ErrorResponse "Internal server error"
@@ -501,7 +528,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	}
 
 	// Return success response
-	response := models.ShopImagesResponse{
+	response := models.ShopImagesData{
 		ID:                updatedImages.ShopImageID,
 		FaviconUrl:        updatedImages.FaviconUrl,
 		LogoUrl:           updatedImages.LogoUrl,

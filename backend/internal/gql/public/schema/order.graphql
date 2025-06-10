@@ -1,0 +1,122 @@
+# ======== ORDER ========
+extend type Query {
+  orders(first: Int = 20, after: ID): OrderConnection
+  order(id: ID!): Order
+}
+
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type OrderEdge {
+  cursor: ID!
+  node: Order!
+}
+
+type OrderItem implements Node {
+  id: ID!
+  orderItemId: Int!
+  quantity: Int!
+  price: Float!
+  productVariationId: ID!
+}
+
+type Order implements Node {
+  id: ID!
+  orderId: Int!
+  status: OrderStatusType!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  CustomerId: ID
+  amount: Float!
+  discount: Float!
+  shippingCost: Float!
+  tax: Float!
+  shippingAddress: String!
+  paymentMethod: PaymentMethodType!
+  paymentStatus: PaymentStatusType!
+  shippingMethod: String!
+  shippingStatus: ShippingStatusType!
+  transactionId: String
+  username: String!
+  shopId: ID!
+  items: [OrderItem!]!
+  # Customer contact information
+  customerName: String!
+  customerEmail: String
+  customerPhone: String
+}
+
+enum OrderStatusType {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethodType {
+  FLUTTERWAVE
+  PAYSTACK
+  PAYPAL
+  STRIPE
+}
+
+enum PaymentStatusType {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL_REFUND
+}
+
+enum ShippingStatusType {
+  PENDING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+# Mutations
+extend type Mutation {
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
+  updateOrderStatus(input: UpdateOrderStatusInput!): UpdateOrderStatusPayload!
+}
+
+input CreateOrderItemInput {
+  productVariationId: ID!
+  quantity: Int!
+  price: Float!
+}
+
+input CreateOrderInput {
+  customerId: ID
+  shippingAddress: String!
+  shippingMethod: String!
+  paymentMethod: PaymentMethodType!
+  discount: Float = 0.0
+  shippingCost: Float = 0.0
+  tax: Float = 0.0
+  items: [CreateOrderItemInput!]!
+  # Anonymous user information (required if userId is not provided)
+  fullName: String
+  email: String
+  phoneNumber: String
+}
+
+type CreateOrderPayload {
+  order: Order
+  errors: [UserError!]!
+}
+
+input UpdateOrderStatusInput {
+  orderId: ID!
+  status: OrderStatusType!
+}
+
+type UpdateOrderStatusPayload {
+  order: Order
+  errors: [UserError!]!
+}

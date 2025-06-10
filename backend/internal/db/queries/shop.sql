@@ -49,7 +49,6 @@ WHERE owner_id = $1;
 -- name: UpdateShop :one
 UPDATE shops
 SET 
-    domain = COALESCE(sqlc.narg('custom_domain'), custom_domain),
     title = COALESCE(sqlc.narg('title'), title),
     currency_code = COALESCE(sqlc.narg('currency_code'), currency_code),
     about = COALESCE(sqlc.narg('about'), about),

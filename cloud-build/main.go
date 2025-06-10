@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"mime"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -24,11 +25,11 @@ import (
 var redisClient *redis.Client
 var s3Client *s3.Client
 var ctx = context.Background()
+var bucketName string
 
 const redisQueue = "build-queue"
 const buildDir = "./built_sites"
 const templatesDir = "./templates"
-const bucketName = "naytife-shops-static"
 
 type BuildJob struct {
 	SiteName     string `json:"site_name"`
@@ -46,18 +47,24 @@ func init() {
 	if redisAddr == "" {
 		redisAddr = "localhost:6379" // Default Redis address
 	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
 	redisClient = redis.NewClient(&redis.Options{
-		Addr: redisAddr,
+		Addr:     redisAddr,
+		Password: redisPassword,
 	})
 	if _, err := redisClient.Ping(ctx).Result(); err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
 	// Read Cloudflare R2 credentials from environment variables
-	accessKey := os.Getenv("R2_ACCESS_KEY")
-	secretKey := os.Getenv("R2_SECRET_KEY")
-	endpoint := os.Getenv("R2_ENDPOINT")
+	accessKey := os.Getenv("CLOUDFLARE_R2_ACCESS_KEY_ID")
+	secretKey := os.Getenv("CLOUDFLARE_R2_SECRET_ACCESS_KEY")
+	endpoint := os.Getenv("CLOUDFLARE_R2_ENDPOINT")
+	bucketName = os.Getenv("CLOUDFLARE_R2_BUCKET_NAME")
 	region := os.Getenv("R2_BUCKET_REGION")
+	if region == "" {
+		region = "auto" // Default region for Cloudflare R2
+	}
 
 	if accessKey == "" || secretKey == "" || endpoint == "" {
 		log.Fatal("Missing R2 credentials in environment variables or .env file")
@@ -81,7 +88,58 @@ func init() {
 	fmt.Println("Cloudflare R2 client initialized successfully")
 }
 
+// Health check endpoint
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "healthy",
+		"service":   "cloud-build",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// Readiness check endpoint
+func readyHandler(w http.ResponseWriter, r *http.Request) {
+	// Check Redis connection
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "not ready",
+			"error":  "Redis connection failed: " + err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "ready",
+		"service":   "cloud-build",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
 func main() {
+	// Start HTTP server for health checks in a goroutine
+	go func() {
+		http.HandleFunc("/health", healthHandler)
+		http.HandleFunc("/ready", readyHandler)
+
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "9000"
+		}
+
+		log.Printf("Starting HTTP server on port %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatalf("HTTP server failed: %v", err)
+		}
+	}()
+
+	// Main Redis queue processing loop
+	log.Println("Starting build queue processing...")
 	for {
 		msg, err := redisClient.BLPop(ctx, 0*time.Second, redisQueue).Result()
 		if err != nil {

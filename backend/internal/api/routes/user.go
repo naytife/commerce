@@ -9,4 +9,5 @@ import (
 func UserRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
 	app.Get("/me", handler.GetMe)
+	app.Get("/userinfo", handler.GetUser)
 }

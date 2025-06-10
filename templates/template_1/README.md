@@ -1,33 +1,49 @@
-# sv
+# Naytife Template 1 - Customer Storefront
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A SvelteKit-based e-commerce storefront template for the Naytife Commerce Platform.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- 🛍️ Product catalog with search and filtering
+- 🛒 Shopping cart functionality  
+- 💳 Stripe payment integration
+- 👤 Customer authentication via OAuth2
+- 📱 Responsive design with Tailwind CSS
+- ⚡ Fast loading with SvelteKit optimizations
 
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 
-# or start the server and open the app in a new browser tab
+# Open in browser
 npm run dev -- --open
 ```
 
 ## Building
 
-To create a production version of your app:
+```bash
+# Create production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+## Integration with Naytife Platform
+
+This template integrates with the Naytife backend services:
+
+- **Authentication**: OAuth2 via Ory Hydra
+- **API**: REST endpoints for products, orders, users
+- **Payments**: Stripe payment processing
+- **Assets**: Cloudflare R2 for image storage
+
+For complete platform setup, see the [main deployment guide](../../DEPLOYMENT_GUIDE.md).
 
 ```bash
 npm run build

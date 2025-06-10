@@ -1,7 +1,7 @@
 package models
 
 // Error is a struct that holds the error response
-// @Schema ErrorResponse
+// @Schema Error
 // @description Error response object
 // @property code {string} "VALIDATION_ERROR" "The error code"
 // @property field {string} "Field name" "The field name that caused the error"
@@ -23,7 +23,7 @@ type GlobalErrorHandlerResp struct {
 	Code    int    `json:"code"`
 }
 
-// @Schema Response
+// @Schema SuccessResponse
 // @description Generic API response
 // @property status {string} "success" "Indicates the status of the response"
 // @property data {object} "The data object"

@@ -111,27 +111,25 @@
   <meta name="description" content="Naytife app" />
 </svelte:head>
 
-<section>
-  <div class="flex items-center text-center space-y-5 lg:space-y- flex-col">
+<section class="flex flex-col items-center justify-center relative">
+  <div class="flex items-center text-center space-y-5 flex-col">
     <div class="lg:w-2/3 relative">
-      <!-- <div
-				class="w-48 rounded-full top-2/4 transform translate-y-[100%] translate-x-[223%] absolute h-5 ring-teal-400 ring-[10px]"
-			></div> -->
+      
       <div
         class="w-52 lg:flex hidden rounded-full top-2/4 transform -translate-y-[265%] translate-x-[140%] absolute h-5 ring-orange-300 ring-[10px]"
       ></div>
       <div
         class="w-64 lg:flex hidden rounded-full top-2/4 transform translate-y-[100%] translate-x-[15%] absolute h-5 ring-purple-300 ring-[10px]"
       ></div>
-      <class class="text-3xl lg:text-5xl flex-row font-serif relative">
-        <p class="font-extrabold text-gray-700">
+      <div class="text-4xl sm:text-5xl lg:text-6xl font-serif relative tracking-tight">
+        <p class="font-extrabold text-gray-700 opacity-0 animate-fade-in-up-hero-headline">
           Grow your business more efficiently with <i class="text-gray-600"
             >Naytife</i
           >
         </p>
-      </class>
+      </div>
 
-      <h2 class="text-black font-serif text-sm text-wrap">
+      <h2 class="text-gray-700 font-serif text-base md:text-lg lg:text-xl text-wrap max-w-xl lg:max-w-2xl mx-auto opacity-0 animate-fade-in-up-hero-subheadline">
         Enjoy reliable, scalable, fast and secure, Hosting for your business
         --managed for you
       </h2>
@@ -139,40 +137,40 @@
     <div class="relative flex items-center">
       <div>
         <img
-          class="rounded-3xl"
+          class="rounded-3xl shadow-2xl"
           src="https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDI0LTA1L2FyLTM5Mi0wODA1MjQtYWRqLTAwMi1sdzBmY2sxcC5qcGc.jpg"
-          alt="dashboardscreen1"
+          alt="Naytife dashboard interface example"
         />
       </div>
       <img
-        class="absolute hidden lg:flex w-[13rem] top-1/3 left-0 transform drop-shadow-2xl animate-custom-fade-1 -translate-x-1/2 -translate-y-1/2"
+        class="absolute hidden lg:block w-[13rem] top-1/3 left-0 drop-shadow-2xl animate-custom-fade-1 -translate-x-1/2 -translate-y-1/2"
         src={Dashboardscreen1}
-        alt="dashboardscreen1"
+        alt=""
       />
       <img
-        class="absolute hidden lg:flex w-[13rem] top-2/3 drop-shadow-2xl right-0 transform animate-custom-fade-1 translate-x-1/2 -translate-y-1/2"
+        class="absolute hidden lg:block w-[13rem] top-2/3 right-0 drop-shadow-2xl animate-custom-fade-1 translate-x-1/2 -translate-y-1/2"
         src={Dashboardscreen2}
-        alt="dashboardscreen2"
+        alt=""
       />
       <img
-        class="absolute w-[1.5rem] top-1/3 right-0 transform translate-x-1/4 animate-pop"
+        class="absolute w-[1.5rem] top-1/3 right-0 translate-x-1/4 animate-pop"
         src={Dashboardstarwhite}
-        alt="dashboardstarwhite"
+        alt=""
       />
       <img
-        class="absolute w-[2.3rem] top-[20%] right-0 hidden lg:flex transform translate-x-[400%] animate-custom-fade-2"
+        class="absolute w-[2.3rem] top-[20%] right-0 hidden lg:block translate-x-[400%] animate-custom-fade-2"
         src={Dashboardstarred}
-        alt="dashboardstarred"
+        alt=""
       />
       <img
-        class="absolute w-[2rem] top-2/3 left-0 transform -translate-x-[300%] hidden lg:flex animate-custom-fade-5"
+        class="absolute w-[2rem] top-2/3 left-0 -translate-x-[300%] hidden lg:block animate-custom-fade-5"
         src={Dashboardstarpurple}
-        alt="dashboardstarpurple"
+        alt=""
       />
       <img
-        class="absolute w-[1.5rem] top-[80%] left-0 transform -translate-x-[20%] animate-pop"
+        class="absolute w-[1.5rem] top-[80%] left-0 -translate-x-[20%] animate-pop"
         src={Dashboardstarwhite}
-        alt="dashboardstarwhite"
+        alt=""
       />
     </div>
   </div>
@@ -184,12 +182,12 @@
       <div
         class="flex items-center justify-center lg:w-1/5 rounded-full gap-2 bg-gray-50 py-1 px-3 border border-gray-200 shadow-md"
       >
-        <img class="w-5 h-5" src={gif} alt="" />
+        <img class="w-5 h-5" src={gif} alt="" /> <!-- Assuming GIF is decorative or described by text -->
         <button class="text-xs flex">The problem</button>
       </div>
     </div>
     <div class="text-center">
-      <p class="text-4xl lg:text-6xl my-4 font-bold text-gray-700">
+      <p class="text-4xl lg:text-6xl my-4 font-bold text-gray-700 opacity-0 animate-fade-in-up-hero-headline">
         The internet is complicated
       </p>
     </div>
@@ -213,22 +211,22 @@
         {#each animations as item, i}
           <div
             style="--animation-delay: {generateRandomDelay()}s; --bg-color: {getRandomLightColor()};"
-            class="lg:grid-item flex items-center justify-evenly pt-5 flex-col text-center border border-gray-100 rounded-xl problem-item w-40 h-40"
+            class="problem-item flex items-center justify-evenly pt-5 flex-col text-center border border-gray-100 rounded-xl w-40 h-40 lg:w-[10.5rem] lg:h-[10.38rem] transform-gpu shadow-problem-item animate-problem-item-box hover:scale-105 hover:shadow-xl transition-all duration-300 ease-in-out"
           >
             <!-- Icon animation with random background color -->
             <div
               style="background-color: var(--bg-color);"
-              class="rounded-full problem-item-icon object-contain w-2/4 flex justify-center items-center h-1/3"
+              class="rounded-full object-contain w-2/4 flex justify-center items-center h-1/3 animate-problem-item-icon border border-gray-400/30"
             >
               <img
                 src={item.icon}
                 alt={item.problem}
-                class="problem-item-icon-img object-contain"
+                class="object-contain animate-problem-item-icon-img"
               />
             </div>
 
             <!-- Label animation -->
-            <div class="text-sm font-medium problem-item-label">
+            <div class="text-sm font-medium animate-problem-item-label">
               {item.problem}
             </div>
           </div>
@@ -250,12 +248,12 @@
         <button class="text-xs text-black">The solution</button>
       </div>
     </div>
-    <div class=" lg:px-56">
-      <p class="text-4xl lg:text-6xl my-4 font-bold text-gray-700">
+    <div class="lg:px-56">
+      <p class="text-4xl lg:text-6xl my-4 font-bold text-gray-700 opacity-0 animate-fade-in-up-hero-headline">
         Naytife is a complete user control platform for OSM
       </p>
     </div>
-    <h2 class="text-sm lg:text-base text-gray-700">
+    <h2 class="text-base md:text-lg lg:text-xl text-gray-700 max-w-xl lg:max-w-2xl mx-auto text-wrap opacity-0 animate-fade-in-up-hero-subheadline">
       Take a look at how Naytife can save you time and money
     </h2>
   </div>
@@ -263,7 +261,7 @@
   <!-- Get Started Button -->
   <div class="flex justify-center">
     <button
-      class="bg-green-500 text-white text-sm lg:text-base py-2 px-6 rounded-full hover:bg-green-600"
+      class="bg-green-500 text-white text-sm lg:text-base py-2 px-6 rounded-full hover:bg-green-600 hover:scale-105 transition-all duration-200 ease-in-out"
     >
       Get Started
     </button>
@@ -280,7 +278,7 @@
       class="relative rounded-lg w-full lg:w-[calc(100%-40%)] h-full mb-10 overflow-hidden"
     >
       <!-- Background Canvas -->
-      <canvas class="dotted-background canvas-small-screen h-full w-full"
+      <canvas class="dotted-background block sm:flex w-[398.4px] h-[398.4px] sm:w-full sm:h-full"
       ></canvas>
 
       <div
@@ -307,11 +305,11 @@
                       class="overlay savings-optimization-logos-item-border-wrapper duration-[600ms] transition-all scale-[.8] opacity-0 grayscale"
                     >
                       <div
-                        class="savings-optimization-logos-item-border bg-green-500/5 absolute -inset-8 rounded-full"
+                        class="savings-optimization-logos-item-border bg-green-500/5 absolute -inset-8 rounded-full animate-savings-logos-border"
                       ></div>
                       <div class="absolute blur-[3px] -inset-8 rounded-full">
                         <div
-                          class="savings-optimization-logos-item-border rounded-full w-full h-full"
+                          class="savings-optimization-logos-item-border rounded-full w-full h-full animate-savings-logos-border"
                         ></div>
                       </div>
                     </div>
@@ -371,7 +369,7 @@
                       </div>
                     </div>
                     <div
-                      class="savings-optimization-logos-item-optimized-label duration-[600ms] transition-all opacity-0 text-sm -translate-x-4 pr-6 pl-4"
+                      class="savings-optimization-logos-item-optimized-label duration-[600ms] transition-all opacity-0 text-sm -translate-x-4 pr-6 pl-4 text-[color:#008873b8]"
                     >
                       Optimized
                     </div>
@@ -771,10 +769,10 @@
       </div>
     </div>
     <div class="text-center px-10 md:px-40 md:w-1/2 w-full pb-6">
-      <h2 class="mb-6 text-black font-bold text-xl">
+      <h2 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-4 opacity-0 animate-fade-in-up-hero-headline">
         AI-Powered Online Store Optimization
       </h2>
-      <p class="text-body-medium-regular text-neutral-alpha-mute-alpha">
+      <p class="text-base text-gray-700 opacity-0 animate-fade-in-up-hero-subheadline">
         Use AI to streamline your store's creation and hosting with advanced
         tools like product recommendations, scalable hosting, SEO, and
         analytics.
@@ -904,18 +902,16 @@
         <div
           class="relative pt-6 mt-8 pb-4 text-center border-r border-l border-l-gray-300 border-r-gray-300"
         >
-          <div class="mb-4 font-bold text-lg text-gray-700 relative px-8">
+          <div class="mb-3 text-2xl lg:text-3xl font-bold text-gray-800 relative px-8 opacity-0 animate-fade-in-up-hero-headline">
             <div
-              style="top:4px;left:-2px;height:16px"
-              class="absolute rounded-full grid-pill w-1 bg-white z-10"
+              class="absolute rounded-full w-1 bg-white z-10 top-[4px] left-[-2px] h-[16px]"
             ></div>
             <div
-              style="top:4px;right:-2px;height:16px"
-              class="absolute rounded-full grid-pill w-1 bg-white z-10"
+              class="absolute rounded-full w-1 bg-white z-10 top-[4px] right-[-2px] h-[16px]"
             ></div>
             Commitment Recommendations &amp; Management
           </div>
-          <div class="text-sm text-gray-400 max-w-460 pb-4 mx-auto px-4">
+          <div class="text-base text-gray-600 max-w-md pb-4 mx-auto px-4 opacity-0 animate-fade-in-up-hero-subheadline">
             Maximize your savings with Reserved Instances and Savings Plans
             while mitigating long-term commitment risk.
           </div>
@@ -932,18 +928,7 @@
 </section>
 
 <style>
-  .canvas-small-screen {
-    display: flex; /* Default to hide on large screens */
-  }
-
-  /* Media query for small screens */
-  @media (max-width: 640px) {
-    .canvas-small-screen {
-      display: block; /* Show canvas on small screens */
-      height: 398.4px;
-      width: 398.4px;
-    }
-  }
+  /* .canvas-small-screen rules are now handled by Tailwind classes */
   .savings-optimization .dotted-background {
     -webkit-mask: linear-gradient(to bottom, transparent 0%, #fff 20%);
     mask: linear-gradient(to bottom, transparent 0%, #fff 20%);
@@ -959,21 +944,7 @@
     mask-composite: exclude;
     padding: 1px;
   }
-  /* Add this to your styles.css or equivalent */
-
-  .bg-neutral-opaque-8 {
-    background-color: rgba(0, 0, 0, 0.08); /* Example for opacity */
-  }
-
-  .text-body-small-regular {
-    font-size: 0.875rem; /* Adjust as needed */
-    font-weight: 400;
-  }
-
-  .text-body-small-medium {
-    font-size: 0.875rem; /* Adjust as needed */
-    font-weight: 500;
-  }
+  /* Custom classes .bg-neutral-opaque-8, .text-body-small-regular, .text-body-small-medium, .logos-container, .logo-label removed as unused */
 
   .dotted-background {
     background: radial-gradient(
@@ -992,14 +963,7 @@
     mask-composite: intersect;
   }
 
-  .logos-container {
-    display: grid;
-    grid-template-columns: repeat(3, 2fr);
-    grid-template-rows: repeat(4, auto);
-    gap: 2em; /* Adjust the gap between items if necessary */
-  }
-
-  .logo-item {
+  .logo-item { /* This class is used in the AI-Powered section's HTML */
     width: 5rem;
     height: 5rem;
     display: flex;
@@ -1007,16 +971,6 @@
     justify-content: center;
     position: relative;
     border-radius: 50%;
-  }
-
-  .logo-label {
-    position: absolute;
-    bottom: -20px; /* Adjust as needed */
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    font-size: 10px;
-    color: #999;
   }
 
   .savings-optimization .savings-optimization-antimetal-border::before {
@@ -1027,7 +981,7 @@
         rgb(73, 201, 176) 360deg,
         transparent 361deg
       ),
-      var(--neutral-opaque-8);
+      var(--neutral-opaque-8); /* This var is from app.css - check if it's still needed */
     height: 120px;
     width: 120px;
     position: absolute;
@@ -1061,45 +1015,11 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    flex: 0.6;
+    /* flex: 0.6; */ /* Removed as potentially problematic global style */
     height: auto;
     position: relative;
   }
-  @keyframes customAnimation {
-    0% {
-      transform: scale(0.5);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes customAnimation {
-    0% {
-      transform: scale(0.5);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  .custom-animation {
-    animation: customAnimation 0.6s ease-in-out;
-  }
-  .grid-item {
-    width: 10.5rem;
-    height: 10.38rem;
-    /* padding: 5rem 4rem 5rem 4rem; */
-    border-radius: 1rem; /* rounded-2xl */
-    /* border: 1px solid #bbcbff; Adjust color if necessary */
-    box-shadow: 0 4px 6px rgba(98, 98, 98, 0.1);
-    grid-column: span 1 / span 1;
-  }
-
+  /* customAnimation keyframes and class removed as unused */
   /* Scoped styles for this component */
 
   /* Transferring your custom styles */
@@ -1144,133 +1064,10 @@
     }
   }
 
-  .problem-item {
-    animation: problem-item-box 7s infinite backwards;
-    transform: translateZ(0);
-    box-shadow:
-      0 0 0 1px #0e3f7e0f,
-      0 1px 1px -0.5px #2a334608,
-      0 2px 2px -1px #2a33460a,
-      0 3px 3px -1.5px #2a33460a,
-      0 5px 5px -2.5px #2a334608,
-      0 10px 10px -5px #2a334608,
-      0 24px 24px -8px #2a334608;
-    animation-delay: var(--animation-delay);
-    background-color: var(--white-24);
-  }
-
-  @keyframes problem-item-box {
-    17.8%,
-    57.1% {
-      background-color: var(--white-24);
-    }
-
-    25%,
-    50% {
-      background-color: var(--white-72);
-    }
-  }
-
-  .problem-item-label {
-    animation: problem-item-label 7s infinite backwards;
-    opacity: 0;
-    transform: translateY(10px);
-    animation-delay: calc(var(--animation-delay) + 0.1s);
-  }
-
-  @keyframes problem-item-label {
-    0%,
-    17.8% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    25%,
-    78.5% {
-      opacity: 1;
-      transform: translateY(0);
-      filter: blur(0);
-    }
-
-    85.6% {
-      filter: blur(10px) grayscale(1);
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-  }
-
-  .problem-item-icon {
-    animation: problem-item-icon 7s infinite backwards;
-    opacity: 0;
-    transform: translateY(20px);
-    filter: blur(10px);
-    animation-delay: var(--animation-delay);
-    background-color: var(--background-color-p3, var(--background-color-hex));
-  }
-
-  @keyframes problem-item-icon {
-    0%,
-    14.2% {
-      opacity: 0;
-      transform: translateY(20px);
-      filter: blur(10px) grayscale(1);
-    }
-
-    21.4%,
-    78.5% {
-      opacity: 1;
-      transform: translateY(0);
-      filter: blur(0);
-    }
-
-    82% {
-      filter: blur(5px) grayscale(1);
-    }
-
-    to {
-      opacity: 0;
-      transform: translateY(-100px) scale(2);
-      filter: blur(20px) grayscale(1);
-    }
-  }
-
-  .problem-item-icon-img {
-    animation: problem-item-icon-img 7s infinite backwards;
-    animation-delay: var(--animation-delay);
-    height: 0px;
-    width: 0px;
-    overflow: hidden;
-  }
-
-  @keyframes problem-item-icon-img {
-    0%,
-    17.8%,
-    83% {
-      height: 0px;
-      width: 0px;
-      transform: translateY(0);
-    }
-
-    32.1%,
-    78.5% {
-      height: 32px;
-      width: 32px;
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    82% {
-      opacity: 0;
-      height: 32px;
-      width: 32px;
-      transform: translateY(-10px);
-    }
-  }
+  /* Styles for .problem-item, .problem-item-label, .problem-item-icon, .problem-item-icon-img, and .grid-item are now mostly handled by Tailwind utilities */
+  /* Keyframes are kept in tailwind.config.js */
   /* General Styles */
-  .savings-optimization-logos-item {
-    position: absolute;
-    border-radius: inherit;
-  }
+  /* .savings-optimization-logos-item rule removed as properties are handled by Tailwind or are minor. */
 
   .savings-optimization-logos-item-icon:before,
   .savings-optimization-logos-item-icon:after {
@@ -1307,32 +1104,14 @@
     opacity: 0;
   }
 
-  /* Item Positions */
-  .savings-optimization-logos-item:nth-child(1) {
-    left: 11.6666666667%;
-    top: 15.9090909091%;
-  }
-
-  .savings-optimization-logos-item:nth-child(2) {
-    left: 15.8333333333%;
-    top: 51.7045454545%;
-  }
-
-  .savings-optimization-logos-item:nth-child(3) {
-    top: 65.9090909091%;
-    left: 50%;
-    transform: translate(-50%);
-  }
-
-  .savings-optimization-logos-item:nth-child(4) {
-    right: 15.8333333333%;
-    top: 51.7045454545%;
-  }
-
-  .savings-optimization-logos-item:nth-child(5) {
-    right: 11.6666666667%;
-    top: 15.9090909091%;
-  }
+  /* Item Positions - These are likely dead CSS due to current HTML structure */
+  /*
+  .savings-optimization-logos-item:nth-child(1) { ... }
+  .savings-optimization-logos-item:nth-child(2) { ... }
+  .savings-optimization-logos-item:nth-child(3) { ... }
+  .savings-optimization-logos-item:nth-child(4) { ... }
+  .savings-optimization-logos-item:nth-child(5) { ... }
+  */
 
   /* Border and Animation */
   .savings-optimization-logos-item-border {
@@ -1355,29 +1134,24 @@
       rgb(73, 201, 176) 360deg,
       transparent 361deg
     );
-    animation: savings-optimization-logos-border 1s linear infinite;
+    /* animation is now in Tailwind: animate-savings-logos-border */
     height: 100px;
     width: 100px;
     transition-property: all;
     transition-timing-function: cubic-bezier(0.6, 0.6, 0, 1);
     transition-duration: 0.45s;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(var(--tw-rotate))
+    transform: translate(-50%, -50%) rotate(var(--tw-rotate)) /* Initial transform for animation */
       skew(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x))
       scaleY(var(--tw-scale-y));
   }
 
-  @keyframes savings-optimization-logos-border {
-    to {
-      transform: translate(-50%, -50%) rotate(360deg);
-    }
-  }
+  /* @keyframes savings-optimization-logos-border is now in tailwind.config.js */
 
   /* Optimized Label and Check Styles */
-  .savings-optimization-logos-item-optimized-label {
-    color: #008873b8;
-    color: color(display-p3 0.1647 0.5255 0.4549 / 0.72);
-  }
+  /* color: #008873b8; is now text-[color:#008873b8] for .savings-optimization-logos-item-optimized-label */
+  /* color: color(display-p3 0.1647 0.5255 0.4549 / 0.72); */
+  
 
   .savings-optimization-logos-item-check,
   .savings-optimization-logos-item-optimized-check {

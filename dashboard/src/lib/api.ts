@@ -1,27 +1,43 @@
-import type { Product, Shop, ProductType, ApiResponse, ProductTypeAttribute, ProductImage } from './types'
+import type { 
+  Product, 
+  Shop, 
+  ProductType, 
+  ApiResponse, 
+  ProductTypeAttribute, 
+  ProductImage, 
+  Order,
+  Customer,
+  CustomerCreatePayload,
+  CustomerUpdatePayload,
+  CustomerSearchParams,
+  InventoryItem,
+  InventoryReport,
+  LowStockVariant,
+  StockMovement,
+  StockUpdatePayload,
+  StockMovementCreatePayload,
+  InventorySearchParams,
+  StockMovementSearchParams,
+  PaginatedResponse,
+  PaymentMethod,
+  PaymentMethodConfig
+} from './types'
 import { toast } from 'svelte-sonner'
 import { writable } from 'svelte/store'
 
 // Create a store to hold the shop ID
 export const currentShopId = writable<number | null>(null)
 
-// Function to fetch shop ID from subdomain
-export const fetchShopIdFromSubdomain = async (customFetch = fetch) => {
+// Function to fetch shop ID from path
+export const fetchShopIdFromSubdomain = async (shopIdentifier: string, customFetch = fetch) => {
   try {
-    const hostname = window.location.hostname
-    const subdomain = hostname.split('.')[0]
-    
-    // Skip for localhost development
-    if (hostname === 'localhost') {
-      currentShopId.set(2) // Default for development
-      return 2
+    if (!shopIdentifier) {
+      throw new Error('No shop identifier provided')
     }
-    
     const response = await customFetch(
-      `http://127.0.0.1:8000/v1/shops/subdomain/${subdomain}`,
+      `http://127.0.0.1:8080/v1/shops/subdomain/${shopIdentifier}`,
     )
     const data = await response.json() as ApiResponse<Shop>
-    
     if (data.data && data.data.shop_id) {
       currentShopId.set(data.data.shop_id)
       return data.data.shop_id
@@ -34,6 +50,69 @@ export const fetchShopIdFromSubdomain = async (customFetch = fetch) => {
     return null
   }
 }
+
+// Fetch all shops (for account page, not shop-specific)
+export const getAllShops = async (customFetch = fetch) => {
+  try {
+    const response = await customFetch('http://127.0.0.1:8080/v1/shops');
+    const data = await response.json() as ApiResponse<Shop[]>;
+    return Array.isArray(data.data) ? data.data : [];
+  } catch (error) {
+    console.error('Error fetching shops:', error);
+    toast.error('Failed to load shops');
+    return [];
+  }
+}
+
+// Create a new shop (store)
+export const createShop = async (
+  shop: { subdomain: string; title: string },
+  customFetch = fetch
+) => {
+  try {
+    const response = await customFetch('http://127.0.0.1:8080/v1/shops', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(shop),
+    });
+    const data = await response.json() as ApiResponse<Shop>;
+    if (response.ok) {
+      toast.success('Store created successfully');
+      return data.data;
+    } else {
+      toast.error(data.message || 'Failed to create store');
+      throw new Error(data.message || 'Failed to create store');
+    }
+  } catch (error) {
+    toast.error('An error occurred while creating the store');
+    throw error;
+  }
+};
+
+// Delete a shop (store)
+export const deleteShop = async (
+  shopId: number,
+  customFetch = fetch
+) => {
+  try {
+    const response = await customFetch(`http://127.0.0.1:8080/v1/shops/${shopId}`, {
+      method: 'DELETE',
+    });
+    if (response.ok) {
+      toast.success('Store deleted successfully');
+      return true;
+    } else {
+      const data = await response.json().catch(() => ({ message: 'Failed to delete store' }));
+      toast.error(data.message || 'Failed to delete store');
+      return false;
+    }
+  } catch (error) {
+    toast.error('An error occurred while deleting the store');
+    throw error;
+  }
+};
 
 export const api = (customFetch = fetch) => {
   // Helper to get base URL with current shop ID
@@ -49,7 +128,7 @@ export const api = (customFetch = fetch) => {
       throw new Error('Shop ID not set. Call fetchShopIdFromSubdomain first.')
     }
     
-    return `http://127.0.0.1:8000/v1/shops/${shopId}`
+    return `http://127.0.0.1:8080/v1/shops/${shopId}`
   }
 
   return {
@@ -436,6 +515,368 @@ export const api = (customFetch = fetch) => {
         toast.error('An error occurred while updating shop images');
         throw error;
       }
-    }
+    },
+    // Order related functions
+    getOrders: async () => {
+      const response = await customFetch(
+        `${getShopUrl()}/orders`,
+      );
+      const data = await response.json() as ApiResponse<Order[]>;
+      return data.data;
+    },
+    getOrderById: async (orderId: number): Promise<Order> => {
+      const response = await customFetch(
+        `${getShopUrl()}/orders/${orderId}`,
+      );
+      const data = await response.json() as ApiResponse<Order>;
+      return data.data;
+    },
+    deleteOrder: async (orderId: number): Promise<void> => {
+      try {
+        const response = await customFetch(
+          `${getShopUrl()}/orders/${orderId}`,
+          {
+            method: 'DELETE',
+          }
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          throw new Error(errorData.message || 'Failed to delete order');
+        }
+      } catch (error) {
+        toast.error('An error occurred while deleting the order');
+        throw error;
+      }
+    },
+    updateOrderStatus: async (orderId: number, status: string): Promise<Order> => {
+      try {
+        const response = await customFetch(
+          `${getShopUrl()}/orders/${orderId}/status`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+          }
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          throw new Error(errorData.message || 'Failed to update order status');
+        }
+        
+        const data = await response.json() as ApiResponse<Order>;
+        return data.data;
+      } catch (error) {
+        toast.error('An error occurred while updating the order status');
+        throw error;
+      }
+    },
+
+    // Customer Management API Functions
+    getCustomers: async (params?: CustomerSearchParams): Promise<PaginatedResponse<Customer>> => {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+      }
+      
+      const url = `${getShopUrl()}/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await customFetch(url);
+      const data = await response.json() as ApiResponse<PaginatedResponse<Customer>>;
+      return data.data;
+    },
+
+    getCustomerById: async (customerId: number): Promise<Customer> => {
+      const response = await customFetch(`${getShopUrl()}/customers/${customerId}`);
+      const data = await response.json() as ApiResponse<Customer>;
+      return data.data;
+    },
+
+    createCustomer: async (customerData: CustomerCreatePayload): Promise<Customer> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(customerData),
+        });
+        
+        const data = await response.json() as ApiResponse<Customer>;
+        
+        if (response.ok) {
+          toast.success('Customer created successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to create customer');
+          throw new Error(data.message || 'Failed to create customer');
+        }
+      } catch (error) {
+        toast.error('An error occurred while creating the customer');
+        throw error;
+      }
+    },
+
+    updateCustomer: async (customerId: number, customerData: CustomerUpdatePayload): Promise<Customer> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/customers/${customerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(customerData),
+        });
+        
+        const data = await response.json() as ApiResponse<Customer>;
+        
+        if (response.ok) {
+          toast.success('Customer updated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to update customer');
+          throw new Error(data.message || 'Failed to update customer');
+        }
+      } catch (error) {
+        toast.error('An error occurred while updating the customer');
+        throw error;
+      }
+    },
+
+    deleteCustomer: async (customerId: number): Promise<void> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/customers/${customerId}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          toast.success('Customer deleted successfully');
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          toast.error(errorData.message || 'Failed to delete customer');
+          throw new Error(errorData.message || 'Failed to delete customer');
+        }
+      } catch (error) {
+        toast.error('An error occurred while deleting the customer');
+        throw error;
+      }
+    },
+
+    searchCustomers: async (query: string, limit: number = 20): Promise<Customer[]> => {
+      const params = new URLSearchParams({
+        query,
+        limit: limit.toString()
+      });
+      
+      const response = await customFetch(`${getShopUrl()}/customers/search?${params.toString()}`);
+      const data = await response.json() as ApiResponse<Customer[]>;
+      return data.data;
+    },
+
+    // Inventory Management API Functions
+    getInventoryReport: async (params?: InventorySearchParams): Promise<InventoryReport> => {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+      }
+      
+      const url = `${getShopUrl()}/inventory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await customFetch(url);
+      const data = await response.json() as ApiResponse<InventoryReport>;
+      return data.data;
+    },
+
+    getLowStockVariants: async (threshold?: number): Promise<LowStockVariant[]> => {
+      const params = threshold ? `?threshold=${threshold}` : '';
+      const response = await customFetch(`${getShopUrl()}/inventory/low-stock${params}`);
+      const data = await response.json() as ApiResponse<LowStockVariant[]>;
+      return data.data;
+    },
+
+    updateVariantStock: async (variantId: number, stockData: StockUpdatePayload): Promise<InventoryItem> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/inventory/variants/${variantId}/stock`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(stockData),
+        });
+        
+        const data = await response.json() as ApiResponse<InventoryItem>;
+        
+        if (response.ok) {
+          toast.success('Stock updated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to update stock');
+          throw new Error(data.message || 'Failed to update stock');
+        }
+      } catch (error) {
+        toast.error('An error occurred while updating stock');
+        throw error;
+      }
+    },
+
+    getStockMovements: async (params?: StockMovementSearchParams): Promise<PaginatedResponse<StockMovement>> => {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+      }
+      
+      const url = `${getShopUrl()}/inventory/movements${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await customFetch(url);
+      const data = await response.json() as ApiResponse<PaginatedResponse<StockMovement>>;
+      return data.data;
+    },
+
+    createStockMovement: async (movementData: StockMovementCreatePayload): Promise<StockMovement> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/inventory/movements`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(movementData),
+        });
+        
+        const data = await response.json() as ApiResponse<StockMovement>;
+        
+        if (response.ok) {
+          toast.success('Stock movement recorded successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to record stock movement');
+          throw new Error(data.message || 'Failed to record stock movement');
+        }
+      } catch (error) {
+        toast.error('An error occurred while recording stock movement');
+        throw error;
+      }
+    },
+
+    // Payment Methods API
+    getPaymentMethods: async (): Promise<PaymentMethod[]> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/payment-methods`);
+        const data = await response.json() as ApiResponse<PaymentMethod[]>;
+        if (response.ok) {
+          return data.data || [];
+        } else {
+          toast.error(data.message || 'Failed to load payment methods');
+          throw new Error(data.message || 'Failed to load payment methods');
+        }
+      } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        toast.error('An error occurred while loading payment methods');
+        return [];
+      }
+    },
+
+    updatePaymentMethod: async (methodType: string, config: PaymentMethodConfig): Promise<PaymentMethod> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/payment-methods/${methodType}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(config),
+        });
+        
+        const data = await response.json() as ApiResponse<PaymentMethod>;
+        
+        if (response.ok) {
+          toast.success('Payment method updated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to update payment method');
+          throw new Error(data.message || 'Failed to update payment method');
+        }
+      } catch (error) {
+        toast.error('An error occurred while updating payment method');
+        throw error;
+      }
+    },
+
+    updatePaymentMethodStatus: async (methodType: string, isEnabled: boolean): Promise<PaymentMethod> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/payment-methods/${methodType}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ is_enabled: isEnabled }),
+        });
+        
+        const data = await response.json() as ApiResponse<PaymentMethod>;
+        
+        if (response.ok) {
+          toast.success(`Payment method ${isEnabled ? 'enabled' : 'disabled'} successfully`);
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to update payment method status');
+          throw new Error(data.message || 'Failed to update payment method status');
+        }
+      } catch (error) {
+        toast.error('An error occurred while updating payment method status');
+        throw error;
+      }
+    },
+
+    deletePaymentMethod: async (methodType: string): Promise<void> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/payment-methods/${methodType}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          toast.success('Payment method deleted successfully');
+        } else {
+          const data = await response.json() as ApiResponse<null>;
+          toast.error(data.message || 'Failed to delete payment method');
+          throw new Error(data.message || 'Failed to delete payment method');
+        }
+      } catch (error) {
+        toast.error('An error occurred while deleting payment method');
+        throw error;
+      }
+    },
+
+    testPaymentMethod: async (methodType: string): Promise<any> => {
+      try {
+        const response = await customFetch(`${getShopUrl()}/payment-methods/${methodType}/test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          toast.success('Payment method test successful');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Payment method test failed');
+          throw new Error(data.message || 'Payment method test failed');
+        }
+      } catch (error) {
+        toast.error('An error occurred while testing payment method');
+        throw error;
+      }
+    },
   }
 }

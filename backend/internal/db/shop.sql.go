@@ -14,7 +14,7 @@ import (
 const createShop = `-- name: CreateShop :one
 INSERT INTO shops (owner_id, title, subdomain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain
+RETURNING shop_id, owner_id, title, subdomain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type CreateShopParams struct {
@@ -52,7 +52,7 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.Domain,
+		&i.Subdomain,
 		&i.Email,
 		&i.CurrencyCode,
 		&i.Status,
@@ -68,7 +68,6 @@ func (q *Queries) CreateShop(ctx context.Context, arg CreateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.Subdomain,
 	)
 	return i, err
 }
@@ -85,7 +84,7 @@ INSERT INTO shop_images (
     shop_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark
+) RETURNING shop_image_id, favicon_url, logo_url, logo_url_dark, banner_url, banner_url_dark, cover_image_url, cover_image_url_dark, shop_id
 `
 
 type CreateShopImagesParams struct {
@@ -115,12 +114,12 @@ func (q *Queries) CreateShopImages(ctx context.Context, arg CreateShopImagesPara
 		&i.ShopImageID,
 		&i.FaviconUrl,
 		&i.LogoUrl,
-		&i.BannerUrl,
-		&i.CoverImageUrl,
-		&i.ShopID,
 		&i.LogoUrlDark,
+		&i.BannerUrl,
 		&i.BannerUrlDark,
+		&i.CoverImageUrl,
 		&i.CoverImageUrlDark,
+		&i.ShopID,
 	)
 	return i, err
 }
@@ -136,7 +135,7 @@ func (q *Queries) DeleteShop(ctx context.Context, shopID int64) error {
 }
 
 const getShop = `-- name: GetShop :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
+SELECT shop_id, owner_id, title, subdomain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE shop_id = $1
 `
 
@@ -147,7 +146,7 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.Domain,
+		&i.Subdomain,
 		&i.Email,
 		&i.CurrencyCode,
 		&i.Status,
@@ -163,13 +162,12 @@ func (q *Queries) GetShop(ctx context.Context, shopID int64) (Shop, error) {
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.Subdomain,
 	)
 	return i, err
 }
 
 const getShopBySubDomain = `-- name: GetShopBySubDomain :one
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
+SELECT shop_id, owner_id, title, subdomain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE subdomain = $1
 `
 
@@ -180,7 +178,7 @@ func (q *Queries) GetShopBySubDomain(ctx context.Context, subdomain string) (Sho
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.Domain,
+		&i.Subdomain,
 		&i.Email,
 		&i.CurrencyCode,
 		&i.Status,
@@ -196,7 +194,6 @@ func (q *Queries) GetShopBySubDomain(ctx context.Context, subdomain string) (Sho
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.Subdomain,
 	)
 	return i, err
 }
@@ -214,7 +211,7 @@ func (q *Queries) GetShopIDBySubDomain(ctx context.Context, subdomain string) (i
 }
 
 const getShopImages = `-- name: GetShopImages :one
-SELECT shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark FROM shop_images
+SELECT shop_image_id, favicon_url, logo_url, logo_url_dark, banner_url, banner_url_dark, cover_image_url, cover_image_url_dark, shop_id FROM shop_images
 WHERE shop_id = $1
 `
 
@@ -225,18 +222,18 @@ func (q *Queries) GetShopImages(ctx context.Context, shopID int64) (ShopImage, e
 		&i.ShopImageID,
 		&i.FaviconUrl,
 		&i.LogoUrl,
-		&i.BannerUrl,
-		&i.CoverImageUrl,
-		&i.ShopID,
 		&i.LogoUrlDark,
+		&i.BannerUrl,
 		&i.BannerUrlDark,
+		&i.CoverImageUrl,
 		&i.CoverImageUrlDark,
+		&i.ShopID,
 	)
 	return i, err
 }
 
 const getShopsByOwner = `-- name: GetShopsByOwner :many
-SELECT shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain FROM shops
+SELECT shop_id, owner_id, title, subdomain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at FROM shops
 WHERE owner_id = $1
 `
 
@@ -253,7 +250,7 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.ShopID,
 			&i.OwnerID,
 			&i.Title,
-			&i.Domain,
+			&i.Subdomain,
 			&i.Email,
 			&i.CurrencyCode,
 			&i.Status,
@@ -269,7 +266,6 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 			&i.SeoTitle,
 			&i.UpdatedAt,
 			&i.CreatedAt,
-			&i.Subdomain,
 		); err != nil {
 			return nil, err
 		}
@@ -284,28 +280,26 @@ func (q *Queries) GetShopsByOwner(ctx context.Context, ownerID uuid.UUID) ([]Sho
 const updateShop = `-- name: UpdateShop :one
 UPDATE shops
 SET 
-    domain = COALESCE($1, custom_domain),
-    title = COALESCE($2, title),
-    currency_code = COALESCE($3, currency_code),
-    about = COALESCE($4, about),
-    status = COALESCE($5, status),
-    phone_number = COALESCE($6, phone_number),
-    whatsapp_link = COALESCE($7, whatsapp_link),
-    whatsapp_phone_number = COALESCE($8, whatsapp_phone_number),
-    facebook_link = COALESCE($9, facebook_link),
-    instagram_link = COALESCE($10, instagram_link),
-    seo_description = COALESCE($11, seo_description),
-    seo_keywords = COALESCE($12, seo_keywords),
-    seo_title = COALESCE($13, seo_title),
-    address = COALESCE($14, address),
-    email = COALESCE($15, email),
+    title = COALESCE($1, title),
+    currency_code = COALESCE($2, currency_code),
+    about = COALESCE($3, about),
+    status = COALESCE($4, status),
+    phone_number = COALESCE($5, phone_number),
+    whatsapp_link = COALESCE($6, whatsapp_link),
+    whatsapp_phone_number = COALESCE($7, whatsapp_phone_number),
+    facebook_link = COALESCE($8, facebook_link),
+    instagram_link = COALESCE($9, instagram_link),
+    seo_description = COALESCE($10, seo_description),
+    seo_keywords = COALESCE($11, seo_keywords),
+    seo_title = COALESCE($12, seo_title),
+    address = COALESCE($13, address),
+    email = COALESCE($14, email),
     updated_at = NOW()
-WHERE shop_id = $16
-RETURNING shop_id, owner_id, title, domain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at, subdomain
+WHERE shop_id = $15
+RETURNING shop_id, owner_id, title, subdomain, email, currency_code, status, about, address, phone_number, whatsapp_phone_number, whatsapp_link, facebook_link, instagram_link, seo_description, seo_keywords, seo_title, updated_at, created_at
 `
 
 type UpdateShopParams struct {
-	CustomDomain        *string  `json:"custom_domain"`
 	Title               *string  `json:"title"`
 	CurrencyCode        *string  `json:"currency_code"`
 	About               *string  `json:"about"`
@@ -325,7 +319,6 @@ type UpdateShopParams struct {
 
 func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error) {
 	row := q.db.QueryRow(ctx, updateShop,
-		arg.CustomDomain,
 		arg.Title,
 		arg.CurrencyCode,
 		arg.About,
@@ -347,7 +340,7 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.ShopID,
 		&i.OwnerID,
 		&i.Title,
-		&i.Domain,
+		&i.Subdomain,
 		&i.Email,
 		&i.CurrencyCode,
 		&i.Status,
@@ -363,7 +356,6 @@ func (q *Queries) UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, e
 		&i.SeoTitle,
 		&i.UpdatedAt,
 		&i.CreatedAt,
-		&i.Subdomain,
 	)
 	return i, err
 }
@@ -379,7 +371,7 @@ SET
     cover_image_url = COALESCE($6, cover_image_url),
     cover_image_url_dark = COALESCE($7, cover_image_url_dark)
 WHERE shop_id = $8
-RETURNING shop_image_id, favicon_url, logo_url, banner_url, cover_image_url, shop_id, logo_url_dark, banner_url_dark, cover_image_url_dark
+RETURNING shop_image_id, favicon_url, logo_url, logo_url_dark, banner_url, banner_url_dark, cover_image_url, cover_image_url_dark, shop_id
 `
 
 type UpdateShopImagesParams struct {
@@ -409,12 +401,12 @@ func (q *Queries) UpdateShopImages(ctx context.Context, arg UpdateShopImagesPara
 		&i.ShopImageID,
 		&i.FaviconUrl,
 		&i.LogoUrl,
-		&i.BannerUrl,
-		&i.CoverImageUrl,
-		&i.ShopID,
 		&i.LogoUrlDark,
+		&i.BannerUrl,
 		&i.BannerUrlDark,
+		&i.CoverImageUrl,
 		&i.CoverImageUrlDark,
+		&i.ShopID,
 	)
 	return i, err
 }

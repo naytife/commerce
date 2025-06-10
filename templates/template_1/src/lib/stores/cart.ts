@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
 
 export interface CartItem {
     id: string;
@@ -10,7 +11,14 @@ export interface CartItem {
 }
 
 function createCart() {
-    const { subscribe, update, set } = writable<CartItem[]>([]);
+    const initial = browser ? JSON.parse(localStorage.getItem('cart') || '[]') as CartItem[] : [];
+    const { subscribe, update, set } = writable<CartItem[]>(initial);
+
+    if (browser) {
+        subscribe(items => {
+            localStorage.setItem('cart', JSON.stringify(items));
+        });
+    }
 
     return {
         subscribe,

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,6 +36,18 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 func WebMiddlewareFiber() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID := c.Get("X-User-Id")
+
+		// Development mode bypass - allow testing without full OAuth stack
+		if userID == "" {
+			// Check if we're in development mode
+			devMode := os.Getenv("DEV_MODE")
+			if devMode == "true" {
+				// Use a test user email for development (sub field in users table)
+				userID = "test@example.com"
+				c.Set("X-User-Id", userID)
+			}
+		}
+
 		c.Locals("user_id", userID)
 		return c.Next()
 	}

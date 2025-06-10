@@ -14,7 +14,7 @@ import (
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products ( slug, title, description, status, product_type_id, shop_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
+RETURNING product_id, slug, title, description, status, created_at, updated_at, product_type_id, category_id, shop_id
 `
 
 type CreateProductParams struct {
@@ -38,15 +38,15 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	var i Product
 	err := row.Scan(
 		&i.ProductID,
+		&i.Slug,
 		&i.Title,
 		&i.Description,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
-		&i.Status,
-		&i.Slug,
 	)
 	return i, err
 }
@@ -62,7 +62,7 @@ VALUES (
     $6, $7, $8,
     $9, $10
 )
-RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
 `
 
 type CreateProductVariationParams struct {
@@ -101,11 +101,11 @@ func (q *Queries) CreateProductVariation(ctx context.Context, arg CreateProductV
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
+		&i.IsDefault,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProductID,
 		&i.ShopID,
-		&i.IsDefault,
 	)
 	return i, err
 }
@@ -113,7 +113,7 @@ func (q *Queries) CreateProductVariation(ctx context.Context, arg CreateProductV
 const deleteProduct = `-- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = $1 AND shop_id = $2
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
+RETURNING product_id, slug, title, description, status, created_at, updated_at, product_type_id, category_id, shop_id
 `
 
 type DeleteProductParams struct {
@@ -268,7 +268,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 }
 
 const getProductById = `-- name: GetProductById :one
-SELECT product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug FROM products
+SELECT product_id, slug, title, description, status, created_at, updated_at, product_type_id, category_id, shop_id FROM products
 WHERE product_id = $1 AND shop_id = $2
 `
 
@@ -282,21 +282,21 @@ func (q *Queries) GetProductById(ctx context.Context, arg GetProductByIdParams) 
 	var i Product
 	err := row.Scan(
 		&i.ProductID,
+		&i.Slug,
 		&i.Title,
 		&i.Description,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProductTypeID,
 		&i.CategoryID,
 		&i.ShopID,
-		&i.Status,
-		&i.Slug,
 	)
 	return i, err
 }
 
 const getProductTypeByProduct = `-- name: GetProductTypeByProduct :one
-SELECT pt.product_type_id, pt.title, pt.shippable, pt.digital, pt.shop_id, pt.sku_substring
+SELECT pt.product_type_id, pt.title, pt.shippable, pt.digital, pt.sku_substring, pt.shop_id
 FROM products p
 JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.product_id = $1 AND p.shop_id = $2
@@ -315,14 +315,14 @@ func (q *Queries) GetProductTypeByProduct(ctx context.Context, arg GetProductTyp
 		&i.Title,
 		&i.Shippable,
 		&i.Digital,
-		&i.ShopID,
 		&i.SkuSubstring,
+		&i.ShopID,
 	)
 	return i, err
 }
 
 const getProductVariants = `-- name: GetProductVariants :many
-SELECT product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default FROM product_variations
+SELECT product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id FROM product_variations
 WHERE shop_id = $1 AND product_id = $2
 ORDER BY product_variation_id
 `
@@ -350,11 +350,11 @@ func (q *Queries) GetProductVariants(ctx context.Context, arg GetProductVariants
 			&i.SeoDescription,
 			&i.SeoKeywords,
 			&i.SeoTitle,
+			&i.IsDefault,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ProductID,
 			&i.ShopID,
-			&i.IsDefault,
 		); err != nil {
 			return nil, err
 		}
@@ -722,7 +722,7 @@ SET
     description = COALESCE($2, description),
     updated_at = NOW()
 WHERE product_id = $3 AND shop_id = $4
-RETURNING product_id, title, description, created_at, updated_at, product_type_id, category_id, shop_id, status, slug
+RETURNING product_id, slug, title, description, status, created_at, updated_at, product_type_id, category_id, shop_id
 `
 
 type UpdateProductParams struct {
@@ -754,7 +754,7 @@ SET
     is_default = COALESCE($7, is_default),
     updated_at = NOW()
 WHERE product_variation_id = $8 AND shop_id = $9
-RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
 `
 
 type UpdateProductVariationParams struct {
@@ -791,11 +791,11 @@ func (q *Queries) UpdateProductVariation(ctx context.Context, arg UpdateProductV
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
+		&i.IsDefault,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProductID,
 		&i.ShopID,
-		&i.IsDefault,
 	)
 	return i, err
 }
@@ -804,7 +804,7 @@ const updateProductVariationSku = `-- name: UpdateProductVariationSku :one
 UPDATE product_variations
 SET sku = $2
 WHERE product_variation_id = $1 AND shop_id = $3
-RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, created_at, updated_at, product_id, shop_id, is_default
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
 `
 
 type UpdateProductVariationSkuParams struct {
@@ -825,11 +825,11 @@ func (q *Queries) UpdateProductVariationSku(ctx context.Context, arg UpdateProdu
 		&i.SeoDescription,
 		&i.SeoKeywords,
 		&i.SeoTitle,
+		&i.IsDefault,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ProductID,
 		&i.ShopID,
-		&i.IsDefault,
 	)
 	return i, err
 }

@@ -1,6 +1,6 @@
 image:
   repository: oryd/oathkeeper
-  tag: v0.40.7
+  tag: v0.40.9
 oathkeeper:
   config:
     log:
@@ -44,20 +44,17 @@ oathkeeper:
       oauth2_introspection:
         enabled: true
         config:
-          introspection_url: http://hydra-admin.naytife-ory.svc.cluster.local:4445/oauth2/introspect
+          introspection_url: http://hydra-admin.auth.svc.cluster.local:4445/oauth2/introspect
           scope_strategy: exact
-          required_scope:
-            - hydra.openid
-            - offline
           trusted_issuers:
-            - http://127.0.0.1:8080
+            - http://127.0.0.1:8080/
           pre_authorization:
             enabled: true
             client_id: 761506cc-511f-411c-bf31-752efd8063b3
             client_secret: z.WE65SP5o0oXDYJwLdyoqYUuN
             scope:
               - introspect
-            token_url: http://hydra-public.naytife-ory.svc.cluster.local:4444/oauth2/token
+            token_url: http://hydra-public.auth.svc.cluster.local:4444/oauth2/token
           token_from:
             header: Authorization
           retry:
@@ -69,16 +66,16 @@ oathkeeper:
       oauth2_client_credentials:
         enabled: true
         config:
-          token_url: http://hydra-public.naytife-ory:4444/oauth2/token
+          token_url: http://hydra-public.auth.svc.cluster.local:4444/oauth2/token
       jwt:
         enabled: true
         config:
           jwks_urls:
-            - http://hydra-public.naytife-ory:4444/.well-known/jwks.json # This URL exposes Hydra's keys for verifying JWTs
+            - http://hydra-public.auth.svc.cluster.local:4444/.well-known/jwks.json # This URL exposes Hydra's keys for verifying JWTs
           allowed_algorithms:
             - RS256
           trusted_issuers:
-            - http://hydra-public.naytife-ory:4444
+            - http://127.0.0.1:8080
 
     authorizers:
       allow:
@@ -86,7 +83,7 @@ oathkeeper:
       keto_engine_acp_ory:
         enabled: true
         config:
-          base_url: http://keto-read.naytife-ory.svccluster.local:4466
+          base_url: http://keto-read.auth.svc.cluster.local:4466
           required_action: "my:action:$1"
           required_resource: "my:resource:$2:foo:$1"
           subject: "{{ .Extra.email }}"

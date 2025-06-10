@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "dev": "vite dev",
+        "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 vite dev",
         "build": "vite build",
         "preview": "vite preview",
         "test": "npm run test:integration && npm run test:unit",
@@ -48,6 +48,7 @@
         "@tanstack/svelte-query": "^5.68.0",
         "bits-ui": "^0.21.13",
         "clsx": "^2.1.1",
+        "date-fns": "^4.1.0",
         "formsnap": "^1.0.1",
         "lucide-svelte": "^0.428.0",
         "mode-watcher": "^0.5.1",

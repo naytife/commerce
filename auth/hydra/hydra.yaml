@@ -5,11 +5,16 @@ hydra:
       leak_sensitive_values: true
     urls:
       self:
-        issuer: http://127.0.0.1:8080
-        admin: http://hydra-admin.naytife-ory.svc.cluster.local:4445
+        issuer: http://127.0.0.1:8080/
+        admin: http://hydra-admin.auth.svc.cluster.local:4445
       login: http://127.0.0.1:8080/login
       logout: http://127.0.0.1:8080/logout
       consent: http://127.0.0.1:8080/consent
+    serve:
+      cookies:
+        domain: .127.0.0.1:8080  # Covers auth.127.0.0.1:8080 and subdomains
+        same_site_mode: None  # Allows cross-site requests
+        secure: true          # Ensures cookies are secure
 
     secrets:
       system:
@@ -25,7 +30,7 @@ hydra:
   automigration:
     enabled: true
   dev: true
-  dangerousForceHttp: true
+  dangerousForceHttp: false
 ingress:
   public:
     enabled: true
@@ -41,3 +46,25 @@ ingress:
         paths:
           - path: /
             pathType: ImplementationSpecific
+serve:
+  cookies:
+    domain: .127.0.0.1:8080  
+    same_site_mode: None
+    secure: true
+  public:
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://127.0.0.1:8080
+      allowed_methods:
+        - POST
+        - GET
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+      options_passthrough: false
+      debug: false

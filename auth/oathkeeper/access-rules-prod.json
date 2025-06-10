@@ -1,0 +1,456 @@
+[
+  {
+    "id":"api:rest-api-docs",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "https://api.naytife.com/v1/docs",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    }, 
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id":"api:rest-api-docs-all",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "https://api.naytife.com/v1/docs/<**>",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    }, 
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "api:user-register",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "https://api.naytife.com/v1/auth/<{register}>",
+      "methods": [
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "api:cors",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "https://api.naytife.com/v1/<{shops}><**>",
+      "methods": [
+        "OPTIONS"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "noop"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header"
+      }
+    ]
+  },
+  {
+    "id": "api:admin-api",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "https://api.naytife.com/v1/<{shops}><**>",
+      "methods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH"      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection",
+        "config": {
+          "required_scope": [
+            "platform_admin",
+            "offline"
+          ]
+        }
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-User-Id": "{{ print .Subject }}"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "api:public-graph-playground",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "http://<*>.naytife.com/api/graph",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "api:public-graph-query",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://backend.apps.svc.cluster.local:8000"
+    },
+    "match": {
+      "url": "http://<*>.naytife.com/api/query",
+      "methods": [
+        "GET",
+        "POST",
+        "OPTIONS"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      },
+      {
+        "handler": "jwt",
+        "config": {
+          "scope": [
+            "shop_customer",
+            "offline"
+          ],
+          "target_audience": ["storefront"]
+        }
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      },
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-Customer-Id": "{{ print .Subject }}",
+            "X-Shop-Id": "{{ print .Extra.context.shop_id }}"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "oauth:auth-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/oauth2/auth",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:fallbacks-error-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/oauth2/fallbacks/error",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:token-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/oauth2/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "noop"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:userinfo-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/userinfo",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:logout-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/oauth2/sessions/logout",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "oauth2_introspection"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oidc:well-known",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://hydra-public.auth:4444"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/.well-known/openid-configuration",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:login-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.auth:80"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/login",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:consent-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.auth:80"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/consent",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "oauth:callback-endpoint",
+    "upstream": {
+      "preserve_host": true,
+      "url": "http://auth-handler.auth:80"
+    },
+    "match": {
+      "url": "https://auth.naytife.com/callback",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  }
+]

@@ -1,0 +1,188 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend-migrate
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: backend-migrate
+    app.kubernetes.io/part-of: naytife-platform
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/version: "v1.1"
+spec:
+  # Allow up to 3 retries if migration fails
+  backoffLimit: 3
+  # Remove completed jobs after 24 hours
+  ttlSecondsAfterFinished: 86400
+  # Active deadline for the job (10 minutes max)
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app: backend-migrate
+        app.kubernetes.io/name: backend-migrate
+        app.kubernetes.io/part-of: naytife-platform
+      annotations:
+        kubectl.kubernetes.io/default-container: atlas-migrate
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "PostgreSQL not ready, waiting 2 seconds..."
+            sleep 2
+          done
+          echo "✅ PostgreSQL is ready!"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+      
+      - name: migration-pre-check
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "🔍 Running pre-migration checks..."
+          
+          # Check if database exists and is accessible
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "SELECT version();" || exit 1
+          
+          # Check if schema exists
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
+          
+          echo "✅ Pre-migration checks passed"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres-password
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+      
+      containers:
+      - name: atlas-migrate
+        image: alpine:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "🚀 Installing Atlas and running migrations..."
+          
+          # Install Atlas
+          apk add --no-cache curl
+          curl -sSf https://atlasgo.sh | sh
+          
+          echo "📁 Available migration files:"
+          ls -la /migrations/
+          
+          echo "🔍 Checking current migration status..."
+          atlas migrate status \
+            --dir file:///migrations \
+            --url "$DATABASE_URL" \
+            --revisions-schema atlas_schema_revisions || true
+          
+          echo "⚡ Applying migrations..."
+          atlas migrate apply \
+            --dir file:///migrations \
+            --url "$DATABASE_URL" \
+            --revisions-schema atlas_schema_revisions \
+            --tx-mode none \
+            --allow-dirty
+          
+          echo "✅ Migration completed successfully!"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: DATABASE_URL
+        volumeMounts:
+        - name: migrations
+          mountPath: /migrations
+          readOnly: true
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "200m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      
+      volumes:
+      - name: migrations
+        configMap:
+          name: backend-migrations
+          defaultMode: 0444
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-migrations
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: backend-migrate
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  # This will be populated by the deployment script
+  # The actual migration files will be added here
+  .placeholder: "This ConfigMap will contain the migration files"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migration-scripts
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: backend-migrate
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  check-migration-status.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "🔍 Checking migration status..."
+    atlas migrate status \
+      --dir file:///migrations \
+      --url "$DATABASE_URL"
+  
+  rollback-migration.sh: |
+    #!/bin/bash
+    set -e
+    
+    if [ -z "$1" ]; then
+      echo "Usage: $0 <target_version>"
+      exit 1
+    fi
+    
+    echo "⚠️  Rolling back to migration: $1"
+    atlas migrate down \
+      --dir file:///migrations \
+      --url "$DATABASE_URL" \
+      --to-version "$1"
+  
+  dry-run-migration.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "🧪 Running migration dry-run..."
+    atlas migrate apply \
+      --dir file:///migrations \
+      --url "$DATABASE_URL" \
+      --dry-run

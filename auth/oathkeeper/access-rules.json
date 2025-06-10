@@ -3,10 +3,10 @@
     "id":"api:rest-api-docs",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/v1/docs",
+      "url": "http://127.0.0.1:8080/v1/docs",
       "methods": [
         "GET"
       ]
@@ -29,10 +29,10 @@
     "id":"api:rest-api-docs-all",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/v1/docs/<**>",
+      "url": "http://127.0.0.1:8080/v1/docs/<**>",
       "methods": [
         "GET"
       ]
@@ -55,10 +55,10 @@
     "id": "api:user-register",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/v1/auth/<{register}>",
+      "url": "http://127.0.0.1:8080/v1/auth/<{register}>",
       "methods": [
         "POST"
       ]
@@ -81,10 +81,10 @@
     "id": "api:cors",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/v1/<{shops}><**>",
+      "url": "http://127.0.0.1:8080/<**>",
       "methods": [
         "OPTIONS"
       ]
@@ -99,18 +99,25 @@
     },
     "mutators": [
       {
-        "handler": "header"
+        "handler": "header",
+        "config": {
+          "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type"
+          }
+        }
       }
     ]
   },
   {
-    "id": "api:rest-api",
+    "id": "api:admin-api",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "https://api.naytife.com/v1/<{shops}><**>",
+      "url": "http://127.0.0.1:8080/v1/<{shops}><**>",
       "methods": [
         "GET",
         "POST",
@@ -128,7 +135,15 @@
     },
     "mutators": [
       {
-        "handler": "header"
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-User-Id": "{{ print .Subject }}",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type"
+          }
+        }
       }
     ]
   },
@@ -136,36 +151,10 @@
     "id": "api:public-graph-playground",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/graph",
-      "methods": [
-        "GET"
-      ]
-    },
-    "authenticators": [
-      {
-        "handler": "anonymous"
-      }
-    ],
-    "authorizer": {
-      "handler": "allow"
-    },
-    "mutators": [
-      {
-        "handler": "noop"
-      }
-    ]
-  },
-  {
-    "id": "api:admin-graph-playground",
-    "upstream": {
-      "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
-    },
-    "match": {
-      "url": "http://<*>.localhost:8080/api/admin/graph",
+      "url": "http://<*>.127.0.0.1:8080/graph",
       "methods": [
         "GET"
       ]
@@ -188,10 +177,10 @@
     "id": "api:public-graph-query",
     "upstream": {
       "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
+      "url": "http://host.minikube.internal:8000"
     },
     "match": {
-      "url": "http://<*>.localhost:8080/api/query",
+      "url": "http://<*>.127.0.0.1:8080/query",
       "methods": [
         "GET",
         "POST",
@@ -201,6 +190,15 @@
     "authenticators": [
       {
         "handler": "anonymous"
+      },
+      {
+        "handler": "jwt",
+        "config": {
+          "scope": [
+            "shop_customer",
+            "offline"
+          ]
+        }
       }
     ],
     "authorizer": {
@@ -209,33 +207,15 @@
     "mutators": [
       {
         "handler": "noop"
-      }
-    ]
-  },
-  {
-    "id": "api:admin-graph-query",
-    "upstream": {
-      "preserve_host": true,
-      "url": "http://backend.apps.svc.cluster.local:8000"
-    },
-    "match": {
-      "url": "http://<*>.localhost:8080/api/admin/query",
-      "methods": [
-        "GET",
-        "POST"
-      ]
-    },
-    "authenticators": [
+      },
       {
-        "handler": "oauth2_introspection"
-      }
-    ],
-    "authorizer": {
-      "handler": "allow"
-    },
-    "mutators": [
-      {
-        "handler": "noop"
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-Customer-Id": "{{ print .Subject }}",
+            "X-Shop-Id": "{{ print .Extra.context.shop_id }}"
+          }
+        }
       }
     ]
   },
@@ -246,7 +226,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/oauth2/auth",
+      "url": "http://127.0.0.1:8080/oauth2/auth",
       "methods": [
         "GET"
       ]
@@ -272,7 +252,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/oauth2/fallbacks/error",
+      "url": "http://127.0.0.1:8080/oauth2/fallbacks/error",
       "methods": [
         "GET"
       ]
@@ -298,9 +278,10 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/oauth2/token",
+      "url": "http://127.0.0.1:8080/oauth2/token",
       "methods": [
-        "POST"
+        "POST",
+        "OPTIONS"
       ]
     },
     "authenticators": [
@@ -324,7 +305,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/userinfo",
+      "url": "http://127.0.0.1:8080/userinfo",
       "methods": [
         "GET",
         "POST"
@@ -351,7 +332,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/oauth2/sessions/logout",
+      "url": "http://127.0.0.1:8080/oauth2/sessions/logout",
       "methods": [
         "GET"
       ]
@@ -377,7 +358,7 @@
       "url": "http://hydra-public.auth:4444"
     },
     "match": {
-      "url": "https://auth.naytife.com/.well-known/openid-configuration",
+      "url": "http://127.0.0.1:8080/.well-known/openid-configuration",
       "methods": [
         "GET"
       ]
@@ -403,7 +384,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://auth.naytife.com/login",
+      "url": "http://127.0.0.1:8080/login",
       "methods": [
         "GET",
         "POST"
@@ -430,7 +411,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://auth.naytife.com/consent",
+      "url": "http://127.0.0.1:8080/consent",
       "methods": [
         "GET",
         "POST"
@@ -457,7 +438,7 @@
       "url": "http://auth-handler.auth:80"
     },
     "match": {
-      "url": "https://auth.naytife.com/callback",
+      "url": "http://127.0.0.1:8080/callback",
       "methods": [
         "GET"
       ]

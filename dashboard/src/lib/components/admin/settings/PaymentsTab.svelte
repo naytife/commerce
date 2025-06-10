@@ -5,24 +5,13 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { toast } from 'svelte-sonner';
-	import type { Shop } from '$lib/types';
+	import type { PaymentMethod, PaymentMethodType, PaymentMethodConfig } from '$lib/types';
 	import { api } from '$lib/api';
-	import { getContext } from 'svelte';
-	
-	export let shop: Partial<Shop>;
+	import { getContext, onMount } from 'svelte';
 	
 	const authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> = getContext('authFetch');
-	const refetchShopData: () => Promise<void> = getContext('refetchShopData');
 
 	// Payment method management
-	interface PaymentMethod {
-		id: string;
-		name: string;
-		description: string;
-		enabled: boolean;
-		settings: PaymentMethodSetting[];
-	}
-
 	interface PaymentMethodSetting {
 		id: string;
 		label: string;
@@ -31,33 +20,24 @@
 		placeholder?: string;
 		required: boolean;
 	}
-	
-	// Example payment methods with their settings
-	let paymentMethods: PaymentMethod[] = [
-		{
-			id: 'cash-on-delivery',
-			name: 'Cash on Delivery',
-			description: 'Accept cash payments upon delivery',
-			enabled: false,
-			settings: [
-				{
-					id: 'extra-fee',
-					label: 'Extra fee',
-					type: 'text',
-					value: '0',
-					placeholder: 'Additional fee for COD (e.g. 5)',
-					required: false
-				}
-			]
-		},
-		{
+
+	interface UIPaymentMethod {
+		id: PaymentMethodType;
+		name: string;
+		description: string;
+		enabled: boolean;
+		settings: PaymentMethodSetting[];
+	}
+
+	// Payment methods configurations
+	const paymentMethodConfigs: Record<PaymentMethodType, Omit<UIPaymentMethod, 'enabled'>> = {
+		stripe: {
 			id: 'stripe',
 			name: 'Stripe',
 			description: 'Accept credit card payments via Stripe',
-			enabled: false,
 			settings: [
 				{
-					id: 'publishable-key',
+					id: 'publishable_key',
 					label: 'Publishable Key',
 					type: 'text',
 					value: '',
@@ -65,7 +45,7 @@
 					required: true
 				},
 				{
-					id: 'secret-key',
+					id: 'secret_key',
 					label: 'Secret Key',
 					type: 'password',
 					value: '',
@@ -73,7 +53,7 @@
 					required: true
 				},
 				{
-					id: 'test-mode',
+					id: 'test_mode',
 					label: 'Test Mode',
 					type: 'checkbox',
 					value: true,
@@ -81,14 +61,13 @@
 				}
 			]
 		},
-		{
+		paypal: {
 			id: 'paypal',
 			name: 'PayPal',
 			description: 'Accept payments via PayPal',
-			enabled: false,
 			settings: [
 				{
-					id: 'client-id',
+					id: 'client_id',
 					label: 'Client ID',
 					type: 'text',
 					value: '',
@@ -96,7 +75,7 @@
 					required: true
 				},
 				{
-					id: 'client-secret',
+					id: 'client_secret',
 					label: 'Client Secret',
 					type: 'password',
 					value: '',
@@ -104,7 +83,7 @@
 					required: true
 				},
 				{
-					id: 'sandbox-mode',
+					id: 'sandbox_mode',
 					label: 'Sandbox Mode',
 					type: 'checkbox',
 					value: true,
@@ -112,14 +91,13 @@
 				}
 			]
 		},
-		{
+		flutterwave: {
 			id: 'flutterwave',
 			name: 'Flutterwave',
 			description: 'Accept payments via Flutterwave',
-			enabled: false,
 			settings: [
 				{
-					id: 'public-key',
+					id: 'public_key',
 					label: 'Public Key',
 					type: 'text',
 					value: '',
@@ -127,7 +105,7 @@
 					required: true
 				},
 				{
-					id: 'secret-key',
+					id: 'secret_key',
 					label: 'Secret Key',
 					type: 'password',
 					value: '',
@@ -135,7 +113,7 @@
 					required: true
 				},
 				{
-					id: 'encryption-key',
+					id: 'encryption_key',
 					label: 'Encryption Key',
 					type: 'password',
 					value: '',
@@ -143,7 +121,7 @@
 					required: true
 				},
 				{
-					id: 'test-mode',
+					id: 'test_mode',
 					label: 'Test Mode',
 					type: 'checkbox',
 					value: true,
@@ -151,14 +129,13 @@
 				}
 			]
 		},
-		{
+		paystack: {
 			id: 'paystack',
 			name: 'Paystack',
 			description: 'Accept payments via Paystack',
-			enabled: false,
 			settings: [
 				{
-					id: 'public-key',
+					id: 'public_key',
 					label: 'Public Key',
 					type: 'text',
 					value: '',
@@ -166,7 +143,7 @@
 					required: true
 				},
 				{
-					id: 'secret-key',
+					id: 'secret_key',
 					label: 'Secret Key',
 					type: 'password',
 					value: '',
@@ -174,7 +151,7 @@
 					required: true
 				},
 				{
-					id: 'test-mode',
+					id: 'test_mode',
 					label: 'Test Mode',
 					type: 'checkbox',
 					value: true,
@@ -182,39 +159,76 @@
 				}
 			]
 		}
-	];
+	};
 
-	function togglePaymentMethod(method: PaymentMethod) {
-		method.enabled = !method.enabled;
-		
-		if (method.enabled) {
-			// Only show a toast if there are missing required fields, but don't block enabling
-			const missingSettings = method.settings
-				.filter(setting => setting.required && setting.type !== 'checkbox' && !setting.value);
+	let paymentMethods: UIPaymentMethod[] = [];
+	let loading = true;
+
+	// Load payment methods from API
+	async function loadPaymentMethods() {
+		try {
+			loading = true;
+			const apiPaymentMethods = await api(authFetch).getPaymentMethods();
 			
-			if (missingSettings.length > 0) {
-				toast.warning(`Please fill out the required settings for ${method.name}`);
-			} else {
-				toast.success(`${method.name} has been enabled`);
-			}
-		} else {
-			toast.success(`${method.name} has been disabled`);
+			// Create UI payment methods array with all supported payment types
+			paymentMethods = Object.keys(paymentMethodConfigs).map(methodType => {
+				const config = paymentMethodConfigs[methodType as PaymentMethodType];
+				const existingMethod = apiPaymentMethods.find(pm => pm.method_type === methodType);
+				
+				// Clone the settings and populate with existing values
+				const settings = config.settings.map(setting => ({
+					...setting,
+					value: existingMethod?.config?.[setting.id] ?? setting.value
+				}));
+				
+				return {
+					...config,
+					enabled: existingMethod?.is_enabled ?? false,
+					settings
+				};
+			});
+		} catch (error) {
+			console.error('Error loading payment methods:', error);
+			toast.error('Failed to load payment methods');
+		} finally {
+			loading = false;
 		}
 	}
 
-	// Serialize payment methods for API
-	function serializePaymentMethods() {
-		return paymentMethods.map(method => ({
-			id: method.id,
-			enabled: method.enabled,
-			settings: method.settings.map(setting => ({
-				id: setting.id,
-				value: setting.value
-			}))
-		}));
+	onMount(() => {
+		loadPaymentMethods();
+	});
+
+	async function togglePaymentMethod(method: UIPaymentMethod) {
+		const newStatus = !method.enabled;
+		
+		try {
+			// Update the payment method status via API
+			await api(authFetch).updatePaymentMethodStatus(method.id, newStatus);
+			
+			// Update local state
+			method.enabled = newStatus;
+			
+			if (newStatus) {
+				// Only show a warning if there are missing required fields
+				const missingSettings = method.settings
+					.filter(setting => setting.required && setting.type !== 'checkbox' && !setting.value);
+				
+				if (missingSettings.length > 0) {
+					toast.warning(`${method.name} is enabled but please configure the required settings`);
+				} else {
+					toast.success(`${method.name} has been enabled`);
+				}
+			} else {
+				toast.success(`${method.name} has been disabled`);
+			}
+		} catch (error) {
+			console.error('Error toggling payment method:', error);
+			toast.error(`Failed to ${newStatus ? 'enable' : 'disable'} ${method.name}`);
+		}
 	}
 
-	async function savePaymentMethodSettings(method: PaymentMethod) {
+	async function savePaymentMethodSettings(method: UIPaymentMethod) {
 		// Validate required fields
 		const missingSettings = method.settings
 			.filter(setting => setting.required && setting.type !== 'checkbox' && !setting.value);
@@ -225,18 +239,20 @@
 		}
 		
 		try {
-			// In a real implementation, we should store payment methods in the shop object
-			// Here we're saving the payment settings to the shop with a dedicated property
-			// This would need to be properly implemented on the backend
-			const updateData: Partial<Shop> & { payment_methods?: any } = {
-				payment_methods: serializePaymentMethods()
+			// Build the config object from settings
+			const config: Record<string, any> = {};
+			method.settings.forEach(setting => {
+				config[setting.id] = setting.value;
+			});
+
+			const paymentMethodConfig: PaymentMethodConfig = {
+				method_type: method.id,
+				is_enabled: method.enabled,
+				config
 			};
 			
-			// Call the API to update the shop data
-			await api(authFetch).updateShop(updateData);
-			
-			// Refetch shop data to update the UI
-			await refetchShopData();
+			// Update the payment method via API
+			await api(authFetch).updatePaymentMethod(method.id, paymentMethodConfig);
 			
 			toast.success(`${method.name} settings saved successfully`);
 		} catch (error) {
@@ -259,33 +275,7 @@
 			return;
 		}
 		
-		// Validate required fields
-		const missingSettings = method.settings
-			.filter(setting => setting.required && setting.type !== 'checkbox' && !setting.value);
-		
-		if (missingSettings.length > 0) {
-			toast.error('Please fill out all required fields');
-			return;
-		}
-		
-		try {
-			// In a real implementation, we should store payment methods in the shop object
-			// Here we're saving the payment settings to the shop with a dedicated property
-			const updateData: Partial<Shop> & { payment_methods?: any } = {
-				payment_methods: serializePaymentMethods()
-			};
-			
-			// Call the API to update the shop data
-			await api(authFetch).updateShop(updateData);
-			
-			// Refetch shop data to update the UI
-			await refetchShopData();
-			
-			toast.success(`${method.name} settings saved successfully`);
-		} catch (error) {
-			console.error('Error updating payment settings:', error);
-			toast.error(`Failed to update ${method.name} settings`);
-		}
+		await savePaymentMethodSettings(method);
 	}
 </script>
 
@@ -295,80 +285,86 @@
 		<Card.Description>Configure the payment options your customers can use at checkout</Card.Description>
 	</Card.Header>
 	<Card.Content>
-		<div class="space-y-6">
-			{#each paymentMethods as method}
-				<div class="border rounded-md overflow-hidden">
-					<div class="flex items-center justify-between p-4 bg-muted/50">
-						<div class="flex items-center gap-3">
-							<div class="w-10 h-10 flex items-center justify-center bg-background rounded-md border">
-								<span class="font-semibold">{method.name.charAt(0)}</span>
+		{#if loading}
+			<div class="flex items-center justify-center py-8">
+				<div class="text-muted-foreground">Loading payment methods...</div>
+			</div>
+		{:else}
+			<div class="space-y-6">
+				{#each paymentMethods as method}
+					<div class="border rounded-md overflow-hidden">
+						<div class="flex items-center justify-between p-4 bg-muted/50">
+							<div class="flex items-center gap-3">
+								<div class="w-10 h-10 flex items-center justify-center bg-background rounded-md border">
+									<span class="font-semibold">{method.name.charAt(0)}</span>
+								</div>
+								<div>
+									<h3 class="font-medium">{method.name}</h3>
+									<p class="text-sm text-muted-foreground">{method.description}</p>
+								</div>
 							</div>
-							<div>
-								<h3 class="font-medium">{method.name}</h3>
-								<p class="text-sm text-muted-foreground">{method.description}</p>
+							<div class="flex items-center space-x-2">
+								<Checkbox 
+									id={`enable-${method.id}`} 
+									checked={method.enabled}
+									onCheckedChange={() => togglePaymentMethod(method)}
+								/>
+								<Label
+									for={`enable-${method.id}`}
+									class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+								>
+									{method.enabled ? 'Enabled' : 'Disabled'}
+								</Label>
 							</div>
 						</div>
-						<div class="flex items-center space-x-2">
-							<Checkbox 
-								id={`enable-${method.id}`} 
-								checked={method.enabled}
-								onCheckedChange={() => togglePaymentMethod(method)}
-							/>
-							<Label
-								for={`enable-${method.id}`}
-								class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-							>
-								{method.enabled ? 'Enabled' : 'Disabled'}
-							</Label>
-						</div>
-					</div>
-					
-					<div class="p-4 space-y-4">
-						<form method="POST" class="space-y-4" id={`payment-method-${method.id}-form`} on:submit={handleFormSubmit}>
-							<input type="hidden" name="form-id" value="payment-method-form" />
-							<input type="hidden" name="method-id" value={method.id} />
-							
-							{#each method.settings as setting}
-								<div class="flex w-full flex-col gap-2">
-									{#if setting.type === 'checkbox'}
-										<div class="flex items-center space-x-2">
-											<Checkbox 
+						
+						<div class="p-4 space-y-4">
+							<form method="POST" class="space-y-4" id={`payment-method-${method.id}-form`} on:submit={handleFormSubmit}>
+								<input type="hidden" name="form-id" value="payment-method-form" />
+								<input type="hidden" name="method-id" value={method.id} />
+								
+								{#each method.settings as setting}
+									<div class="flex w-full flex-col gap-2">
+										{#if setting.type === 'checkbox'}
+											<div class="flex items-center space-x-2">
+												<Checkbox 
+													id={`${method.id}-${setting.id}`} 
+													name={setting.id}
+													checked={setting.value === true}
+													onCheckedChange={(checked) => setting.value = checked}
+												/>
+												<Label
+													for={`${method.id}-${setting.id}`}
+													class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+												>
+													{setting.label}
+												</Label>
+											</div>
+										{:else}
+											<Label for={`${method.id}-${setting.id}`}>{setting.label}</Label>
+											<Input 
 												id={`${method.id}-${setting.id}`} 
 												name={setting.id}
-												checked={setting.value === true}
-												onCheckedChange={(checked) => setting.value = checked}
+												type={setting.type}
+												bind:value={setting.value}
+												placeholder={setting.placeholder || ''}
+												required={setting.required}
 											/>
-											<Label
-												for={`${method.id}-${setting.id}`}
-												class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-											>
-												{setting.label}
-											</Label>
-										</div>
-									{:else}
-										<Label for={`${method.id}-${setting.id}`}>{setting.label}</Label>
-										<Input 
-											id={`${method.id}-${setting.id}`} 
-											name={setting.id}
-											type={setting.type}
-											bind:value={setting.value}
-											placeholder={setting.placeholder || ''}
-											required={setting.required}
-										/>
-									{/if}
-								</div>
-							{/each}
-							
-							<Button 
-								type="submit"
-								class="mt-2"
-							>
-								Save {method.name} Settings
-							</Button>
-						</form>
+										{/if}
+									</div>
+								{/each}
+								
+								<Button 
+									type="submit"
+									class="mt-2"
+								>
+									Save {method.name} Settings
+								</Button>
+							</form>
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</Card.Content>
 </Card.Root> 

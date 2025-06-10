@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+type: Opaque
+data:
+  # naytife-redis-2024
+  redis-password: bmF5dGlmZS1yZWRpcy0yMDI0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  redis.conf: |
+    # Redis configuration for Naytife
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Enable AOF persistence
+    appendonly yes
+    appendfsync everysec
+    
+    # Memory management
+    maxmemory-policy allkeys-lru
+    
+    # Security
+    protected-mode no
+    
+    # Logging
+    loglevel notice
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/part-of: naytife-platform
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        ports:
+        - containerPort: 6379
+          name: redis
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: redis-password
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "300m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: redis-data
+        emptyDir: {}
+      - name: redis-config
+        configMap:
+          name: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis
+---
+# NodePort service for external access during development
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-nodeport
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis

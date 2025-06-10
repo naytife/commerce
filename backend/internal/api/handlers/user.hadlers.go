@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
@@ -108,7 +107,7 @@ func (h *Handler) GetUser(c *fiber.Ctx) error {
 	email := c.Query("email")
 	objDB, err := h.Repository.GetUser(c.Context(), &email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "User not found", nil)
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user", nil)

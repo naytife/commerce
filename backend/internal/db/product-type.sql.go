@@ -12,7 +12,7 @@ import (
 const createProductType = `-- name: CreateProductType :one
 INSERT INTO product_types (title, shippable, digital, sku_substring, shop_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
+RETURNING product_type_id, title, shippable, digital, sku_substring, shop_id
 `
 
 type CreateProductTypeParams struct {
@@ -37,8 +37,8 @@ func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypePa
 		&i.Title,
 		&i.Shippable,
 		&i.Digital,
-		&i.ShopID,
 		&i.SkuSubstring,
+		&i.ShopID,
 	)
 	return i, err
 }
@@ -46,7 +46,7 @@ func (q *Queries) CreateProductType(ctx context.Context, arg CreateProductTypePa
 const deleteProductType = `-- name: DeleteProductType :one
 DELETE FROM product_types
 WHERE product_type_id = $1 AND shop_id = $2
-RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
+RETURNING product_type_id, title, shippable, digital, sku_substring, shop_id
 `
 
 type DeleteProductTypeParams struct {
@@ -62,14 +62,14 @@ func (q *Queries) DeleteProductType(ctx context.Context, arg DeleteProductTypePa
 		&i.Title,
 		&i.Shippable,
 		&i.Digital,
-		&i.ShopID,
 		&i.SkuSubstring,
+		&i.ShopID,
 	)
 	return i, err
 }
 
 const getProductType = `-- name: GetProductType :one
-SELECT product_type_id, title, shippable, digital, shop_id, sku_substring FROM product_types WHERE product_type_id = $1 AND shop_id = $2
+SELECT product_type_id, title, shippable, digital, sku_substring, shop_id FROM product_types WHERE product_type_id = $1 AND shop_id = $2
 `
 
 type GetProductTypeParams struct {
@@ -85,14 +85,14 @@ func (q *Queries) GetProductType(ctx context.Context, arg GetProductTypeParams) 
 		&i.Title,
 		&i.Shippable,
 		&i.Digital,
-		&i.ShopID,
 		&i.SkuSubstring,
+		&i.ShopID,
 	)
 	return i, err
 }
 
 const getProductTypes = `-- name: GetProductTypes :many
-SELECT product_type_id, title, shippable, digital, shop_id, sku_substring FROM product_types WHERE shop_id = $1
+SELECT product_type_id, title, shippable, digital, sku_substring, shop_id FROM product_types WHERE shop_id = $1
 `
 
 func (q *Queries) GetProductTypes(ctx context.Context, shopID int64) ([]ProductType, error) {
@@ -109,8 +109,8 @@ func (q *Queries) GetProductTypes(ctx context.Context, shopID int64) ([]ProductT
 			&i.Title,
 			&i.Shippable,
 			&i.Digital,
-			&i.ShopID,
 			&i.SkuSubstring,
+			&i.ShopID,
 		); err != nil {
 			return nil, err
 		}
@@ -130,7 +130,7 @@ SET
     digital = COALESCE($3, digital),
     sku_substring = COALESCE($4, sku_substring)
 WHERE product_type_id = $5 AND shop_id = $6
-RETURNING product_type_id, title, shippable, digital, shop_id, sku_substring
+RETURNING product_type_id, title, shippable, digital, sku_substring, shop_id
 `
 
 type UpdateProductTypeParams struct {
@@ -157,8 +157,8 @@ func (q *Queries) UpdateProductType(ctx context.Context, arg UpdateProductTypePa
 		&i.Title,
 		&i.Shippable,
 		&i.Digital,
-		&i.ShopID,
 		&i.SkuSubstring,
+		&i.ShopID,
 	)
 	return i, err
 }

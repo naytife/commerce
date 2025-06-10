@@ -17,7 +17,7 @@
 	// Toggle mobile menu visibility
 </script>
 
-<nav class="bg-gray-200 bg-opacity-90 z-50 top-0 left-0 right-0 sticky">
+<nav class="bg-gray-200 bg-opacity-90 z-50 top-0 left-0 right-0 sticky shadow-md">
 	<div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
 		<div class="relative flex items-center justify-between h-16">
 			<!-- Logo Section -->
@@ -29,7 +29,7 @@
 
 			<!-- Mobile Menu Button -->
 			<div class="block lg:hidden">
-				<button id="menu-toggle" class="text-gray-700 focus:outline-none">
+				<button id="menu-toggle" class="text-gray-700 focus:outline-none hover:text-green-500 focus:text-green-500 transition-colors duration-150 ease-in-out">
 					<svg
 						class="w-6 h-6"
 						fill="none"
@@ -52,11 +52,11 @@
 				<ul class="flex space-x-4">
 					{#each pages as p}
 						<li
-							class={`relative ${p.current ? 'text-green-500' : 'text-gray-700'} hover:border-b-2 p-2 rounded-md hover:bg-gray-700/10 text-sm`}
+							class={`relative ${p.current ? 'text-green-500' : 'text-gray-700'} hover:border-b-2 hover:border-green-500 p-2 rounded-md hover:bg-gray-700/10 text-sm`}
 						>
 							<a
 								href={p.url}
-								class="hover:text-[#1d1d1d] text-gray-600 font-medium transition-colors hover:no-underline"
+								class="hover:text-gray-900 text-gray-600 font-medium transition-colors duration-200 ease-in-out hover:no-underline"
 							>
 								{p.page}
 							</a>
@@ -74,11 +74,11 @@
 			<div class="hidden lg:flex items-center space-x-4">
 				<a
 					href="https://github.com/Emereh-boop/Naytife"
-					class="text-gray-700 text-xs hover:no-underline">Log in</a
+					class="text-gray-700 text-xs hover:text-gray-900 transition-colors duration-200 ease-in-out hover:no-underline">Log in</a
 				>
 				<a
 					href="https://github.com/Emereh-boop/Naytife"
-					class="bg-green-500 font-bold text-xs text-white rounded-full py-2 px-4 hover:no-underline"
+					class="bg-green-500 font-bold text-xs text-white rounded-full py-2 px-4 hover:scale-105 transform transition-all duration-200 ease-in-out hover:no-underline"
 					>Get started</a
 				>
 			</div>
@@ -93,11 +93,11 @@
 		<ul class="flex flex-col space-y-2">
 			{#each pages as p}
 				<li
-					class={`relative ${p.current ? 'text-[#00fa9a]' : 'text-gray-700'} hover:border-b-2 p-2 rounded-md hover:bg-gray-700/10 text-sm`}
+					class={`relative ${p.current ? 'text-green-500' : 'text-gray-700'} hover:border-b-2 hover:border-green-500 p-2 rounded-md hover:bg-gray-700/10 text-sm`}
 				>
 					<a
 						href={p.url}
-						class="hover:text-[#1d1d1d] font-medium transition-colors hover:no-underline"
+						class="hover:text-gray-900 text-gray-700 font-medium transition-colors duration-200 ease-in-out hover:no-underline"
 					>
 						{p.page}
 					</a>
@@ -111,13 +111,13 @@
 			<li>
 				<a
 					href="https://github.com/Emereh-boop/Naytife"
-					class="block text-gray-700 text-xs hover:no-underline">Log in</a
+					class="block text-gray-700 text-xs hover:text-gray-900 transition-colors duration-200 ease-in-out hover:no-underline">Log in</a
 				>
 			</li>
 			<li>
 				<a
 					href="https://github.com/Emereh-boop/Naytife"
-					class="block bg-[#00fa9a] font-bold text-xs text-black rounded-full py-2 px-4 hover:no-underline"
+					class="block bg-green-500 font-bold text-xs text-white rounded-full py-2 px-4 hover:scale-105 transform transition-all duration-200 ease-in-out hover:no-underline"
 					>Get started</a
 				>
 			</li>

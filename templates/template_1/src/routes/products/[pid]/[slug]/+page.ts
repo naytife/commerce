@@ -14,8 +14,10 @@ function encodeGlobalId(type: string, id: string): string {
   return globalThis.Buffer.from(str, 'utf8').toString('base64');
 }
 
-export async function load(event) {
+import type { PageLoad } from './$types';
+
+export const load: PageLoad = async (event) => {
   const { pid } = event.params;
   const graphqlId = encodeGlobalId('Product', pid);
   return load_ProductQuery({ event, variables: { pid: graphqlId } });
-} 
+}; 

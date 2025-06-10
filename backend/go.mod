@@ -3,7 +3,7 @@ module github.com/petrejonn/naytife
 go 1.23.8
 
 require (
-	github.com/99designs/gqlgen v0.17.72
+	github.com/99designs/gqlgen v0.17.73
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/swagger v1.1.1
@@ -14,8 +14,9 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
+	github.com/stripe/stripe-go/v81 v81.4.0
 	github.com/swaggo/swag/v2 v2.0.0-rc4
-	github.com/vektah/gqlparser/v2 v2.5.25
+	github.com/vektah/gqlparser/v2 v2.5.26
 )
 
 require (

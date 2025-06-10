@@ -14,30 +14,6 @@ Indicates exactly one field must be supplied and this field must not be `null`.
 """
 directive @oneOf on INPUT_OBJECT
 
-input AddCartItemInput {
-  productId: ID!
-  quantity: Int!
-}
-
-type Cart {
-  id: ID!
-  items: [CartItem!]!
-  total: Float!
-}
-
-type CartItem {
-  id: ID!
-  product: CartProduct!
-  quantity: Int!
-}
-
-type CartProduct {
-  id: ID!
-  image: String!
-  price: Float!
-  title: String!
-}
-
 type Category implements Node {
   createdAt: DateTime!
   description: String
@@ -70,6 +46,31 @@ type CategoryNotFoundError implements UserError {
   path: [String!]!
 }
 
+input CreateOrderInput {
+  customerId: ID
+  discount: Float = 0
+  email: String
+  fullName: String
+  items: [CreateOrderItemInput!]!
+  paymentMethod: PaymentMethodType!
+  phoneNumber: String
+  shippingAddress: String!
+  shippingCost: Float = 0
+  shippingMethod: String!
+  tax: Float = 0
+}
+
+input CreateOrderItemInput {
+  price: Float!
+  productVariationId: ID!
+  quantity: Int!
+}
+
+type CreateOrderPayload {
+  errors: [UserError!]!
+  order: Order
+}
+
 scalar DateTime
 
 enum ErrorCode {
@@ -92,13 +93,64 @@ input ImageInput {
 }
 
 type Mutation {
-  addCartItem(input: AddCartItemInput!): Cart
-  removeCartItem(input: RemoveCartItemInput!): Cart
-  updateCartItem(input: UpdateCartItemInput!): Cart
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
+  updateOrderStatus(input: UpdateOrderStatusInput!): UpdateOrderStatusPayload!
 }
 
 interface Node {
   id: ID!
+}
+
+type Order implements Node {
+  CustomerId: ID
+  amount: Float!
+  createdAt: DateTime!
+  customerEmail: String
+  customerName: String!
+  customerPhone: String
+  discount: Float!
+  id: ID!
+  items: [OrderItem!]!
+  orderId: Int!
+  paymentMethod: PaymentMethodType!
+  paymentStatus: PaymentStatusType!
+  shippingAddress: String!
+  shippingCost: Float!
+  shippingMethod: String!
+  shippingStatus: ShippingStatusType!
+  shopId: ID!
+  status: OrderStatusType!
+  tax: Float!
+  transactionId: String
+  updatedAt: DateTime!
+  username: String!
+}
+
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OrderEdge {
+  cursor: ID!
+  node: Order!
+}
+
+type OrderItem implements Node {
+  id: ID!
+  orderItemId: Int!
+  price: Float!
+  productVariationId: ID!
+  quantity: Int!
+}
+
+enum OrderStatusType {
+  CANCELLED
+  COMPLETED
+  PENDING
+  PROCESSING
+  REFUNDED
 }
 
 type PageInfo {
@@ -106,6 +158,21 @@ type PageInfo {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   startCursor: ID!
+}
+
+enum PaymentMethodType {
+  FLUTTERWAVE
+  PAYPAL
+  PAYSTACK
+  STRIPE
+}
+
+enum PaymentStatusType {
+  FAILED
+  PAID
+  PARTIAL_REFUND
+  PENDING
+  REFUNDED
 }
 
 type Product implements Node {
@@ -162,17 +229,22 @@ type ProductVariant implements Node {
 }
 
 type Query {
-  cart: Cart
   categories(after: ID, first: Int = 20): CategoryConnection
   category(id: ID!): Category
   node(id: ID!): Node
+  order(id: ID!): Order
+  orders(after: ID, first: Int = 20): OrderConnection
   product(id: ID!): Product
   products(after: ID, first: Int = 20): ProductConnection!
   shop: Shop!
 }
 
-input RemoveCartItemInput {
-  productId: ID!
+enum ShippingStatusType {
+  CANCELLED
+  DELIVERED
+  PENDING
+  RETURNED
+  SHIPPED
 }
 
 type Shop implements Node {
@@ -215,9 +287,14 @@ type ShopImages {
   siteLogoDark: Image
 }
 
-input UpdateCartItemInput {
-  productId: ID!
-  quantity: Int!
+input UpdateOrderStatusInput {
+  orderId: ID!
+  status: OrderStatusType!
+}
+
+type UpdateOrderStatusPayload {
+  errors: [UserError!]!
+  order: Order
 }
 
 interface UserError {

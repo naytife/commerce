@@ -14,13 +14,19 @@ export default {
 				'custom-fade': 'custom-fade 4s alternate linear',
 				moveGradientright: 'slider 6s infinite linear',
 				moveGradientleft: 'slide 6s infinite linear',
-				spinf: 'spin 5s infinite linear',
-				spins: 'spin 6s alternate infinite linear',
+				// spinf and spins removed as unused
 				// Add custom animations from your CSS
 				'problem-item-box': 'problem-item-box 7s infinite backwards',
 				'problem-item-label': 'problem-item-label 7s infinite backwards',
 				'problem-item-icon': 'problem-item-icon 7s infinite backwards',
-				'problem-item-icon-img': 'problem-item-icon-img 7s infinite backwards'
+				'problem-item-icon-img': 'problem-item-icon-img 7s infinite backwards',
+				'savings-logos-border': 'savings-optimization-logos-border 1s linear infinite',
+				'fade-in-up-hero-headline': 'fade-in-up 0.8s ease-out forwards',
+				'fade-in-up-hero-subheadline': 'fade-in-up 0.8s ease-out 0.3s forwards'
+			},
+			boxShadow: {
+				'2xl': '0 10px 12px rgba(0, 0, 0, 0.1)',
+				'problem-item': '0 0 0 1px #0e3f7e0f, 0 1px 1px -0.5px #2a334608, 0 2px 2px -1px #2a33460a, 0 3px 3px -1.5px #2a33460a, 0 5px 5px -2.5px #2a334608, 0 10px 10px -5px #2a334608, 0 24px 24px -8px #2a334608'
 			},
 			keyframes: {
 				slide: {
@@ -31,10 +37,7 @@ export default {
 					'0%': { backgroundPosition: '0% 0%' },
 					'100%': { backgroundPosition: '100% -100%' }
 				},
-				fadeIn: {
-					'0%': { opacity: '0' },
-					'100%': { opacity: '1' }
-				},
+				// fadeIn keyframes removed as unused
 				// Add keyframes from your CSS
 				'problem-item-box': {
 					'17.8%, 57.1%': { backgroundColor: 'var(--white-24)' },
@@ -114,31 +117,37 @@ export default {
 						transform: 'translateY(-40px)',
 						filter: 'blur(20px) grayscale(1)'
 					}
+				},
+				'savings-optimization-logos-border': {
+					'0%': { transform: 'translate(-50%, -50%) rotate(0deg)' },
+					to: { transform: 'translate(-50%, -50%) rotate(360deg)' }
+				},
+				'fade-in-up': {
+					'0%': { opacity: '0', transform: 'translateY(1rem)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				}
 			},
 			colors: {
-				'custom-blue': '#DDFBFE'
+				// custom-blue removed as unused
 				// Add more custom colors if needed
 			},
 			borderColor: {
-				'neutral-opaque-6': '#bbcbff'
+				// neutral-opaque-6 removed as unused
 			},
-			boxShadow: {
-				'2xl': '0 10px 12px rgba(0, 0, 0, 0.1)'
-			},
+			// boxShadow is extended above
 			borderRadius: {
-				xl: '1rem'
+				// xl: '1rem' removed as redundant
 			},
 			fontSize: {
-				sm: '0.875rem'
+				// sm: '0.875rem' removed as redundant
 			},
 			width: {
-				150: '150px',
+				// 150: '150px' removed as unused
 				40: '10rem',
 				168: '42rem' // Assuming w-168 refers to 42rem (optional, adjust as needed)
 			},
 			height: {
-				150: '150px',
+				// 150: '150px' removed as unused
 				40: '10rem'
 				// Add more custom heights if needed
 			}

@@ -2,7 +2,7 @@
 
 	import * as Card from '$lib/components/ui/card';
 	import * as Accordion from '$lib/components/ui/accordion';
-	import { Info, MapPin } from 'lucide-svelte';
+	import { Info, MapPin, Minus, Plus, ShoppingBag } from 'lucide-svelte';
 	import * as Select from '$lib/components/ui/select';
 	import type { PageData } from './$houdini';
 	import { onMount } from 'svelte';
@@ -12,6 +12,7 @@
 	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { cart } from '$lib/stores/cart';
+	import { currencySymbol } from '$lib/stores/currency';
 
 	export let data: PageData;
 	let selectedImage: number = 0;
@@ -35,7 +36,7 @@
 	function syncActiveVariant() {
 		const pageData = get(page);
 		const slug = pageData.params.slug;
-		const variants = get(ProductQuery).data?.product?.variants;
+		const variants = (get(ProductQuery) as any).data?.product?.variants;
 		if (!slug || !variants) return;
 		// extract variationId from slug or hash
 		const parts = slug.split('-');
@@ -118,130 +119,175 @@
 	}
 </script>
 
-<section class="bg-white py-8 antialiased dark:bg-gray-900 md:py-16">
-	<div class="mx-auto max-w-(--breakpoint-xl) px-4 2xl:px-0">
-		<div class="lg: grid gap-4 md:grid-cols-[60%_40%] lg:gap-10">
-			<div class="flex flex-col gap-4">
-				<div class="gap-2 lg:grid lg:grid-cols-4">
-					<div class="col-span-1 flex h-28 w-28 flex-col gap-4">
+<section class="bg-white text-gray-900 dark:bg-gray-900 dark:text-white py-12 antialiased">
+	<div class="mx-auto max-w-7xl px-6">
+		<div class="flex flex-col lg:flex-row gap-12">
+			<div class="w-full lg:w-3/5">
+				<div class="flex flex-col lg:flex-row gap-6">
+					<div class="order-2 lg:order-1 flex lg:flex-col gap-4 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0">
 						{#each $ProductQuery.data?.product?.images ?? [] as img, index}
-							<button class="rounded-md p-2 ring-[1.5px] ring-gray-400" on:click={() => selectedImage = index}>
-								<img src={img.url} alt={img.altText} class="aspect-square w-full rounded-md object-cover" />
+							<button 
+								class="border border-gray-200 dark:border-gray-700 p-1 min-w-20 h-20 flex-shrink-0 transition-colors duration-200 {selectedImage === index ? 'border-primary-700 dark:border-primary-500' : 'hover:border-gray-300 dark:hover:border-gray-600'}" 
+								on:click={() => selectedImage = index}
+							>
+								<img src={img.url} alt={img.altText} class="w-full h-full object-cover" />
 							</button>
 						{/each}
 					</div>
-					<img src={$ProductQuery.data?.product?.images?.[selectedImage]?.url} alt={$ProductQuery.data?.product?.images?.[selectedImage]?.altText ?? 'Product'} class="col-span-4 col-start-2 aspect-square w-full rounded-md object-cover" height="300" width="300" />
+					<div class="order-1 lg:order-2 bg-gray-50 dark:bg-gray-800 flex-grow">
+						<img 
+							src={$ProductQuery.data?.product?.images?.[selectedImage]?.url} 
+							alt={$ProductQuery.data?.product?.images?.[selectedImage]?.altText ?? 'Product'} 
+							class="w-full h-auto lg:h-[500px] object-contain" 
+						/>
+					</div>
 				</div>
-				<div class="">
-					<Accordion.Root value="item-2" class="max-w-[70%] md:w-full md:max-w-full">
-						<Accordion.Item value="item-1">
-							<Accordion.Trigger>Product Details</Accordion.Trigger>
-							<Accordion.Content>
+			</div>
+			
+			<div class="w-full lg:w-2/5">
+				<div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
+					<h1 class="text-2xl font-medium text-gray-900 dark:text-white mb-3">
+						{$ProductQuery.data?.product?.title}
+					</h1>
+					<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{$ProductQuery.data?.product?.description}</p>
+					
+					<div class="flex items-center justify-between">
+						{#if activeVariant}
+							<p class="text-2xl font-semibold text-gray-900 dark:text-white">
+								{$currencySymbol}{activeVariant.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+							</p>
+							<div class="flex items-center">
+								{#if activeVariant.stockStatus === 'IN_STOCK'}
+									<span class="inline-flex items-center text-xs uppercase tracking-wider font-medium text-green-700 dark:text-green-500">
+										In Stock
+									</span>
+								{:else if activeVariant.stockStatus === 'OUT_OF_STOCK'}
+									<span class="inline-flex items-center text-xs uppercase tracking-wider font-medium text-red-700 dark:text-red-500">
+										Out of Stock
+									</span>
+								{:else if activeVariant.stockStatus === 'PREORDER'}
+									<span class="inline-flex items-center text-xs uppercase tracking-wider font-medium text-blue-700 dark:text-blue-500">
+										Pre-order
+									</span>
+								{/if}
+							</div>
+						{/if}
+					</div>
+				</div>
+				
+				{#if attributeOptions.length > 0}
+					<div class="mb-8">
+						{#each attributeOptions as attrOption}
+							<div class="mb-6">
+								<h3 class="text-sm font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-3">
+									{attrOption.title}
+								</h3>
+								<div class="flex flex-wrap gap-2">
+									{#each attrOption.values as value}
+										{#if attrOption.title.toLowerCase() === 'color'}
+											<button 
+												class="w-10 h-10 border {selectedAttributes[attrOption.title] === value ? 'border-primary-700 dark:border-primary-500' : 'border-gray-200 dark:border-gray-700'} p-0.5"
+												on:click={() => handleAttributeSelect(attrOption.title, value)}
+											>
+												<span class="block w-full h-full" style="background-color: {value.toLowerCase()}"></span>
+											</button>
+										{:else}
+											<button
+												class="px-4 py-2 border {selectedAttributes[attrOption.title] === value ? 'border-primary-700 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-500' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'} transition-colors duration-200"
+												on:click={() => handleAttributeSelect(attrOption.title, value)}
+											>
+												{value}
+											</button>
+										{/if}
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+				
+				<div class="mb-8">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-sm font-medium uppercase tracking-wider text-gray-700 dark:text-gray-300">Quantity</h3>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{activeVariant?.availableQuantity ?? 0} available</p>
+					</div>
+					<div class="flex border border-gray-200 dark:border-gray-700 w-full max-w-[180px]">
+						<button 
+							type="button"
+							on:click={() => quantity = Math.max(1, quantity - 1)}
+							class="w-12 h-12 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+							disabled={quantity <= 1}
+						>
+							<Minus class="w-4 h-4" />
+						</button>
+						<input
+							type="number"
+							min="1"
+							max={activeVariant?.availableQuantity ?? 1}
+							bind:value={quantity}
+							class="w-16 h-12 text-center border-x border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none"
+						/>
+						<button 
+							type="button"
+							on:click={() => quantity = Math.min(activeVariant?.availableQuantity ?? 1, quantity + 1)}
+							class="w-12 h-12 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+							disabled={quantity >= (activeVariant?.availableQuantity ?? 1)}
+						>
+							<Plus class="w-4 h-4" />
+						</button>
+					</div>
+				</div>
+				
+				<div class="mb-8">
+					<button
+						type="button"
+						on:click={() => cart.add({
+							id: (activeVariant?.variationId ?? $ProductQuery.data!.product!.defaultVariant.variationId).toString(),
+							title: $ProductQuery.data!.product!.title,
+							price: activeVariant?.price ?? $ProductQuery.data!.product!.defaultVariant.price,
+							image: $ProductQuery.data!.product!.images[selectedImage]?.url,
+							slug: $page.params.slug
+						}, quantity)}
+						class="w-full bg-primary-700 hover:bg-primary-800 text-white font-medium uppercase tracking-wider py-4 flex items-center justify-center gap-2 transition-colors duration-200 focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+					>
+						<ShoppingBag class="w-5 h-5" />
+						Add to Cart
+					</button>
+				</div>
+				
+				<div class="border-t border-gray-200 dark:border-gray-700 pt-8">
+					<Accordion.Root value="item-1" class="border-b border-gray-200 dark:border-gray-700">
+						<Accordion.Item value="item-1" class="border-t-0">
+							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Product Details</Accordion.Trigger>
+							<Accordion.Content class="pb-4 text-sm text-gray-600 dark:text-gray-400">
 								{$ProductQuery.data?.product?.description}
 							</Accordion.Content>
 						</Accordion.Item>
-						<Accordion.Item value="item-2">
-							<Accordion.Trigger>Specifications</Accordion.Trigger>
-							<Accordion.Content>
+						<Accordion.Item value="item-2" class="border-t border-gray-200 dark:border-gray-700">
+							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Specifications</Accordion.Trigger>
+							<Accordion.Content class="pb-4">
 								{#if $ProductQuery.data?.product?.attributes && $ProductQuery.data.product.attributes.length > 0}
-									<ul class="list-disc list-inside space-y-1">
+									<ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
 										{#each $ProductQuery.data.product.attributes as attr}
-											<li><span class="font-semibold">{attr.title}:</span> {attr.value}</li>
+											<li class="flex justify-between">
+												<span class="font-medium text-gray-700 dark:text-gray-300">{attr.title}:</span> 
+												<span>{attr.value}</span>
+											</li>
 										{/each}
 									</ul>
 								{:else}
-									<p>No specifications available.</p>
+									<p class="text-sm text-gray-600 dark:text-gray-400">No specifications available.</p>
 								{/if}
+							</Accordion.Content>
+						</Accordion.Item>
+						<Accordion.Item value="item-3" class="border-t border-gray-200 dark:border-gray-700">
+							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Shipping</Accordion.Trigger>
+							<Accordion.Content class="pb-4 text-sm text-gray-600 dark:text-gray-400">
+								Free shipping on orders over $50. Standard shipping takes 3-5 business days.
 							</Accordion.Content>
 						</Accordion.Item>
 					</Accordion.Root>
 				</div>
-			</div>
-			<div class="mt-6 sm:mt-8 lg:mt-0">
-				<Card.Root>
-					<Card.Content>
-						<h1 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-							{$ProductQuery.data?.product?.title}
-						</h1>
-						
-						<div class="mt-6 flex items-center justify-between">
-							<p class="text-2xl font-extrabold text-gray-900 dark:text-white sm:text-3xl">
-								{#if activeVariant}
-									{'$' + activeVariant.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-								{/if}
-							</p>
-							<div class="flex items-center gap-4">
-								<p class="flex items-center gap-1 text-sm font-semibold">
-									Quantity <Info class="h-5 w-4" />
-								</p>
-								<input
-									type="number"
-									min="1"
-									max={activeVariant?.availableQuantity ?? 1}
-									step="1"
-									bind:value={quantity}
-									class="w-20 p-2 border border-gray-300 rounded-md text-center shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-								/>
-							</div>
-						</div>
-
-						<div class="mt-6 flex flex-col sm:mt-8 sm:flex sm:items-center sm:gap-4">
-							<button
-								type="button"
-								on:click={() => cart.add({
-									id: (activeVariant?.variationId ?? $ProductQuery.data!.product!.defaultVariant.variationId).toString(),
-									title: $ProductQuery.data!.product!.title,
-									price: activeVariant?.price ?? $ProductQuery.data!.product!.defaultVariant.price,
-									image: $ProductQuery.data!.product!.images[selectedImage]!.url,
-									slug: $page.params.slug
-								}, quantity)}
-								class="hover:bg-primary-800 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 mt-4 flex w-full items-center justify-center rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white focus:outline-hidden focus:ring-4 sm:mt-0"
-							>
-								Add to Cart
-							</button>
-						</div>
-						
-						<hr class="my-6 border-gray-200 dark:border-gray-800 md:my-8" />
-						{#each attributeOptions as { title, values }}
-							<div class="mt-6 flex w-full flex-col gap-2">
-								<p class="text-lg font-bold">{title}</p>
-								{#if title === 'Color'}
-									<div class="flex gap-2">
-										{#each values as value}
-											{#if findVariantByAttributes({...selectedAttributes, Color: value})}
-												<a
-													href={constructVariantUrl(findVariantByAttributes({...selectedAttributes, Color: value}))}
-													class="w-8 h-8 rounded-full ring-2 block"
-													class:ring-primary-600={selectedAttributes[title] === value}
-													class:ring-gray-300={selectedAttributes[title] !== value}
-													style="background-color: {value}"
-													aria-label={`View ${title} ${value}`}
-												></a>
-											{:else}
-												<span
-													class="w-8 h-8 rounded-full ring-2 opacity-50 block"
-													style="background-color: {value}"
-													aria-label={`Unavailable ${title} ${value}`}
-												></span>
-											{/if}
-										{/each}
-									</div>
-								{:else}
-									<Select.Root>
-										<Select.Trigger class="w-full p-4">
-											<Select.Value placeholder={selectedAttributes[title] || `Select ${title}`} />
-										</Select.Trigger>
-										<Select.Content>
-											{#each values as value}
-												<Select.Item value={value} on:click={() => handleAttributeSelect(title, value)}>{value}</Select.Item>
-											{/each}
-										</Select.Content>
-									</Select.Root>
-								{/if}
-							</div>
-						{/each}
-					</Card.Content>
-				</Card.Root>
 			</div>
 		</div>
 	</div>

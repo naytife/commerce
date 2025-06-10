@@ -2,8 +2,8 @@ CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),     
     sub VARCHAR(255) UNIQUE,      
     email VARCHAR(255) UNIQUE,          
-    provider VARCHAR(255),        
-    provider_id VARCHAR(255),        
+    auth_provider VARCHAR(255),        
+    auth_provider_id VARCHAR(255),        
     name VARCHAR(255),   
     locale VARCHAR(255),                 
     profile_picture TEXT,
@@ -12,11 +12,11 @@ CREATE TABLE users (
     last_login TIMESTAMP DEFAULT NOW()                 
 );
 
+
 CREATE TABLE shops (
     shop_id BIGSERIAL PRIMARY KEY,
     owner_id UUID NOT NULL,
     title VARCHAR(50) NOT NULL,
-    domain VARCHAR(50) UNIQUE NOT NULL,
     subdomain VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(50) NOT NULL,
     currency_code VARCHAR(3) NOT NULL,
@@ -34,6 +34,24 @@ CREATE TABLE shops (
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     CONSTRAINT fk_owner FOREIGN KEY (owner_id) REFERENCES users(user_id) 
+);
+
+CREATE TABLE shop_customers(
+    shop_customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sub VARCHAR(255) UNIQUE,
+    shop_id BIGINT NOT NULL,
+    email VARCHAR(255) NOT NULL,   
+    name VARCHAR(255),
+    locale VARCHAR(255),
+    profile_picture TEXT,
+    verified_email BOOLEAN DEFAULT FALSE, 
+    auth_provider VARCHAR(255),
+    auth_provider_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    last_login TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    UNIQUE (email, shop_id),
+    UNIQUE (sub, shop_id),
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE    
 );
 
 CREATE TABLE shop_images (
@@ -179,39 +197,73 @@ CREATE TABLE product_variation_attribute_values(
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
-CREATE TABLE shopping_cart(
-    shopping_cart_id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL,
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+CREATE TYPE payment_method_type AS ENUM (
+  'flutterwave',
+  'paystack',
+  'paypal',
+  'stripe'
+);
+CREATE TABLE shop_payment_methods(
+  payment_method_id BIGSERIAL PRIMARY KEY,
+  shop_id BIGINT NOT NULL REFERENCES shops(shop_id),
+  method_type payment_method_type NOT NULL,
+  is_enabled BOOLEAN NOT NULL DEFAULT false,
+  attributes JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  UNIQUE (shop_id, method_type)
 );
 
-CREATE TABLE shopping_cart_items(
-    shopping_cart_item_id BIGSERIAL PRIMARY KEY,
-    quantity BIGINT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    product_variation_id BIGINT NOT NULL,
-    shopping_cart_id BIGINT NOT NULL,
-    CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
-    CONSTRAINT fk_shopping_cart FOREIGN KEY (shopping_cart_id) REFERENCES shopping_cart(shopping_cart_id) ON DELETE CASCADE
+-- Order lifecycle states
+CREATE TYPE order_status_type AS ENUM (
+  'pending',    -- Order placed but not processed
+  'processing', -- Payment confirmed, preparing for shipping
+  'completed',  -- Order delivered and closed
+  'cancelled',  -- Order cancelled before completion
+  'refunded'    -- Full refund issued
 );
 
-CREATE TABLE orders(
-    order_id BIGSERIAL PRIMARY KEY,
-    status VARCHAR(10) NOT NULL,
-    total_price DECIMAL(10, 2) NOT NULL,
-    -- discount_price DECIMAL(10, 2) NOT NULL,
-    -- shipping_price DECIMAL(10, 2) NOT NULL,
-    -- tax_price DECIMAL(10, 2) NOT NULL,
-    -- shipping_address TEXT NOT NULL,
-    -- payment_method VARCHAR(10) NOT NULL,
-    -- payment_status VARCHAR(10) NOT NULL,
-    -- shipping_method VARCHAR(10) NOT NULL,
-    -- shipping_status VARCHAR(10) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    user_id UUID NOT NULL,
-    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+-- Payment outcomes
+CREATE TYPE payment_status_type AS ENUM (
+  'pending',       -- Awaiting payment
+  'paid',          -- Full payment received
+  'failed',        -- Payment attempt failed
+  'refunded',      -- Full refund processed
+  'partial_refund' -- Partial refund issued
+);
+
+-- Shipping progress states
+CREATE TYPE shipping_status_type AS ENUM (
+  'pending',    -- Awaiting fulfillment
+  'shipped',    -- Dispatched to carrier
+  'delivered',  -- Received by customer
+  'cancelled',  -- Shipping cancelled
+  'returned'    -- Returned to seller
+);
+
+CREATE TABLE orders (
+  order_id BIGSERIAL PRIMARY KEY,
+  status order_status_type NOT NULL DEFAULT 'pending',
+  amount DECIMAL(10, 2) NOT NULL,
+  discount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  shipping_cost DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  tax DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  shipping_address TEXT NOT NULL,
+  payment_method payment_method_type NOT NULL, -- Reuse existing ENUM
+  payment_status payment_status_type NOT NULL DEFAULT 'pending',
+  shipping_method VARCHAR(10) NOT NULL,
+  shipping_status shipping_status_type NOT NULL DEFAULT 'pending',
+  transaction_id TEXT,
+  username VARCHAR(50) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  shop_customer_id UUID,
+  shop_id BIGINT NOT NULL,
+  customer_name VARCHAR(100) NOT NULL,
+  customer_email VARCHAR(100),
+  customer_phone VARCHAR(50),
+  CONSTRAINT fk_shop_customer FOREIGN KEY (shop_customer_id) REFERENCES shop_customers(shop_customer_id) ON DELETE CASCADE,
+  CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
 CREATE TABLE order_items(
@@ -222,8 +274,26 @@ CREATE TABLE order_items(
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     product_variation_id BIGINT NOT NULL,
     order_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
     CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
-    CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+    CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
+);
+
+-- Stock movements table for inventory tracking
+CREATE TABLE stock_movements (
+    movement_id BIGSERIAL PRIMARY KEY,
+    product_variation_id BIGINT NOT NULL,
+    shop_id BIGINT NOT NULL,
+    movement_type VARCHAR(50) NOT NULL, -- 'SALE', 'RESTOCK', 'ADJUSTMENT', 'RETURN'
+    quantity_change INT NOT NULL, -- positive for increase, negative for decrease
+    quantity_before INT NOT NULL,
+    quantity_after INT NOT NULL,
+    reference_id BIGINT, -- order_id for sales, adjustment_id for manual adjustments
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CONSTRAINT fk_product_variation FOREIGN KEY (product_variation_id) REFERENCES product_variations(product_variation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
 
 -- SET RLS for categories
@@ -262,6 +332,62 @@ WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
 ALTER TABLE product_variations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY shop_policy ON product_variations
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for attributes
+ALTER TABLE attributes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON attributes
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for attribute_options
+ALTER TABLE attribute_options ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON attribute_options
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for product_attribute_values
+ALTER TABLE product_attribute_values ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON product_attribute_values
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for product_variation_attribute_values
+ALTER TABLE product_variation_attribute_values ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON product_variation_attribute_values
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for orders
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON orders
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for order_items
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON order_items
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for stock_movements
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY shop_policy ON stock_movements
 FOR ALL
 USING (shop_id = current_setting('commerce.current_shop_id')::int)
 WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);

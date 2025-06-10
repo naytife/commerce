@@ -1,5 +1,5 @@
 # Use an official Go image to build the application
-FROM golang:1.22 AS builder
+FROM golang:1.23 AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -12,19 +12,19 @@ RUN go mod download
 COPY . .
 
 # Generate Swagger documentation
-RUN go install github.com/swaggo/swag/cmd/swag@latest
-RUN swag init -g cmd/api/main.go -o docs
+RUN go install github.com/swaggo/swag/v2/cmd/swag@latest
+RUN swag init -g main.go -o docs -d cmd/api,internal/api/handlers,internal/api/models,internal/db --v3.1
 
 # Build the Go application with optimization flags
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
 
-# Use Alpine as base image instead of scratch
-FROM alpine:3.19
+# Use scratch - the smallest possible base image (empty filesystem)
+FROM scratch
 
-# Install CA certificates
-RUN apk --no-cache add ca-certificates
+# Copy CA certificates from builder stage for HTTPS support
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
 # Copy the binary and docs
@@ -34,5 +34,5 @@ COPY --from=builder /app/docs /app/docs
 # Expose the port
 EXPOSE 8000
 
-# Run the binary
+# Run the binary (note: no shell available in scratch, so use exec form)
 ENTRYPOINT ["/app/bin/api"]

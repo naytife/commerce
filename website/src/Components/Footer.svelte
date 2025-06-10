@@ -9,7 +9,7 @@
 			<div class="flex flex-col gap-6 md:gap-10">
 				<img src={naytifelogo} alt="Naytife Logo" class="w-1/3 md:w-1/4" />
 				<div class="flex gap-4 text-xs">
-					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors">
+					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors duration-200 ease-in-out">
 						<span>Facebook</span>
 						<svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path
@@ -19,7 +19,7 @@
 							></path>
 						</svg>
 					</a>
-					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors">
+					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors duration-200 ease-in-out">
 						<span>Instagram</span>
 						<svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path
@@ -29,7 +29,7 @@
 							></path>
 						</svg>
 					</a>
-					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors">
+					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors duration-200 ease-in-out">
 						<span>X</span>
 						<svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path
@@ -37,7 +37,7 @@
 							></path>
 						</svg>
 					</a>
-					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors">
+					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors duration-200 ease-in-out">
 						<span>GitHub</span>
 						<svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path
@@ -47,7 +47,7 @@
 							></path>
 						</svg>
 					</a>
-					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors">
+					<a href="#" class="flex items-center text-black hover:text-green-700 transition-colors duration-200 ease-in-out">
 						<span>YouTube</span>
 						<svg class="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path
@@ -66,18 +66,18 @@
 					<h3 class="font-bold text-green-950 mb-4">Solutions</h3>
 					<ul class="space-y-2">
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Marketing</a
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Marketing</a
 							>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Analytics</a
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Analytics</a
 							>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Commerce</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Commerce</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Insights</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Insights</a>
 						</li>
 					</ul>
 				</div>
@@ -85,18 +85,18 @@
 					<h3 class="font-bold text-green-950 mb-4">Support</h3>
 					<ul class="space-y-2">
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Pricing</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Pricing</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors"
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out"
 								>Documentation</a
 							>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Guides</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Guides</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors"
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out"
 								>API Status</a
 							>
 						</li>
@@ -106,19 +106,19 @@
 					<h3 class="font-bold text-green-950 mb-4">Company</h3>
 					<ul class="space-y-2">
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">About</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">About</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Blog</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Blog</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Jobs</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Jobs</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Press</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Press</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Partners</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Partners</a>
 						</li>
 					</ul>
 				</div>
@@ -126,13 +126,13 @@
 					<h3 class="font-bold text-green-950 mb-4">Legal</h3>
 					<ul class="space-y-2">
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Claim</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Claim</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Privacy</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Privacy</a>
 						</li>
 						<li>
-							<a href="#" class="text-green-950 hover:text-green-700 transition-colors">Terms</a>
+							<a href="#" class="text-green-950 hover:text-green-700 transition-colors duration-200 ease-in-out">Terms</a>
 						</li>
 					</ul>
 				</div>
@@ -140,11 +140,11 @@
 		</div>
 
 		<div class="border-t border-gray-300 mt-16 pt-6">
-			<div class="flex flex-col md:flex-row items-center justify-between text-xs text-green-950/50">
+			<div class="flex flex-col md:flex-row items-center justify-between text-xs text-gray-500">
 				<p>© 2024 Naytife Inc. All rights reserved.</p>
 				<div class="flex gap-4 mt-4 md:mt-0">
-					<a href="#" class="hover:text-green-700 transition-colors">Privacy Policy</a>
-					<a href="#" class="hover:text-green-700 transition-colors">Terms of Service</a>
+					<a href="#" class="hover:text-green-700 transition-colors duration-200 ease-in-out">Privacy Policy</a>
+					<a href="#" class="hover:text-green-700 transition-colors duration-200 ease-in-out">Terms of Service</a>
 				</div>
 			</div>
 		</div>

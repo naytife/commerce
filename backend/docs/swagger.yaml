@@ -31,6 +31,46 @@ definitions:
     - AttributeUnitKG
     - AttributeUnitGB
     - AttributeUnitINCH
+  db.OrderStatusType:
+    enum:
+    - pending
+    - processing
+    - completed
+    - cancelled
+    - refunded
+    type: string
+    x-enum-varnames:
+    - OrderStatusTypePending
+    - OrderStatusTypeProcessing
+    - OrderStatusTypeCompleted
+    - OrderStatusTypeCancelled
+    - OrderStatusTypeRefunded
+  db.PaymentMethodType:
+    enum:
+    - flutterwave
+    - paystack
+    - paypal
+    - stripe
+    type: string
+    x-enum-varnames:
+    - PaymentMethodTypeFlutterwave
+    - PaymentMethodTypePaystack
+    - PaymentMethodTypePaypal
+    - PaymentMethodTypeStripe
+  db.PaymentStatusType:
+    enum:
+    - pending
+    - paid
+    - failed
+    - refunded
+    - partial_refund
+    type: string
+    x-enum-varnames:
+    - PaymentStatusTypePending
+    - PaymentStatusTypePaid
+    - PaymentStatusTypeFailed
+    - PaymentStatusTypeRefunded
+    - PaymentStatusTypePartialRefund
   db.ProductStatus:
     enum:
     - DRAFT
@@ -41,6 +81,207 @@ definitions:
     - ProductStatusDRAFT
     - ProductStatusPUBLISHED
     - ProductStatusARCHIVED
+  db.ShippingStatusType:
+    enum:
+    - pending
+    - shipped
+    - delivered
+    - cancelled
+    - returned
+    type: string
+    x-enum-varnames:
+    - ShippingStatusTypePending
+    - ShippingStatusTypeShipped
+    - ShippingStatusTypeDelivered
+    - ShippingStatusTypeCancelled
+    - ShippingStatusTypeReturned
+  handlers.CheckoutAddress:
+    properties:
+      city:
+        type: string
+      country:
+        type: string
+      line1:
+        type: string
+      line2:
+        type: string
+      postal_code:
+        type: string
+      state:
+        type: string
+    required:
+    - city
+    - country
+    - line1
+    - postal_code
+    type: object
+  handlers.CheckoutCustomer:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  handlers.CheckoutItem:
+    properties:
+      amount:
+        description: Amount in cents
+        minimum: 1
+        type: integer
+      currency:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      product_id:
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - amount
+    - currency
+    - name
+    - product_id
+    - quantity
+    type: object
+  handlers.CheckoutShipping:
+    properties:
+      address:
+        $ref: '#/definitions/handlers.CheckoutAddress'
+      name:
+        type: string
+    required:
+    - address
+    - name
+    type: object
+  handlers.ConfirmPaymentRequest:
+    properties:
+      payment_intent_id:
+        type: string
+      payment_method_id:
+        type: string
+    required:
+    - payment_intent_id
+    type: object
+  handlers.ConfirmPaymentResponse:
+    properties:
+      next_action:
+        $ref: '#/definitions/models.PaymentNextAction'
+      payment_intent_id:
+        type: string
+      status:
+        type: string
+    type: object
+  handlers.CreateCheckoutSessionRequest:
+    properties:
+      cancel_url:
+        type: string
+      currency:
+        type: string
+      customer:
+        $ref: '#/definitions/handlers.CheckoutCustomer'
+      items:
+        items:
+          $ref: '#/definitions/handlers.CheckoutItem'
+        minItems: 1
+        type: array
+      metadata:
+        additionalProperties:
+          type: string
+        type: object
+      payment_method_type:
+        enum:
+        - stripe
+        - paystack
+        - flutterwave
+        - paypal
+        - pay_on_delivery
+        type: string
+      shipping:
+        $ref: '#/definitions/handlers.CheckoutShipping'
+      shop_id:
+        type: integer
+      success_url:
+        type: string
+    required:
+    - cancel_url
+    - currency
+    - items
+    - payment_method_type
+    - shop_id
+    - success_url
+    type: object
+  handlers.CreateCheckoutSessionResponse:
+    properties:
+      client_secret:
+        type: string
+      next_action:
+        $ref: '#/definitions/models.PaymentNextAction'
+      payment_intent_id:
+        type: string
+      payment_method_types:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+    type: object
+  handlers.PaymentMethodConfig:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      is_enabled:
+        type: boolean
+      method_type:
+        type: string
+    required:
+    - method_type
+    type: object
+  models.AddStockParams:
+    properties:
+      quantity:
+        minimum: 1
+        type: integer
+      reason:
+        maxLength: 255
+        minLength: 3
+        type: string
+      reference_id:
+        type: string
+      reference_type:
+        type: string
+    required:
+    - quantity
+    - reason
+    - reference_type
+    type: object
+  models.AddToCartRequest:
+    properties:
+      image:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      product_variation_id:
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+      slug:
+        type: string
+      title:
+        type: string
+    required:
+    - price
+    - product_variation_id
+    - quantity
+    - title
+    type: object
   models.Attribute:
     properties:
       applies_to:
@@ -163,6 +404,245 @@ definitions:
         - $ref: '#/definitions/db.AttributeUnit'
         example: KG
     type: object
+  models.Cart:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.CartItem'
+        type: array
+      total:
+        type: number
+    type: object
+  models.CartItem:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      price:
+        type: number
+      product_variation_id:
+        type: string
+      quantity:
+        type: integer
+      slug:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.CheckoutRequest:
+    properties:
+      billing_address:
+        $ref: '#/definitions/models.ShippingAddress'
+      coupon_code:
+        type: string
+      customer_info:
+        $ref: '#/definitions/models.CustomerInfo'
+      discount:
+        minimum: 0
+        type: number
+      items:
+        items:
+          $ref: '#/definitions/models.CartItem'
+        minItems: 1
+        type: array
+      notes:
+        type: string
+      shipping_address:
+        $ref: '#/definitions/models.ShippingAddress'
+      shipping_cost:
+        minimum: 0
+        type: number
+      tax_rate:
+        maximum: 1
+        minimum: 0
+        type: number
+    required:
+    - customer_info
+    - items
+    - shipping_address
+    type: object
+  models.CheckoutResponse:
+    properties:
+      billing_address:
+        $ref: '#/definitions/models.ShippingAddress'
+      currency_code:
+        type: string
+      customer_info:
+        $ref: '#/definitions/models.CustomerInfo'
+      discount:
+        type: number
+      expires_at:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/models.CartItem'
+        type: array
+      payment_methods:
+        items:
+          $ref: '#/definitions/models.PaymentMethodInfo'
+        type: array
+      session_id:
+        type: string
+      shipping:
+        type: number
+      shipping_address:
+        $ref: '#/definitions/models.ShippingAddress'
+      shop_id:
+        type: integer
+      shop_name:
+        type: string
+      subtotal:
+        type: number
+      tax:
+        type: number
+      total:
+        type: number
+    type: object
+  models.CreateOrderRequest:
+    properties:
+      customer_email:
+        type: string
+      customer_id:
+        type: string
+      customer_name:
+        type: string
+      customer_phone:
+        type: string
+      discount:
+        type: number
+      items:
+        items:
+          $ref: '#/definitions/models.CreateOrderRequestItem'
+        minItems: 1
+        type: array
+      payment_method:
+        enum:
+        - flutterwave
+        - paystack
+        - paypal
+        - stripe
+        type: string
+      shipping_address:
+        type: string
+      shipping_cost:
+        type: number
+      shipping_method:
+        type: string
+      tax:
+        type: number
+      transaction_id:
+        type: string
+    required:
+    - customer_name
+    - items
+    - payment_method
+    - shipping_address
+    - shipping_method
+    type: object
+  models.CreateOrderRequestItem:
+    properties:
+      price:
+        minimum: 0
+        type: number
+      product_variation_id:
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - price
+    - product_variation_id
+    - quantity
+    type: object
+  models.CustomerInfo:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    type: object
+  models.CustomerListResponse:
+    properties:
+      customers:
+        items:
+          $ref: '#/definitions/models.CustomerResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.CustomerOrdersResponse:
+    properties:
+      orders:
+        items:
+          $ref: '#/definitions/models.OrderResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  models.CustomerResponse:
+    properties:
+      auth_provider:
+        type: string
+      auth_provider_id:
+        type: string
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      customer_id:
+        type: string
+      email:
+        type: string
+      last_login:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      profile_picture:
+        type: string
+      shop_id:
+        type: integer
+      verified_email:
+        type: boolean
+    type: object
+  models.DeductStockParams:
+    properties:
+      quantity:
+        minimum: 1
+        type: integer
+      reason:
+        maxLength: 255
+        minLength: 3
+        type: string
+      reference_id:
+        type: string
+      reference_type:
+        type: string
+    required:
+    - quantity
+    - reason
+    - reference_type
+    type: object
   models.Error:
     description: Error response object
     properties:
@@ -190,11 +670,290 @@ definitions:
       status:
         type: string
     type: object
+  models.InventoryReportResponse:
+    properties:
+      generated_at:
+        type: string
+      low_stock_count:
+        type: integer
+      out_of_stock_count:
+        type: integer
+      total_products:
+        type: integer
+      total_stock_value:
+        type: number
+      total_variants:
+        type: integer
+    type: object
+  models.LowStockVariantResponse:
+    properties:
+      current_stock:
+        type: integer
+      price:
+        type: number
+      product_id:
+        type: integer
+      product_title:
+        type: string
+      reorder_level:
+        type: integer
+      sku:
+        type: string
+      variant_id:
+        type: integer
+      variant_title:
+        type: string
+    type: object
   models.Meta:
     description: Meta object
     properties:
       timestamp:
         example: "2025-02-12T18:31:40Z"
+        type: string
+    type: object
+  models.Order:
+    properties:
+      amount:
+        type: number
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      customer_email:
+        type: string
+      customer_id:
+        type: string
+      customer_name:
+        description: Customer contact information
+        type: string
+      customer_phone:
+        type: string
+      discount:
+        type: number
+      items:
+        items:
+          $ref: '#/definitions/models.OrderItem'
+        type: array
+      order_id:
+        type: integer
+      payment_method:
+        $ref: '#/definitions/db.PaymentMethodType'
+      payment_status:
+        $ref: '#/definitions/db.PaymentStatusType'
+      shipping_address:
+        type: string
+      shipping_cost:
+        type: number
+      shipping_method:
+        type: string
+      shipping_status:
+        $ref: '#/definitions/db.ShippingStatusType'
+      shop_id:
+        type: integer
+      status:
+        $ref: '#/definitions/db.OrderStatusType'
+      tax:
+        type: number
+      transaction_id:
+        type: string
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      username:
+        type: string
+    type: object
+  models.OrderItem:
+    properties:
+      created_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+      order_id:
+        type: integer
+      order_item_id:
+        type: integer
+      price:
+        type: number
+      product_variation_id:
+        type: integer
+      quantity:
+        type: integer
+      shop_id:
+        type: integer
+      updated_at:
+        example: "2025-02-09T09:38:25Z"
+        format: date-time
+        type: string
+    type: object
+  models.OrderItemResponse:
+    properties:
+      order_item_id:
+        type: integer
+      price:
+        type: number
+      product_title:
+        type: string
+      product_variation_id:
+        type: integer
+      quantity:
+        type: integer
+      variant_title:
+        type: string
+    type: object
+  models.OrderResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      customer_phone:
+        type: string
+      discount:
+        type: number
+      items:
+        items:
+          $ref: '#/definitions/models.OrderItemResponse'
+        type: array
+      order_id:
+        type: integer
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      shipping_address:
+        type: string
+      shipping_cost:
+        type: number
+      shipping_method:
+        type: string
+      shipping_status:
+        type: string
+      status:
+        type: string
+      tax:
+        type: number
+      transaction_id:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  models.PaymentIntentRequest:
+    properties:
+      amount:
+        minimum: 0.01
+        type: number
+      checkout_session_id:
+        type: string
+      currency_code:
+        type: string
+      customer_id:
+        type: string
+      description:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      payment_method:
+        enum:
+        - stripe
+        - paypal
+        - paystack
+        - flutterwave
+        - cash_on_delivery
+        type: string
+      payment_method_id:
+        type: string
+    required:
+    - amount
+    - checkout_session_id
+    - currency_code
+    - payment_method
+    type: object
+  models.PaymentIntentResponse:
+    properties:
+      amount:
+        type: number
+      client_secret:
+        type: string
+      currency_code:
+        type: string
+      next_action:
+        $ref: '#/definitions/models.PaymentNextAction'
+      payment_intent_id:
+        type: string
+      status:
+        type: string
+    type: object
+  models.PaymentMethodInfo:
+    properties:
+      config:
+        additionalProperties: true
+        type: object
+      display_name:
+        type: string
+      enabled:
+        type: boolean
+      type:
+        type: string
+    type: object
+  models.PaymentNextAction:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+      type:
+        type: string
+    type: object
+  models.PaymentRequest:
+    properties:
+      checkout_session_id:
+        type: string
+      payment_details:
+        additionalProperties: true
+        type: object
+      payment_method:
+        enum:
+        - stripe
+        - paypal
+        - paystack
+        - flutterwave
+        - cash_on_delivery
+        type: string
+      save_payment_method:
+        type: boolean
+    required:
+    - checkout_session_id
+    - payment_method
+    type: object
+  models.PaymentResponse:
+    properties:
+      amount:
+        type: number
+      currency_code:
+        type: string
+      next_action:
+        $ref: '#/definitions/models.PaymentNextAction'
+      order_id:
+        type: integer
+      payment_details:
+        additionalProperties: true
+        type: object
+      payment_id:
+        type: string
+      payment_method:
+        type: string
+      processed_at:
+        type: string
+      status:
+        type: string
+      transaction_id:
         type: string
     type: object
   models.Product:
@@ -449,6 +1208,33 @@ definitions:
     - available_quantity
     - price
     type: object
+  models.RegisterCustomerParams:
+    properties:
+      auth_provider:
+        type: string
+      auth_provider_id:
+        type: string
+      customer_id:
+        type: string
+      email:
+        type: string
+      locale:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      picture:
+        type: string
+      shop_id:
+        type: integer
+      verified_email:
+        type: boolean
+    required:
+    - email
+    - name
+    - shop_id
+    type: object
   models.RegisterUserParams:
     properties:
       email:
@@ -474,6 +1260,36 @@ definitions:
     - id
     - name
     type: object
+  models.ShippingAddress:
+    properties:
+      address_line_1:
+        type: string
+      address_line_2:
+        type: string
+      city:
+        type: string
+      company:
+        type: string
+      country:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      state:
+        type: string
+    required:
+    - address_line_1
+    - city
+    - country
+    - first_name
+    - last_name
+    - postal_code
+    type: object
   models.Shop:
     properties:
       about:
@@ -493,7 +1309,7 @@ definitions:
       facebook_link:
         type: string
       images:
-        $ref: '#/definitions/models.ShopImagesResponse'
+        $ref: '#/definitions/models.ShopImagesData'
       instagram_link:
         type: string
       phone_number:
@@ -549,7 +1365,7 @@ definitions:
     - subdomain
     - title
     type: object
-  models.ShopImagesResponse:
+  models.ShopImagesData:
     properties:
       banner_url:
         type: string
@@ -618,6 +1434,46 @@ definitions:
       whatsapp_phone_number:
         type: string
     type: object
+  models.StockMovementResponse:
+    properties:
+      created_at:
+        type: string
+      movement_id:
+        type: integer
+      movement_type:
+        type: string
+      new_stock:
+        type: integer
+      previous_stock:
+        type: integer
+      product_title:
+        type: string
+      quantity:
+        type: integer
+      reason:
+        type: string
+      reference_id:
+        type: string
+      reference_type:
+        type: string
+      variant_id:
+        type: integer
+      variant_title:
+        type: string
+    type: object
+  models.StockMovementsResponse:
+    properties:
+      limit:
+        type: integer
+      movements:
+        items:
+          $ref: '#/definitions/models.StockMovementResponse'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
   models.SuccessResponse:
     description: Generic API response
     properties:
@@ -633,6 +1489,95 @@ definitions:
       status:
         example: success
         type: string
+    type: object
+  models.UpdateCartItemRequest:
+    properties:
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - quantity
+    type: object
+  models.UpdateCustomerParams:
+    properties:
+      locale:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      profile_picture:
+        type: string
+      verified_email:
+        type: boolean
+    type: object
+  models.UpdateOrderParams:
+    properties:
+      amount:
+        type: number
+      customer_email:
+        type: string
+      customer_name:
+        description: Customer contact information
+        type: string
+      customer_phone:
+        type: string
+      discount:
+        type: number
+      payment_method:
+        $ref: '#/definitions/db.PaymentMethodType'
+      payment_status:
+        $ref: '#/definitions/db.PaymentStatusType'
+      shipping_address:
+        type: string
+      shipping_cost:
+        type: number
+      shipping_method:
+        type: string
+      shipping_status:
+        $ref: '#/definitions/db.ShippingStatusType'
+      status:
+        $ref: '#/definitions/db.OrderStatusType'
+      tax:
+        type: number
+      transaction_id:
+        type: string
+      username:
+        type: string
+    required:
+    - amount
+    - payment_method
+    - payment_status
+    - shipping_address
+    - shipping_method
+    - shipping_status
+    - status
+    - username
+    type: object
+  models.UpdateOrderStatusParams:
+    properties:
+      status:
+        $ref: '#/definitions/db.OrderStatusType'
+    required:
+    - status
+    type: object
+  models.UpdateStockParams:
+    properties:
+      reason:
+        maxLength: 255
+        minLength: 3
+        type: string
+      reference_id:
+        type: string
+      reference_type:
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+    required:
+    - reason
+    - reference_type
+    - stock
     type: object
   models.UserResponse:
     properties:
@@ -685,6 +1630,15 @@ definitions:
         format: date-time
         type: string
     type: object
+  models.VariantStockResponse:
+    properties:
+      stock:
+        type: integer
+      updated_at:
+        type: string
+      variant_id:
+        type: integer
+    type: object
 info:
   contact: {}
   description: This is the Naytife API documentation
@@ -717,6 +1671,197 @@ paths:
       summary: Create or update a user
       tags:
       - auth
+  /auth/register-customer:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Customer object that needs to be created or updated
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterCustomerParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer created or updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerResponse'
+              type: object
+      summary: Create or update a customer
+      tags:
+      - customer
+  /cart:
+    delete:
+      description: Remove all items from the cart
+      parameters:
+      - description: Session ID for anonymous users
+        in: query
+        name: session_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cart cleared successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Clear cart
+      tags:
+      - cart
+    get:
+      description: Get cart items for the current session
+      parameters:
+      - description: Session ID for anonymous users
+        in: query
+        name: session_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cart retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Cart'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get cart items
+      tags:
+      - cart
+  /cart/items:
+    post:
+      consumes:
+      - application/json
+      description: Add a product variant to the cart
+      parameters:
+      - description: Cart item to add
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddToCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item added to cart successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CartItem'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Add item to cart
+      tags:
+      - cart
+  /cart/items/{item_id}:
+    delete:
+      description: Remove an item from the cart
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: item_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item removed from cart successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Invalid item ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Cart item not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Remove item from cart
+      tags:
+      - cart
+    put:
+      consumes:
+      - application/json
+      description: Update the quantity of an item in the cart
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: item_id
+        required: true
+        type: string
+      - description: Updated quantity
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateCartItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cart item updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CartItem'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Cart item not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Update cart item quantity
+      tags:
+      - cart
   /me:
     get:
       produces:
@@ -733,10 +1878,107 @@ paths:
               type: object
       security:
       - OAuth2AccessCode: []
-      - XUserIdAuth: []
       summary: Fetch the currently authenticated user
       tags:
       - user
+  /payments/{shop_id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Confirms a Stripe payment intent
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      - description: Confirm payment request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ConfirmPaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ConfirmPaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Confirm payment
+      tags:
+      - payments
+  /payments/{shop_id}/status/{payment_intent_id}:
+    get:
+      description: Retrieves the current status of a Stripe payment intent
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      - description: Payment Intent ID
+        in: path
+        name: payment_intent_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ConfirmPaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get payment status
+      tags:
+      - payments
+  /payments/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Creates a payment intent for processing payments using the shop's
+        configured payment method
+      parameters:
+      - description: Checkout session request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateCheckoutSessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.CreateCheckoutSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Create checkout session
+      tags:
+      - payments
   /shops:
     get:
       produces:
@@ -1038,6 +2280,326 @@ paths:
       summary: Update an attribute
       tags:
       - Attributes
+  /shops/{shop_id}/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Begin the checkout process for cart items
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Checkout details
+        in: body
+        name: checkout
+        required: true
+        schema:
+          $ref: '#/definitions/models.CheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Checkout initiated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CheckoutResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Initiate checkout
+      tags:
+      - checkout
+  /shops/{shop_id}/customers:
+    get:
+      description: Get paginated list of customers for a specific shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customers fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerListResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch all customers for a shop
+      tags:
+      - customer
+  /shops/{shop_id}/customers/{customer_id}:
+    delete:
+      description: Delete a customer from the shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer deleted successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete a customer
+      tags:
+      - customer
+    get:
+      description: Get detailed customer information by customer ID
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a customer by ID
+      tags:
+      - customer
+    put:
+      consumes:
+      - application/json
+      description: Update customer details
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      - description: Customer update parameters
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateCustomerParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update customer information
+      tags:
+      - customer
+  /shops/{shop_id}/customers/{customer_id}/orders:
+    get:
+      description: Get paginated order history for a specific customer
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer orders fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerOrdersResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch customer order history
+      tags:
+      - customer
+  /shops/{shop_id}/customers/search:
+    get:
+      description: Search customers in a shop by name or email
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customers found successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerListResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Search customers by name or email
+      tags:
+      - customer
   /shops/{shop_id}/images:
     put:
       consumes:
@@ -1065,7 +2627,7 @@ paths:
             - $ref: '#/definitions/models.SuccessResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/models.ShopImagesResponse'
+                  $ref: '#/definitions/models.ShopImagesData'
               type: object
         "400":
           description: Bad request
@@ -1084,6 +2646,878 @@ paths:
       summary: Update shop images
       tags:
       - shops
+  /shops/{shop_id}/inventory/low-stock:
+    get:
+      description: Get product variants that are running low on stock
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - default: 10
+        description: Stock threshold
+        in: query
+        name: threshold
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Low stock variants fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.LowStockVariantResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Get low stock variants
+      tags:
+      - inventory
+  /shops/{shop_id}/inventory/movements:
+    get:
+      description: Get paginated stock movement history for a shop or specific variant
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Variant ID to filter by
+        in: query
+        name: variant_id
+        type: string
+      - default: 50
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock movements fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.StockMovementsResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Get stock movement history
+      tags:
+      - inventory
+  /shops/{shop_id}/inventory/report:
+    get:
+      description: Generate comprehensive inventory report for a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Inventory report generated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.InventoryReportResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Get inventory report
+      tags:
+      - inventory
+  /shops/{shop_id}/inventory/variants/{variant_id}/add-stock:
+    post:
+      consumes:
+      - application/json
+      description: Add stock quantity to a specific product variant
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Variant ID
+        in: path
+        name: variant_id
+        required: true
+        type: string
+      - description: Stock addition parameters
+        in: body
+        name: stock
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddStockParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock added successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.VariantStockResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Variant not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Add stock to variant
+      tags:
+      - inventory
+  /shops/{shop_id}/inventory/variants/{variant_id}/deduct-stock:
+    post:
+      consumes:
+      - application/json
+      description: Deduct stock quantity from a specific product variant
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Variant ID
+        in: path
+        name: variant_id
+        required: true
+        type: string
+      - description: Stock deduction parameters
+        in: body
+        name: stock
+        required: true
+        schema:
+          $ref: '#/definitions/models.DeductStockParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock deducted successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.VariantStockResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Variant not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Deduct stock from variant
+      tags:
+      - inventory
+  /shops/{shop_id}/inventory/variants/{variant_id}/stock:
+    put:
+      consumes:
+      - application/json
+      description: Update the stock quantity for a specific product variant
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Variant ID
+        in: path
+        name: variant_id
+        required: true
+        type: string
+      - description: Stock update parameters
+        in: body
+        name: stock
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateStockParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stock updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.VariantStockResponse'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Variant not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update variant stock
+      tags:
+      - inventory
+  /shops/{shop_id}/orders:
+    get:
+      description: Fetch orders for a shop with pagination
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Orders fetched successfully
+          schema:
+            items:
+              $ref: '#/definitions/models.Order'
+            type: array
+        "400":
+          description: Invalid shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch orders for a shop
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Create a new order with items from cart
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Order object that needs to be created
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Order created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Invalid request body or shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Create a new order
+      tags:
+      - orders
+  /shops/{shop_id}/orders/{order_id}:
+    delete:
+      description: Delete an order and all its items
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order deleted successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Invalid shop or order ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete an order
+      tags:
+      - orders
+    get:
+      description: Fetch a single order by ID
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Invalid shop or order ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a single order
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Update an order's details
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      - description: Order object that needs to be updated
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateOrderParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Invalid request body or IDs
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update an order
+      tags:
+      - orders
+  /shops/{shop_id}/orders/{order_id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update only the status of an order
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: string
+      - description: Status object
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateOrderStatusParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order status updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Invalid request body or IDs
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update an order's status
+      tags:
+      - orders
+  /shops/{shop_id}/payment:
+    post:
+      consumes:
+      - application/json
+      description: Process payment for an order using the selected payment method
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment details
+        in: body
+        name: payment
+        required: true
+        schema:
+          $ref: '#/definitions/models.PaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment processed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaymentResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "402":
+          description: Payment failed
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Process payment
+      tags:
+      - payment
+  /shops/{shop_id}/payment-methods:
+    get:
+      description: Retrieve all configured payment methods for a specific shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment methods retrieved successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.PaymentMethodInfo'
+                  type: array
+              type: object
+        "400":
+          description: Invalid shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to get payment methods
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Get all payment methods for a shop
+      tags:
+      - payment-methods
+  /shops/{shop_id}/payment-methods/{method_type}:
+    delete:
+      description: Remove a payment method configuration from a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment method type (stripe, paypal, paystack, flutterwave)
+        in: path
+        name: method_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment method deleted successfully
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Invalid request body or shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to delete payment method
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Delete a payment method
+      tags:
+      - payment-methods
+    put:
+      consumes:
+      - application/json
+      description: Create or update a payment method configuration for a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment method type (stripe, paypal, paystack, flutterwave)
+        in: path
+        name: method_type
+        required: true
+        type: string
+      - description: Payment method configuration
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.PaymentMethodConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment method updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaymentMethodInfo'
+              type: object
+        "400":
+          description: Invalid request body or shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to update payment method
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Create or update a payment method
+      tags:
+      - payment-methods
+  /shops/{shop_id}/payment-methods/{method_type}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Enable or disable a payment method for a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment method type (stripe, paypal, paystack, flutterwave)
+        in: path
+        name: method_type
+        required: true
+        type: string
+      - description: Payment method status
+        in: body
+        name: status
+        required: true
+        schema:
+          properties:
+            is_enabled:
+              type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment method status updated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaymentMethodInfo'
+              type: object
+        "400":
+          description: Invalid request body or shop ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Payment method not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Update payment method status
+      tags:
+      - payment-methods
+  /shops/{shop_id}/payment-methods/{method_type}/test:
+    post:
+      description: Test the connectivity and configuration of a payment method
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment method type (stripe, paypal, paystack, flutterwave)
+        in: path
+        name: method_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment method test completed
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Invalid request or testing not supported
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Payment method not configured
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Invalid payment method configuration
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Test payment method configuration
+      tags:
+      - payment-methods
+  /shops/{shop_id}/payment/intent:
+    post:
+      consumes:
+      - application/json
+      description: Create a payment intent for the checkout session
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: string
+      - description: Payment intent details
+        in: body
+        name: payment
+        required: true
+        schema:
+          $ref: '#/definitions/models.PaymentIntentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payment intent created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.PaymentIntentResponse'
+              type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Shop not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Create payment intent
+      tags:
+      - payment
   /shops/{shop_id}/product-types:
     get:
       description: Fetch all product types
@@ -1790,6 +4224,34 @@ paths:
       summary: Delete a product image
       tags:
       - Product Images
+  /shops/customerinfo:
+    get:
+      parameters:
+      - description: Shop subdomain
+        in: query
+        name: subdomain
+        required: true
+        type: string
+      - description: Customer email
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.CustomerResponse'
+              type: object
+      summary: Fetch a customer by email for a specific shop
+      tags:
+      - customer
   /shops/subdomain/{subdomain}:
     get:
       parameters:
@@ -1823,9 +4285,149 @@ paths:
       summary: Fetch a shop by subdomain
       tags:
       - shops
+  /userinfo:
+    get:
+      parameters:
+      - description: User email
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User fetched successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.UserResponse'
+              type: object
+      summary: Fetch a user by email
+      tags:
+      - user
+  /webhooks/flutterwave/{shop_id}:
+    post:
+      consumes:
+      - application/json
+      description: Processes Flutterwave webhook events for payment updates
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Handle Flutterwave webhooks
+      tags:
+      - webhooks
+  /webhooks/paypal/{shop_id}:
+    post:
+      consumes:
+      - application/json
+      description: Processes PayPal webhook events for payment updates
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Handle PayPal webhooks
+      tags:
+      - webhooks
+  /webhooks/paystack/{shop_id}:
+    post:
+      consumes:
+      - application/json
+      description: Processes Paystack webhook events for payment updates
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Handle Paystack webhooks
+      tags:
+      - webhooks
+  /webhooks/stripe/{shop_id}:
+    post:
+      consumes:
+      - application/json
+      description: Processes Stripe webhook events for payment updates
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Handle Stripe webhooks
+      tags:
+      - webhooks
 securityDefinitions:
-  XUserIdAuth:
-    in: header
-    name: X-User-Id
-    type: apiKey
+  OAuth2AccessCode:
+    authorizationUrl: http://127.0.0.1:8080/oauth2/auth
+    flow: accessCode
+    tokenUrl: http://127.0.0.1:8080/oauth2/token
+    type: oauth2
 swagger: "2.0"

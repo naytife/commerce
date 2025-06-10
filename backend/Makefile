@@ -35,7 +35,7 @@ generate-gqlgen: ## Generate GraphQL code from schema
 
 .PHONY:	generate-swagger
 generate-swagger:	## Generate Swagger documentation
-	swag init -g cmd/api/main.go -o docs -v3.1
+	swag init -g main.go -o docs -d cmd/api,internal/api/handlers,internal/api/models,internal/db --v3.1
 
 # Migration targets
 .PHONY: migrate-up
@@ -46,17 +46,63 @@ migrate-up: ## Apply all up migrations
 migrate-down: ## Rollback the last migration
 	atlas migrate down --env local --dev-url $(ATLAS_DEV_URL)
 
+.PHONY: migrate-status
+migrate-status: ## Show current migration status
+	atlas migrate status --env local
+
+.PHONY: migrate-validate
+migrate-validate: ## Validate migration files
+	atlas migrate validate --env local
+
+.PHONY: migrate-dry-run
+migrate-dry-run: ## Test migrations without applying
+	atlas migrate apply --env local --dry-run
+
 .PHONY: migrate-clean
 migrate-clean: ## Clean the database
 	atlas schema clean --env local
 
 .PHONY: migrate-hash
-migrate-hash: ## Clean the database
+migrate-hash: ## Generate migration hash
 	atlas migrate hash --env local
 
 .PHONY: migrate-new
 migrate-new: ## Create a new migration file
 	atlas migrate diff --dir file://$(ATLAS_MIGRATIONS_DIR) --to file://$(ATLAS_SCHEMA_DIR) --dev-url $(ATLAS_DEV_URL) $(name)
+
+.PHONY: migrate-rollback
+migrate-rollback: ## Rollback to specific version (usage: make migrate-rollback version=20250101000000)
+	@if [ -z "$(version)" ]; then \
+		echo "Error: version parameter is required. Usage: make migrate-rollback version=20250101000000"; \
+		exit 1; \
+	fi
+	atlas migrate down --env local --to-version $(version) --dev-url $(ATLAS_DEV_URL)
+
+.PHONY: migrate-reset
+migrate-reset: ## Reset database and reapply all migrations
+	atlas schema clean --env local
+	atlas migrate apply --env local
+
+# Kubernetes migration targets
+.PHONY: k8s-migrate-run
+k8s-migrate-run: ## Run migrations in Kubernetes
+	../k3s/scripts/manage-migrations.sh run
+
+.PHONY: k8s-migrate-status
+k8s-migrate-status: ## Check migration status in Kubernetes
+	../k3s/scripts/manage-migrations.sh status
+
+.PHONY: k8s-migrate-logs
+k8s-migrate-logs: ## Show migration logs from Kubernetes
+	../k3s/scripts/manage-migrations.sh logs
+
+.PHONY: k8s-migrate-rollback
+k8s-migrate-rollback: ## Rollback migrations in Kubernetes (usage: make k8s-migrate-rollback version=20250101000000)
+	@if [ -z "$(version)" ]; then \
+		echo "Error: version parameter is required. Usage: make k8s-migrate-rollback version=20250101000000"; \
+		exit 1; \
+	fi
+	../k3s/scripts/manage-migrations.sh rollback $(version)
 
 # Formatting and linting targets
 .PHONY: fmt

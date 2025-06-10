@@ -63,7 +63,11 @@
     "dependencies": {
         "@apollo/client": "^3.13.8",
         "@popperjs/core": "^2.11.8",
+        "@stripe/stripe-js": "^7.3.1",
         "@tailwindcss/vite": "^4.1.4",
-        "graphql": "^16.10.0"
+        "@urql/core": "^5.1.1",
+        "@urql/svelte": "^4.2.3",
+        "graphql": "^16.11.0",
+        "stripe": "^18.2.1"
     }
 }

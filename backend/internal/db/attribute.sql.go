@@ -12,7 +12,7 @@ import (
 const createAttribute = `-- name: CreateAttribute :one
 INSERT INTO attributes (title, data_type, unit, required, applies_to, product_type_id, shop_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id
+RETURNING attribute_id, title, data_type, unit, required, applies_to, product_type_id, shop_id
 `
 
 type CreateAttributeParams struct {
@@ -43,8 +43,8 @@ func (q *Queries) CreateAttribute(ctx context.Context, arg CreateAttributeParams
 		&i.Unit,
 		&i.Required,
 		&i.AppliesTo,
-		&i.ShopID,
 		&i.ProductTypeID,
+		&i.ShopID,
 	)
 	return i, err
 }
@@ -52,7 +52,7 @@ func (q *Queries) CreateAttribute(ctx context.Context, arg CreateAttributeParams
 const deleteAttribute = `-- name: DeleteAttribute :exec
 DELETE FROM attributes
 WHERE attribute_id = $1 AND shop_id = $2
-RETURNING attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id
+RETURNING attribute_id, title, data_type, unit, required, applies_to, product_type_id, shop_id
 `
 
 type DeleteAttributeParams struct {
@@ -67,7 +67,7 @@ func (q *Queries) DeleteAttribute(ctx context.Context, arg DeleteAttributeParams
 
 const getAttribute = `-- name: GetAttribute :one
 SELECT 
-    a.attribute_id, a.title, a.data_type, a.unit, a.required, a.applies_to, a.shop_id, a.product_type_id, 
+    a.attribute_id, a.title, a.data_type, a.unit, a.required, a.applies_to, a.product_type_id, a.shop_id, 
     COALESCE(
         jsonb_agg(
             jsonb_build_object(
@@ -95,8 +95,8 @@ type GetAttributeRow struct {
 	Unit          NullAttributeUnit  `json:"unit"`
 	Required      bool               `json:"required"`
 	AppliesTo     AttributeAppliesTo `json:"applies_to"`
-	ShopID        int64              `json:"shop_id"`
 	ProductTypeID int64              `json:"product_type_id"`
+	ShopID        int64              `json:"shop_id"`
 	Options       []byte             `json:"options"`
 }
 
@@ -110,8 +110,8 @@ func (q *Queries) GetAttribute(ctx context.Context, arg GetAttributeParams) (Get
 		&i.Unit,
 		&i.Required,
 		&i.AppliesTo,
-		&i.ShopID,
 		&i.ProductTypeID,
+		&i.ShopID,
 		&i.Options,
 	)
 	return i, err
@@ -485,7 +485,7 @@ SET
     required = COALESCE($4, required),
     applies_to = COALESCE($5, applies_to)
 WHERE attribute_id = $6 AND shop_id = $7
-RETURNING attribute_id, title, data_type, unit, required, applies_to, shop_id, product_type_id
+RETURNING attribute_id, title, data_type, unit, required, applies_to, product_type_id, shop_id
 `
 
 type UpdateAttributeParams struct {
@@ -516,8 +516,8 @@ func (q *Queries) UpdateAttribute(ctx context.Context, arg UpdateAttributeParams
 		&i.Unit,
 		&i.Required,
 		&i.AppliesTo,
-		&i.ShopID,
 		&i.ProductTypeID,
+		&i.ShopID,
 	)
 	return i, err
 }

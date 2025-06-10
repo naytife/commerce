@@ -51,6 +51,24 @@ type Repository interface {
 	GetUserById(ctx context.Context, userID uuid.UUID) (User, error)
 	GetUserBySub(ctx context.Context, sub *string) (User, error)
 	GetUserBySubWithShops(ctx context.Context, sub *string) (GetUserBySubWithShopsRow, error)
+	UpsertCustomer(ctx context.Context, arg UpsertCustomerParams) (ShopCustomer, error)
+	GetCustomerByEmail(ctx context.Context, arg GetCustomerByEmailParams) (ShopCustomer, error)
+	// Customer Management
+	GetCustomers(ctx context.Context, arg GetCustomersParams) ([]ShopCustomer, error)
+	GetCustomersCount(ctx context.Context, shopID int64) (int64, error)
+	SearchCustomers(ctx context.Context, arg SearchCustomersParams) ([]ShopCustomer, error)
+	GetCustomerById(ctx context.Context, arg GetCustomerByIdParams) (ShopCustomer, error)
+	UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (ShopCustomer, error)
+	DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) error
+	GetCustomerOrders(ctx context.Context, arg GetCustomerOrdersParams) ([]GetCustomerOrdersRow, error)
+	// Inventory Management
+	GetLowStockVariants(ctx context.Context, arg GetLowStockVariantsParams) ([]GetLowStockVariantsRow, error)
+	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariation, error)
+	DeductVariantStock(ctx context.Context, arg DeductVariantStockParams) (ProductVariation, error)
+	AddVariantStock(ctx context.Context, arg AddVariantStockParams) (ProductVariation, error)
+	GetInventoryReport(ctx context.Context, arg GetInventoryReportParams) ([]GetInventoryReportRow, error)
+	GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]StockMovement, error)
+	CreateStockMovement(ctx context.Context, arg CreateStockMovementParams) (StockMovement, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)
 	GetShop(ctx context.Context, shopID int64) (Shop, error)
@@ -108,6 +126,28 @@ type Repository interface {
 	GetProductImages(ctx context.Context, arg GetProductImagesParams) ([]ProductImage, error)
 	DeleteProductImage(ctx context.Context, arg DeleteProductImageParams) error
 	DeleteAllProductImages(ctx context.Context, arg DeleteAllProductImagesParams) error
+	// ORDER
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
+	GetOrder(ctx context.Context, arg GetOrderParams) (Order, error)
+	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
+	UpdateOrder(ctx context.Context, arg UpdateOrderParams) error
+	DeleteOrder(ctx context.Context, arg DeleteOrderParams) error
+	// ORDER ITEMS
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
+	GetOrderItemsByOrder(ctx context.Context, arg GetOrderItemsByOrderParams) ([]OrderItem, error)
+	UpdateOrderItem(ctx context.Context, arg UpdateOrderItemParams) error
+	DeleteOrderItem(ctx context.Context, arg DeleteOrderItemParams) error
+	DeleteOrderItemsByOrder(ctx context.Context, arg DeleteOrderItemsByOrderParams) error
+	// PAYMENT STATUS MANAGEMENT
+	UpdateOrderPaymentStatus(ctx context.Context, arg UpdateOrderPaymentStatusParams) (Order, error)
+	GetOrderByTransactionID(ctx context.Context, arg GetOrderByTransactionIDParams) (Order, error)
+	UpdateOrderStatusByTransactionID(ctx context.Context, arg UpdateOrderStatusByTransactionIDParams) (Order, error)
+	// SHOP PAYMENT METHODS
+	GetShopPaymentMethods(ctx context.Context, shopID int64) ([]ShopPaymentMethod, error)
+	GetShopPaymentMethod(ctx context.Context, arg GetShopPaymentMethodParams) (ShopPaymentMethod, error)
+	UpsertShopPaymentMethod(ctx context.Context, arg UpsertShopPaymentMethodParams) (ShopPaymentMethod, error)
+	UpdateShopPaymentMethodStatus(ctx context.Context, arg UpdateShopPaymentMethodStatusParams) (ShopPaymentMethod, error)
+	DeleteShopPaymentMethod(ctx context.Context, arg DeleteShopPaymentMethodParams) error
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {

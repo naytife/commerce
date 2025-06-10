@@ -12,8 +12,566 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addVariantStock = `-- name: AddVariantStock :one
+UPDATE product_variations
+SET available_quantity = available_quantity + $3,
+    updated_at = NOW()
+WHERE product_variation_id = $1 AND shop_id = $2
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
+`
+
+type AddVariantStockParams struct {
+	ProductVariationID int64 `json:"product_variation_id"`
+	ShopID             int64 `json:"shop_id"`
+	AvailableQuantity  int64 `json:"available_quantity"`
+}
+
+func (q *Queries) AddVariantStock(ctx context.Context, arg AddVariantStockParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, addVariantStock, arg.ProductVariationID, arg.ShopID, arg.AvailableQuantity)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.IsDefault,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+	)
+	return i, err
+}
+
+const createStockMovement = `-- name: CreateStockMovement :one
+INSERT INTO stock_movements (
+    product_variation_id, 
+    shop_id, 
+    movement_type, 
+    quantity_change, 
+    quantity_before, 
+    quantity_after, 
+    reference_id, 
+    notes
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING movement_id, product_variation_id, shop_id, movement_type, quantity_change, quantity_before, quantity_after, reference_id, notes, created_at
+`
+
+type CreateStockMovementParams struct {
+	ProductVariationID int64   `json:"product_variation_id"`
+	ShopID             int64   `json:"shop_id"`
+	MovementType       string  `json:"movement_type"`
+	QuantityChange     int32   `json:"quantity_change"`
+	QuantityBefore     int32   `json:"quantity_before"`
+	QuantityAfter      int32   `json:"quantity_after"`
+	ReferenceID        *int64  `json:"reference_id"`
+	Notes              *string `json:"notes"`
+}
+
+func (q *Queries) CreateStockMovement(ctx context.Context, arg CreateStockMovementParams) (StockMovement, error) {
+	row := q.db.QueryRow(ctx, createStockMovement,
+		arg.ProductVariationID,
+		arg.ShopID,
+		arg.MovementType,
+		arg.QuantityChange,
+		arg.QuantityBefore,
+		arg.QuantityAfter,
+		arg.ReferenceID,
+		arg.Notes,
+	)
+	var i StockMovement
+	err := row.Scan(
+		&i.MovementID,
+		&i.ProductVariationID,
+		&i.ShopID,
+		&i.MovementType,
+		&i.QuantityChange,
+		&i.QuantityBefore,
+		&i.QuantityAfter,
+		&i.ReferenceID,
+		&i.Notes,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deductVariantStock = `-- name: DeductVariantStock :one
+UPDATE product_variations
+SET available_quantity = GREATEST(available_quantity - $3, 0),
+    updated_at = NOW()
+WHERE product_variation_id = $1 AND shop_id = $2
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
+`
+
+type DeductVariantStockParams struct {
+	ProductVariationID int64 `json:"product_variation_id"`
+	ShopID             int64 `json:"shop_id"`
+	AvailableQuantity  int64 `json:"available_quantity"`
+}
+
+func (q *Queries) DeductVariantStock(ctx context.Context, arg DeductVariantStockParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, deductVariantStock, arg.ProductVariationID, arg.ShopID, arg.AvailableQuantity)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.IsDefault,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+	)
+	return i, err
+}
+
+const deleteCustomer = `-- name: DeleteCustomer :exec
+DELETE FROM shop_customers
+WHERE shop_customer_id = $1 AND shop_id = $2
+`
+
+type DeleteCustomerParams struct {
+	ShopCustomerID uuid.UUID `json:"shop_customer_id"`
+	ShopID         int64     `json:"shop_id"`
+}
+
+func (q *Queries) DeleteCustomer(ctx context.Context, arg DeleteCustomerParams) error {
+	_, err := q.db.Exec(ctx, deleteCustomer, arg.ShopCustomerID, arg.ShopID)
+	return err
+}
+
+const getCustomerByEmail = `-- name: GetCustomerByEmail :one
+SELECT shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login FROM shop_customers
+WHERE shop_customers.email = $1 AND shop_id = (SELECT shop_id FROM shops WHERE subdomain = $2)
+`
+
+type GetCustomerByEmailParams struct {
+	Email     string `json:"email"`
+	Subdomain string `json:"subdomain"`
+}
+
+func (q *Queries) GetCustomerByEmail(ctx context.Context, arg GetCustomerByEmailParams) (ShopCustomer, error) {
+	row := q.db.QueryRow(ctx, getCustomerByEmail, arg.Email, arg.Subdomain)
+	var i ShopCustomer
+	err := row.Scan(
+		&i.ShopCustomerID,
+		&i.Sub,
+		&i.ShopID,
+		&i.Email,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.VerifiedEmail,
+		&i.AuthProvider,
+		&i.AuthProviderID,
+		&i.CreatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const getCustomerById = `-- name: GetCustomerById :one
+SELECT shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login FROM shop_customers
+WHERE shop_customer_id = $1 AND shop_id = $2
+`
+
+type GetCustomerByIdParams struct {
+	ShopCustomerID uuid.UUID `json:"shop_customer_id"`
+	ShopID         int64     `json:"shop_id"`
+}
+
+func (q *Queries) GetCustomerById(ctx context.Context, arg GetCustomerByIdParams) (ShopCustomer, error) {
+	row := q.db.QueryRow(ctx, getCustomerById, arg.ShopCustomerID, arg.ShopID)
+	var i ShopCustomer
+	err := row.Scan(
+		&i.ShopCustomerID,
+		&i.Sub,
+		&i.ShopID,
+		&i.Email,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.VerifiedEmail,
+		&i.AuthProvider,
+		&i.AuthProviderID,
+		&i.CreatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const getCustomerOrders = `-- name: GetCustomerOrders :many
+SELECT o.order_id, o.status, o.amount, o.discount, o.shipping_cost, o.tax, o.shipping_address, o.payment_method, o.payment_status, o.shipping_method, o.shipping_status, o.transaction_id, o.username, o.created_at, o.updated_at, o.shop_customer_id, o.shop_id, o.customer_name, o.customer_email, o.customer_phone, oi.order_item_id, oi.product_variation_id, oi.quantity, oi.price as item_price
+FROM orders o
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.customer_email = $1 AND o.shop_id = $2
+ORDER BY o.created_at DESC
+LIMIT $3 OFFSET $4
+`
+
+type GetCustomerOrdersParams struct {
+	CustomerEmail *string `json:"customer_email"`
+	ShopID        int64   `json:"shop_id"`
+	Limit         int32   `json:"limit"`
+	Offset        int32   `json:"offset"`
+}
+
+type GetCustomerOrdersRow struct {
+	OrderID            int64              `json:"order_id"`
+	Status             OrderStatusType    `json:"status"`
+	Amount             pgtype.Numeric     `json:"amount"`
+	Discount           pgtype.Numeric     `json:"discount"`
+	ShippingCost       pgtype.Numeric     `json:"shipping_cost"`
+	Tax                pgtype.Numeric     `json:"tax"`
+	ShippingAddress    string             `json:"shipping_address"`
+	PaymentMethod      PaymentMethodType  `json:"payment_method"`
+	PaymentStatus      PaymentStatusType  `json:"payment_status"`
+	ShippingMethod     string             `json:"shipping_method"`
+	ShippingStatus     ShippingStatusType `json:"shipping_status"`
+	TransactionID      *string            `json:"transaction_id"`
+	Username           string             `json:"username"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ShopCustomerID     pgtype.UUID        `json:"shop_customer_id"`
+	ShopID             int64              `json:"shop_id"`
+	CustomerName       string             `json:"customer_name"`
+	CustomerEmail      *string            `json:"customer_email"`
+	CustomerPhone      *string            `json:"customer_phone"`
+	OrderItemID        *int64             `json:"order_item_id"`
+	ProductVariationID *int64             `json:"product_variation_id"`
+	Quantity           *int64             `json:"quantity"`
+	ItemPrice          pgtype.Numeric     `json:"item_price"`
+}
+
+func (q *Queries) GetCustomerOrders(ctx context.Context, arg GetCustomerOrdersParams) ([]GetCustomerOrdersRow, error) {
+	rows, err := q.db.Query(ctx, getCustomerOrders,
+		arg.CustomerEmail,
+		arg.ShopID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCustomerOrdersRow
+	for rows.Next() {
+		var i GetCustomerOrdersRow
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.Status,
+			&i.Amount,
+			&i.Discount,
+			&i.ShippingCost,
+			&i.Tax,
+			&i.ShippingAddress,
+			&i.PaymentMethod,
+			&i.PaymentStatus,
+			&i.ShippingMethod,
+			&i.ShippingStatus,
+			&i.TransactionID,
+			&i.Username,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ShopCustomerID,
+			&i.ShopID,
+			&i.CustomerName,
+			&i.CustomerEmail,
+			&i.CustomerPhone,
+			&i.OrderItemID,
+			&i.ProductVariationID,
+			&i.Quantity,
+			&i.ItemPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCustomers = `-- name: GetCustomers :many
+SELECT shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login FROM shop_customers
+WHERE shop_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type GetCustomersParams struct {
+	ShopID int64 `json:"shop_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetCustomers(ctx context.Context, arg GetCustomersParams) ([]ShopCustomer, error) {
+	rows, err := q.db.Query(ctx, getCustomers, arg.ShopID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ShopCustomer
+	for rows.Next() {
+		var i ShopCustomer
+		if err := rows.Scan(
+			&i.ShopCustomerID,
+			&i.Sub,
+			&i.ShopID,
+			&i.Email,
+			&i.Name,
+			&i.Locale,
+			&i.ProfilePicture,
+			&i.VerifiedEmail,
+			&i.AuthProvider,
+			&i.AuthProviderID,
+			&i.CreatedAt,
+			&i.LastLogin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCustomersCount = `-- name: GetCustomersCount :one
+SELECT COUNT(*) FROM shop_customers
+WHERE shop_id = $1
+`
+
+func (q *Queries) GetCustomersCount(ctx context.Context, shopID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, getCustomersCount, shopID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getInventoryReport = `-- name: GetInventoryReport :many
+SELECT 
+    p.title as product_title,
+    pv.sku,
+    pv.description as variant_description,
+    pv.available_quantity,
+    pv.price,
+    (pv.available_quantity * pv.price) as stock_value,
+    CASE 
+        WHEN pv.available_quantity = 0 THEN 'OUT_OF_STOCK'
+        WHEN pv.available_quantity <= $2 THEN 'LOW_STOCK'
+        ELSE 'IN_STOCK'
+    END as stock_status
+FROM product_variations pv
+JOIN products p ON pv.product_id = p.product_id
+WHERE pv.shop_id = $1
+ORDER BY pv.available_quantity ASC
+`
+
+type GetInventoryReportParams struct {
+	ShopID            int64 `json:"shop_id"`
+	AvailableQuantity int64 `json:"available_quantity"`
+}
+
+type GetInventoryReportRow struct {
+	ProductTitle       string         `json:"product_title"`
+	Sku                string         `json:"sku"`
+	VariantDescription string         `json:"variant_description"`
+	AvailableQuantity  int64          `json:"available_quantity"`
+	Price              pgtype.Numeric `json:"price"`
+	StockValue         int32          `json:"stock_value"`
+	StockStatus        string         `json:"stock_status"`
+}
+
+func (q *Queries) GetInventoryReport(ctx context.Context, arg GetInventoryReportParams) ([]GetInventoryReportRow, error) {
+	rows, err := q.db.Query(ctx, getInventoryReport, arg.ShopID, arg.AvailableQuantity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetInventoryReportRow
+	for rows.Next() {
+		var i GetInventoryReportRow
+		if err := rows.Scan(
+			&i.ProductTitle,
+			&i.Sku,
+			&i.VariantDescription,
+			&i.AvailableQuantity,
+			&i.Price,
+			&i.StockValue,
+			&i.StockStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLowStockVariants = `-- name: GetLowStockVariants :many
+SELECT pv.product_variation_id, pv.sku, pv.description, pv.price, pv.available_quantity, pv.seo_description, pv.seo_keywords, pv.seo_title, pv.is_default, pv.created_at, pv.updated_at, pv.product_id, pv.shop_id, p.title as product_title
+FROM product_variations pv
+JOIN products p ON pv.product_id = p.product_id
+WHERE pv.shop_id = $1 
+AND pv.available_quantity <= $2
+ORDER BY pv.available_quantity ASC
+`
+
+type GetLowStockVariantsParams struct {
+	ShopID            int64 `json:"shop_id"`
+	AvailableQuantity int64 `json:"available_quantity"`
+}
+
+type GetLowStockVariantsRow struct {
+	ProductVariationID int64              `json:"product_variation_id"`
+	Sku                string             `json:"sku"`
+	Description        string             `json:"description"`
+	Price              pgtype.Numeric     `json:"price"`
+	AvailableQuantity  int64              `json:"available_quantity"`
+	SeoDescription     *string            `json:"seo_description"`
+	SeoKeywords        []string           `json:"seo_keywords"`
+	SeoTitle           *string            `json:"seo_title"`
+	IsDefault          bool               `json:"is_default"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	ProductID          int64              `json:"product_id"`
+	ShopID             int64              `json:"shop_id"`
+	ProductTitle       string             `json:"product_title"`
+}
+
+func (q *Queries) GetLowStockVariants(ctx context.Context, arg GetLowStockVariantsParams) ([]GetLowStockVariantsRow, error) {
+	rows, err := q.db.Query(ctx, getLowStockVariants, arg.ShopID, arg.AvailableQuantity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLowStockVariantsRow
+	for rows.Next() {
+		var i GetLowStockVariantsRow
+		if err := rows.Scan(
+			&i.ProductVariationID,
+			&i.Sku,
+			&i.Description,
+			&i.Price,
+			&i.AvailableQuantity,
+			&i.SeoDescription,
+			&i.SeoKeywords,
+			&i.SeoTitle,
+			&i.IsDefault,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ProductID,
+			&i.ShopID,
+			&i.ProductTitle,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrderByTransactionID = `-- name: GetOrderByTransactionID :one
+SELECT order_id, status, amount, discount, shipping_cost, tax, shipping_address, payment_method, payment_status, shipping_method, shipping_status, transaction_id, username, created_at, updated_at, shop_customer_id, shop_id, customer_name, customer_email, customer_phone FROM orders
+WHERE transaction_id = $1 AND shop_id = $2
+`
+
+type GetOrderByTransactionIDParams struct {
+	TransactionID *string `json:"transaction_id"`
+	ShopID        int64   `json:"shop_id"`
+}
+
+func (q *Queries) GetOrderByTransactionID(ctx context.Context, arg GetOrderByTransactionIDParams) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderByTransactionID, arg.TransactionID, arg.ShopID)
+	var i Order
+	err := row.Scan(
+		&i.OrderID,
+		&i.Status,
+		&i.Amount,
+		&i.Discount,
+		&i.ShippingCost,
+		&i.Tax,
+		&i.ShippingAddress,
+		&i.PaymentMethod,
+		&i.PaymentStatus,
+		&i.ShippingMethod,
+		&i.ShippingStatus,
+		&i.TransactionID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopCustomerID,
+		&i.ShopID,
+		&i.CustomerName,
+		&i.CustomerEmail,
+		&i.CustomerPhone,
+	)
+	return i, err
+}
+
+const getStockMovements = `-- name: GetStockMovements :many
+SELECT movement_id, product_variation_id, shop_id, movement_type, quantity_change, quantity_before, quantity_after, reference_id, notes, created_at FROM stock_movements
+WHERE shop_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type GetStockMovementsParams struct {
+	ShopID int64 `json:"shop_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]StockMovement, error) {
+	rows, err := q.db.Query(ctx, getStockMovements, arg.ShopID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StockMovement
+	for rows.Next() {
+		var i StockMovement
+		if err := rows.Scan(
+			&i.MovementID,
+			&i.ProductVariationID,
+			&i.ShopID,
+			&i.MovementType,
+			&i.QuantityChange,
+			&i.QuantityBefore,
+			&i.QuantityAfter,
+			&i.ReferenceID,
+			&i.Notes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUser = `-- name: GetUser :one
-SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
+SELECT user_id, sub, email, auth_provider, auth_provider_id, name, locale, profile_picture, verified_email, created_at, last_login FROM users
 WHERE email = $1
 `
 
@@ -24,20 +582,20 @@ func (q *Queries) GetUser(ctx context.Context, email *string) (User, error) {
 		&i.UserID,
 		&i.Sub,
 		&i.Email,
-		&i.Provider,
-		&i.ProviderID,
+		&i.AuthProvider,
+		&i.AuthProviderID,
 		&i.Name,
 		&i.Locale,
 		&i.ProfilePicture,
+		&i.VerifiedEmail,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.VerifiedEmail,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
+SELECT user_id, sub, email, auth_provider, auth_provider_id, name, locale, profile_picture, verified_email, created_at, last_login FROM users
 WHERE user_id = $1
 `
 
@@ -48,20 +606,20 @@ func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, erro
 		&i.UserID,
 		&i.Sub,
 		&i.Email,
-		&i.Provider,
-		&i.ProviderID,
+		&i.AuthProvider,
+		&i.AuthProviderID,
 		&i.Name,
 		&i.Locale,
 		&i.ProfilePicture,
+		&i.VerifiedEmail,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.VerifiedEmail,
 	)
 	return i, err
 }
 
 const getUserBySub = `-- name: GetUserBySub :one
-SELECT user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email FROM users
+SELECT user_id, sub, email, auth_provider, auth_provider_id, name, locale, profile_picture, verified_email, created_at, last_login FROM users
 WHERE sub = $1
 `
 
@@ -72,21 +630,21 @@ func (q *Queries) GetUserBySub(ctx context.Context, sub *string) (User, error) {
 		&i.UserID,
 		&i.Sub,
 		&i.Email,
-		&i.Provider,
-		&i.ProviderID,
+		&i.AuthProvider,
+		&i.AuthProviderID,
 		&i.Name,
 		&i.Locale,
 		&i.ProfilePicture,
+		&i.VerifiedEmail,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.VerifiedEmail,
 	)
 	return i, err
 }
 
 const getUserBySubWithShops = `-- name: GetUserBySubWithShops :one
 SELECT 
-    users.user_id, users.sub, users.email, users.provider, users.provider_id, users.name, users.locale, users.profile_picture, users.created_at, users.last_login, users.verified_email,
+    users.user_id, users.sub, users.email, users.auth_provider, users.auth_provider_id, users.name, users.locale, users.profile_picture, users.verified_email, users.created_at, users.last_login,
     COALESCE(
         jsonb_agg(
             jsonb_build_object(
@@ -110,14 +668,14 @@ type GetUserBySubWithShopsRow struct {
 	UserID         uuid.UUID        `json:"user_id"`
 	Sub            *string          `json:"sub"`
 	Email          *string          `json:"email"`
-	Provider       *string          `json:"provider"`
-	ProviderID     *string          `json:"provider_id"`
+	AuthProvider   *string          `json:"auth_provider"`
+	AuthProviderID *string          `json:"auth_provider_id"`
 	Name           *string          `json:"name"`
 	Locale         *string          `json:"locale"`
 	ProfilePicture *string          `json:"profile_picture"`
+	VerifiedEmail  *bool            `json:"verified_email"`
 	CreatedAt      pgtype.Timestamp `json:"created_at"`
 	LastLogin      pgtype.Timestamp `json:"last_login"`
-	VerifiedEmail  *bool            `json:"verified_email"`
 	Shops          []byte           `json:"shops"`
 }
 
@@ -128,21 +686,317 @@ func (q *Queries) GetUserBySubWithShops(ctx context.Context, sub *string) (GetUs
 		&i.UserID,
 		&i.Sub,
 		&i.Email,
-		&i.Provider,
-		&i.ProviderID,
+		&i.AuthProvider,
+		&i.AuthProviderID,
 		&i.Name,
 		&i.Locale,
 		&i.ProfilePicture,
+		&i.VerifiedEmail,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.VerifiedEmail,
 		&i.Shops,
 	)
 	return i, err
 }
 
+const searchCustomers = `-- name: SearchCustomers :many
+SELECT shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login FROM shop_customers
+WHERE shop_id = $1 
+AND (
+    LOWER(name) LIKE LOWER($2) OR 
+    LOWER(email) LIKE LOWER($2)
+)
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4
+`
+
+type SearchCustomersParams struct {
+	ShopID int64  `json:"shop_id"`
+	Lower  string `json:"lower"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
+}
+
+func (q *Queries) SearchCustomers(ctx context.Context, arg SearchCustomersParams) ([]ShopCustomer, error) {
+	rows, err := q.db.Query(ctx, searchCustomers,
+		arg.ShopID,
+		arg.Lower,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ShopCustomer
+	for rows.Next() {
+		var i ShopCustomer
+		if err := rows.Scan(
+			&i.ShopCustomerID,
+			&i.Sub,
+			&i.ShopID,
+			&i.Email,
+			&i.Name,
+			&i.Locale,
+			&i.ProfilePicture,
+			&i.VerifiedEmail,
+			&i.AuthProvider,
+			&i.AuthProviderID,
+			&i.CreatedAt,
+			&i.LastLogin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateCustomer = `-- name: UpdateCustomer :one
+UPDATE shop_customers 
+SET 
+    name = COALESCE($3, name),
+    locale = COALESCE($4, locale),
+    profile_picture = COALESCE($5, profile_picture),
+    verified_email = COALESCE($6, verified_email),
+    last_login = NOW()
+WHERE shop_customer_id = $1 AND shop_id = $2
+RETURNING shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login
+`
+
+type UpdateCustomerParams struct {
+	ShopCustomerID uuid.UUID `json:"shop_customer_id"`
+	ShopID         int64     `json:"shop_id"`
+	Name           *string   `json:"name"`
+	Locale         *string   `json:"locale"`
+	ProfilePicture *string   `json:"profile_picture"`
+	VerifiedEmail  *bool     `json:"verified_email"`
+}
+
+func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (ShopCustomer, error) {
+	row := q.db.QueryRow(ctx, updateCustomer,
+		arg.ShopCustomerID,
+		arg.ShopID,
+		arg.Name,
+		arg.Locale,
+		arg.ProfilePicture,
+		arg.VerifiedEmail,
+	)
+	var i ShopCustomer
+	err := row.Scan(
+		&i.ShopCustomerID,
+		&i.Sub,
+		&i.ShopID,
+		&i.Email,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.VerifiedEmail,
+		&i.AuthProvider,
+		&i.AuthProviderID,
+		&i.CreatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const updateOrderPaymentStatus = `-- name: UpdateOrderPaymentStatus :one
+UPDATE orders
+SET 
+    payment_status = $3,
+    transaction_id = $4,
+    updated_at = NOW()
+WHERE order_id = $1 AND shop_id = $2
+RETURNING order_id, status, amount, discount, shipping_cost, tax, shipping_address, payment_method, payment_status, shipping_method, shipping_status, transaction_id, username, created_at, updated_at, shop_customer_id, shop_id, customer_name, customer_email, customer_phone
+`
+
+type UpdateOrderPaymentStatusParams struct {
+	OrderID       int64             `json:"order_id"`
+	ShopID        int64             `json:"shop_id"`
+	PaymentStatus PaymentStatusType `json:"payment_status"`
+	TransactionID *string           `json:"transaction_id"`
+}
+
+// Payment Status Management
+func (q *Queries) UpdateOrderPaymentStatus(ctx context.Context, arg UpdateOrderPaymentStatusParams) (Order, error) {
+	row := q.db.QueryRow(ctx, updateOrderPaymentStatus,
+		arg.OrderID,
+		arg.ShopID,
+		arg.PaymentStatus,
+		arg.TransactionID,
+	)
+	var i Order
+	err := row.Scan(
+		&i.OrderID,
+		&i.Status,
+		&i.Amount,
+		&i.Discount,
+		&i.ShippingCost,
+		&i.Tax,
+		&i.ShippingAddress,
+		&i.PaymentMethod,
+		&i.PaymentStatus,
+		&i.ShippingMethod,
+		&i.ShippingStatus,
+		&i.TransactionID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopCustomerID,
+		&i.ShopID,
+		&i.CustomerName,
+		&i.CustomerEmail,
+		&i.CustomerPhone,
+	)
+	return i, err
+}
+
+const updateOrderStatusByTransactionID = `-- name: UpdateOrderStatusByTransactionID :one
+UPDATE orders
+SET 
+    status = $3,
+    payment_status = $4,
+    updated_at = NOW()
+WHERE transaction_id = $1 AND shop_id = $2
+RETURNING order_id, status, amount, discount, shipping_cost, tax, shipping_address, payment_method, payment_status, shipping_method, shipping_status, transaction_id, username, created_at, updated_at, shop_customer_id, shop_id, customer_name, customer_email, customer_phone
+`
+
+type UpdateOrderStatusByTransactionIDParams struct {
+	TransactionID *string           `json:"transaction_id"`
+	ShopID        int64             `json:"shop_id"`
+	Status        OrderStatusType   `json:"status"`
+	PaymentStatus PaymentStatusType `json:"payment_status"`
+}
+
+func (q *Queries) UpdateOrderStatusByTransactionID(ctx context.Context, arg UpdateOrderStatusByTransactionIDParams) (Order, error) {
+	row := q.db.QueryRow(ctx, updateOrderStatusByTransactionID,
+		arg.TransactionID,
+		arg.ShopID,
+		arg.Status,
+		arg.PaymentStatus,
+	)
+	var i Order
+	err := row.Scan(
+		&i.OrderID,
+		&i.Status,
+		&i.Amount,
+		&i.Discount,
+		&i.ShippingCost,
+		&i.Tax,
+		&i.ShippingAddress,
+		&i.PaymentMethod,
+		&i.PaymentStatus,
+		&i.ShippingMethod,
+		&i.ShippingStatus,
+		&i.TransactionID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ShopCustomerID,
+		&i.ShopID,
+		&i.CustomerName,
+		&i.CustomerEmail,
+		&i.CustomerPhone,
+	)
+	return i, err
+}
+
+const updateVariantStock = `-- name: UpdateVariantStock :one
+UPDATE product_variations
+SET available_quantity = $3,
+    updated_at = NOW()
+WHERE product_variation_id = $1 AND shop_id = $2
+RETURNING product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id
+`
+
+type UpdateVariantStockParams struct {
+	ProductVariationID int64 `json:"product_variation_id"`
+	ShopID             int64 `json:"shop_id"`
+	AvailableQuantity  int64 `json:"available_quantity"`
+}
+
+func (q *Queries) UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, updateVariantStock, arg.ProductVariationID, arg.ShopID, arg.AvailableQuantity)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.IsDefault,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
+	)
+	return i, err
+}
+
+const upsertCustomer = `-- name: UpsertCustomer :one
+INSERT INTO shop_customers (email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, shop_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (email)
+DO UPDATE SET
+    name = COALESCE(EXCLUDED.name, shop_customers.name),
+    locale = COALESCE(EXCLUDED.locale, shop_customers.locale),
+    profile_picture = COALESCE(EXCLUDED.profile_picture, shop_customers.profile_picture),
+    verified_email = COALESCE(EXCLUDED.verified_email, shop_customers.verified_email),
+    auth_provider = COALESCE(EXCLUDED.auth_provider, shop_customers.auth_provider),
+    auth_provider_id = COALESCE(EXCLUDED.auth_provider_id, shop_customers.auth_provider_id),
+    last_login = NOW()
+WHERE shop_id = $8
+RETURNING shop_customer_id, sub, shop_id, email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, created_at, last_login
+`
+
+type UpsertCustomerParams struct {
+	Email          string  `json:"email"`
+	Name           *string `json:"name"`
+	Locale         *string `json:"locale"`
+	ProfilePicture *string `json:"profile_picture"`
+	VerifiedEmail  *bool   `json:"verified_email"`
+	AuthProvider   *string `json:"auth_provider"`
+	AuthProviderID *string `json:"auth_provider_id"`
+	ShopID         int64   `json:"shop_id"`
+}
+
+func (q *Queries) UpsertCustomer(ctx context.Context, arg UpsertCustomerParams) (ShopCustomer, error) {
+	row := q.db.QueryRow(ctx, upsertCustomer,
+		arg.Email,
+		arg.Name,
+		arg.Locale,
+		arg.ProfilePicture,
+		arg.VerifiedEmail,
+		arg.AuthProvider,
+		arg.AuthProviderID,
+		arg.ShopID,
+	)
+	var i ShopCustomer
+	err := row.Scan(
+		&i.ShopCustomerID,
+		&i.Sub,
+		&i.ShopID,
+		&i.Email,
+		&i.Name,
+		&i.Locale,
+		&i.ProfilePicture,
+		&i.VerifiedEmail,
+		&i.AuthProvider,
+		&i.AuthProviderID,
+		&i.CreatedAt,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
 const upsertUser = `-- name: UpsertUser :one
-INSERT INTO users (sub, provider_id, provider, email, name, locale, profile_picture, verified_email)
+INSERT INTO users (sub, auth_provider_id, auth_provider, email, name, locale, profile_picture, verified_email)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (email)
 DO UPDATE SET
@@ -151,13 +1005,13 @@ DO UPDATE SET
     locale = COALESCE(EXCLUDED.locale, users.locale),
     verified_email = COALESCE(EXCLUDED.verified_email, users.verified_email),
     last_login = NOW()
-RETURNING user_id, sub, email, provider, provider_id, name, locale, profile_picture, created_at, last_login, verified_email
+RETURNING user_id, sub, email, auth_provider, auth_provider_id, name, locale, profile_picture, verified_email, created_at, last_login
 `
 
 type UpsertUserParams struct {
 	Sub            *string `json:"sub"`
-	ProviderID     *string `json:"provider_id"`
-	Provider       *string `json:"provider"`
+	AuthProviderID *string `json:"auth_provider_id"`
+	AuthProvider   *string `json:"auth_provider"`
 	Email          *string `json:"email"`
 	Name           *string `json:"name"`
 	Locale         *string `json:"locale"`
@@ -168,8 +1022,8 @@ type UpsertUserParams struct {
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, upsertUser,
 		arg.Sub,
-		arg.ProviderID,
-		arg.Provider,
+		arg.AuthProviderID,
+		arg.AuthProvider,
 		arg.Email,
 		arg.Name,
 		arg.Locale,
@@ -181,14 +1035,14 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.UserID,
 		&i.Sub,
 		&i.Email,
-		&i.Provider,
-		&i.ProviderID,
+		&i.AuthProvider,
+		&i.AuthProviderID,
 		&i.Name,
 		&i.Locale,
 		&i.ProfilePicture,
+		&i.VerifiedEmail,
 		&i.CreatedAt,
 		&i.LastLogin,
-		&i.VerifiedEmail,
 	)
 	return i, err
 }

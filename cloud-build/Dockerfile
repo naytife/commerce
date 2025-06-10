@@ -8,14 +8,11 @@ WORKDIR /app
 RUN apk add --no-cache nodejs npm
 
 # Copy go modules and download dependencies
-COPY cloud-build/go.mod cloud-build/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy templates directory
-COPY templates/ /app/templates/
-
-# Copy the source code from cloud-build directory
-COPY cloud-build/ .
+# Copy the source code
+COPY . .
 
 # Build the binary
 RUN go build -o main .
@@ -32,8 +29,8 @@ RUN apk add --no-cache nodejs npm ca-certificates
 # Copy the compiled binary from builder
 COPY --from=builder /app/main .
 
-# Copy templates folder if needed
-COPY --from=builder /app/templates/ ./templates/
+# Create templates directory (will be mounted or provided at runtime)
+RUN mkdir -p ./templates/
 
 # Expose ports (if required, e.g., if it's an API)
 EXPOSE 8001
