@@ -16,5 +16,6 @@ func ShopRouter(app fiber.Router, repo db.Repository) {
 	app.Put("/shops/:shop_id", handler.UpdateShop)
 	app.Put("/shops/:shop_id/images", handler.UpdateShopImages)
 	app.Get("/shops/subdomain/:subdomain", handler.GetShopBySubDomain)
+	app.Get("/shops/check-subdomain/:subdomain", handler.CheckSubdomainAvailability)
 	app.Get("/customerinfo", handler.GetCustomerByEmail)
 }

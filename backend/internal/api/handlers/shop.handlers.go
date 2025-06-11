@@ -343,6 +343,52 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop retrieved")
 }
 
+// CheckSubdomainAvailability checks if a subdomain is available
+// @Summary      Check subdomain availability
+// @Description  Check if a subdomain is available for creating a new shop
+// @Tags         shops
+// @Produce      json
+// @Param        subdomain path string true "Subdomain to check"
+// @Success      200  {object}   models.SuccessResponse{data=models.SubdomainAvailabilityResponse} "Subdomain availability checked"
+// @Failure      400  {object}   models.ErrorResponse "Invalid subdomain format"
+// @Failure      500  {object}   models.ErrorResponse "Internal server error"
+// @Security     OAuth2AccessCode
+// @Router       /shops/check-subdomain/{subdomain} [get]
+func (h *Handler) CheckSubdomainAvailability(c *fiber.Ctx) error {
+	subdomain := c.Params("subdomain", "")
+	if subdomain == "" {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Subdomain is required", nil)
+	}
+
+	// Validate subdomain format
+	if !slug.IsSlug(subdomain) {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid subdomain format", nil)
+	}
+
+	// Check if subdomain already exists
+	_, err := h.Repository.GetShopBySubDomain(c.Context(), subdomain)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// Subdomain is available
+			response := models.SubdomainAvailabilityResponse{
+				Subdomain: subdomain,
+				Available: true,
+				Message:   "Subdomain is available",
+			}
+			return api.SuccessResponse(c, fiber.StatusOK, response, "Subdomain is available")
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to check subdomain availability", nil)
+	}
+
+	// Subdomain already exists
+	response := models.SubdomainAvailabilityResponse{
+		Subdomain: subdomain,
+		Available: false,
+		Message:   "Subdomain is already taken",
+	}
+	return api.SuccessResponse(c, fiber.StatusOK, response, "Subdomain is not available")
+}
+
 // UpdateShop updates a shop
 // @Summary      Update a shop
 // @Description

@@ -1,34 +1,18 @@
 <script lang="ts">
-	import File from 'lucide-svelte/icons/file';
-	import ListFilter from 'lucide-svelte/icons/list-filter';
-	import Ellipsis from 'lucide-svelte/icons/ellipsis';
-	import CirclePlus from 'lucide-svelte/icons/circle-plus';
-	import Search from 'lucide-svelte/icons/search';
 	import Package from 'lucide-svelte/icons/package';
 	import Truck from 'lucide-svelte/icons/truck';
 	import Download from 'lucide-svelte/icons/download';
 	import Zap from 'lucide-svelte/icons/zap';
-	import { Plus, Edit, Trash2, Eye, MoreHorizontal, Filter } from 'lucide-svelte';
-	import * as Table from '$lib/components/ui/table';
+	import { Plus, Edit, Trash2, Eye } from 'lucide-svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import * as Tabs from '$lib/components/ui/tabs';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import { Popover, PopoverTrigger } from '$lib/components/ui/popover';
-	import PopoverContent from '$lib/components/ui/popover/popover-content.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import { EllipsisVertical } from 'lucide-svelte';
-	import { Content, Item, Select } from '$lib/components/ui/select';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { getContext } from 'svelte';
 	import { api } from '$lib/api';
 	import type { ProductType } from '$lib/types';
-	import type { RequestEvent } from '@sveltejs/kit';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -41,11 +25,6 @@
 		queryKey: [`shop-${shopParam}-product-types`],
 		queryFn: () => api(authFetch).getProductTypes(),
 	});
-
-	let searchTerm: string = '';
-	$: filteredProductTypes = $productTypes.data?.filter(pt =>
-		pt.title.toLowerCase().includes(searchTerm.toLowerCase())
-	) || [];
 
 	const createNewProductType = () => {
 		goto(`/${$page.params.shop}/product-types/create`);
@@ -69,10 +48,6 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<Button variant="outline" class="glass border-border/50">
-				<Download class="w-4 h-4 mr-2" />
-				Export
-			</Button>
 			<Button on:click={createNewProductType} class="btn-gradient shadow-brand">
 				<Plus class="w-4 h-4 mr-2" />
 				Add Product Type
@@ -109,235 +84,136 @@
 
 	<!-- Enhanced Main Content -->
 	<Card.Root class="border-0 shadow-2xl shadow-slate-900/10 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50 dark:shadow-slate-900/20">
-		<Card.Header class="pb-8">
-			<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-				<!-- Enhanced Search -->
-				<div class="relative flex-1 max-w-md">
-					<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-					<Input
-						type="text"
-						placeholder="Search product types..."
-						class="pl-10 glass border-border/50 focus:border-primary/50 transition-all duration-300 rounded-xl"
-						bind:value={searchTerm}
-					/>
+		<Card.Content class="p-6">
+			{#if $productTypes.status === 'pending'}
+				<div class="text-center py-12">
+					<div class="flex flex-col items-center gap-3">
+						<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+						<p class="text-muted-foreground">Loading product types...</p>
+					</div>
 				</div>
-
-				<!-- Enhanced Action Buttons -->
-				<div class="flex items-center gap-3">
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger asChild let:builder>
-							<Button 
-								builders={[builder]} 
-								variant="outline" 
-								size="sm" 
-								class="h-10 gap-2 bg-white/80 hover:bg-white border-white/20 shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50"
-							>
-								<ListFilter class="h-4 w-4" />
-								<span class="hidden sm:inline">Filter</span>
-							</Button>
-						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end" class="bg-white/95 backdrop-blur-xl border-white/20 shadow-2xl dark:bg-slate-900/95 dark:border-slate-700/50">
-							<DropdownMenu.Label class="font-semibold">Filter by Status</DropdownMenu.Label>
-							<DropdownMenu.Separator class="bg-slate-200/50 dark:bg-slate-700/50" />
-							<DropdownMenu.CheckboxItem checked class="hover:bg-surface-elevated focus:bg-surface-elevated">
-								Active
-							</DropdownMenu.CheckboxItem>
-							<DropdownMenu.CheckboxItem class="hover:bg-surface-elevated focus:bg-surface-elevated">
-								Draft
-							</DropdownMenu.CheckboxItem>
-							<DropdownMenu.CheckboxItem class="hover:bg-surface-elevated focus:bg-surface-elevated">
-								Archived
-							</DropdownMenu.CheckboxItem>
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>
-
-					<Button 
-						size="sm" 
-						variant="outline" 
-						class="h-10 gap-2 bg-white/80 hover:bg-white border-white/20 shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50"
-					>
-						<File class="h-4 w-4" />
-						<span class="hidden sm:inline">Export</span>
-					</Button>
+			{:else if $productTypes.status === 'error'}
+				<div class="text-center py-12">
+					<div class="flex flex-col items-center gap-3">
+						<div class="p-3 bg-red-100 rounded-full dark:bg-red-900/20">
+							<Zap class="h-6 w-6 text-red-600 dark:text-red-400" />
+						</div>
+						<p class="text-red-600 dark:text-red-400 font-medium">
+							Error: {$productTypes.error.message}
+						</p>
+					</div>
 				</div>
-			</div>
-		</Card.Header>
-
-		<Card.Content class="p-0">
-			<!-- Enhanced Table with modern styling -->
-			<div class="overflow-hidden">
-				<Table.Root class="w-full">
-					<Table.Header>
-						<Table.Row class="border-slate-200/50 dark:border-slate-700/50 hover:bg-transparent">
-							<Table.Head class="font-semibold text-slate-700 dark:text-slate-300 py-4">
-								Title
-							</Table.Head>
-							<Table.Head class="font-semibold text-slate-700 dark:text-slate-300">
-								Type
-							</Table.Head>
-							<Table.Head class="font-semibold text-slate-700 dark:text-slate-300">
-								Shippable
-							</Table.Head>
-							<Table.Head class="font-semibold text-slate-700 dark:text-slate-300">
-								SKU Prefix
-							</Table.Head>
-							<Table.Head class="text-right font-semibold text-slate-700 dark:text-slate-300">
-								Actions
-							</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#if $productTypes.status === 'pending'}
-							<Table.Row class="hover:bg-transparent">
-								<Table.Cell colspan={5} class="text-center py-12">
-									<div class="flex flex-col items-center gap-3">
-										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-										<p class="text-muted-foreground">Loading product types...</p>
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{:else if $productTypes.status === 'error'}
-							<Table.Row class="hover:bg-transparent">
-								<Table.Cell colspan={5} class="text-center py-12">
-									<div class="flex flex-col items-center gap-3">
-										<div class="p-3 bg-red-100 rounded-full dark:bg-red-900/20">
-											<Zap class="h-6 w-6 text-red-600 dark:text-red-400" />
-										</div>
-										<p class="text-red-600 dark:text-red-400 font-medium">
-											Error: {$productTypes.error.message}
-										</p>
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{:else if filteredProductTypes.length === 0}
-							<Table.Row class="hover:bg-transparent">
-								<Table.Cell colspan={5} class="text-center py-12">
-									<div class="flex flex-col items-center gap-3">
-										<div class="p-3 bg-slate-100 rounded-full dark:bg-slate-800">
-											<Package class="h-6 w-6 text-slate-400" />
-										</div>
-										<p class="text-slate-600 dark:text-slate-400">
-											{searchTerm ? 'No product types match your search' : 'No product types found'}
-										</p>
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{:else}
-							{#each filteredProductTypes as pt, index}
-								<Table.Row class="border-slate-200/30 dark:border-slate-700/30 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-200 group">
-									<Table.Cell class="py-4">
-										<div class="flex items-center gap-3">
-											<div class="p-2 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg group-hover:from-primary/20 group-hover:to-accent/20 transition-all duration-200">
-												<Package class="h-4 w-4 text-primary" />
-											</div>
-											<div>
-												<p class="font-medium text-foreground">
-													{pt.title}
-												</p>
-											</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge 
-											variant={pt.digital ? 'secondary' : 'default'}
-											class="font-medium {pt.digital 
-												? 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300' 
-												: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
-											} transition-colors duration-200"
-										>
-											{#if pt.digital}
-												<Download class="h-3 w-3 mr-1" />
-												Digital
-											{:else}
-												<Package class="h-3 w-3 mr-1" />
-												Physical
-											{/if}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge 
-											variant={pt.shippable ? 'secondary' : 'destructive'}
-											class="font-medium {pt.shippable 
-												? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300' 
-												: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
-											} transition-colors duration-200"
-										>
-											{#if pt.shippable}
-												<Truck class="h-3 w-3 mr-1" />
-												Yes
-											{:else}
-												No
-											{/if}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<code class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300">
-											{pt.sku_substring}
-										</code>
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<DropdownMenu.Root>
-											<DropdownMenu.Trigger asChild let:builder>
-												<Button 
-													size="icon" 
-													variant="ghost" 
-													builders={[builder]}
-													class="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 opacity-0 group-hover:opacity-100"
-												>
-													<EllipsisVertical class="h-4 w-4" />
-													<span class="sr-only">Actions</span>
-												</Button>
-											</DropdownMenu.Trigger>
-											<DropdownMenu.Content 
-												align="end" 
-												class="bg-white/95 backdrop-blur-xl border-white/20 shadow-2xl dark:bg-slate-900/95 dark:border-slate-700/50"
-											>
-												<DropdownMenu.Item 
-													href={`/${$page.params.shop}/product-types/${pt.id}`}
-													class="hover:bg-blue-50 focus:bg-blue-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800 transition-colors duration-200"
-												>
-													View Details
-												</DropdownMenu.Item>
-												<DropdownMenu.Item 
-													href={`/${$page.params.shop}/product-types/${pt.id}/edit`}
-													class="hover:bg-blue-50 focus:bg-blue-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800 transition-colors duration-200"
-												>
-													Edit
-												</DropdownMenu.Item>
-												<DropdownMenu.Separator class="bg-slate-200/50 dark:bg-slate-700/50" />
-												<DropdownMenu.Item class="hover:bg-red-50 focus:bg-red-50 text-red-600 dark:hover:bg-red-900/20 dark:focus:bg-red-900/20 transition-colors duration-200">
-													Delete
-												</DropdownMenu.Item>
-											</DropdownMenu.Content>
-										</DropdownMenu.Root>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						{/if}
-					</Table.Body>
-				</Table.Root>
-			</div>
-		</Card.Content>
-
-		<!-- Enhanced Footer -->
-		<Card.Footer class="bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-200/30 dark:border-slate-700/30 rounded-b-2xl">
-			<div class="flex items-center justify-between w-full">
-				<div class="text-sm text-slate-600 dark:text-slate-400">
-					Showing <span class="font-semibold text-slate-900 dark:text-slate-100">{filteredProductTypes.length}</span> 
-					of <span class="font-semibold text-slate-900 dark:text-slate-100">{$productTypes.data?.length || 0}</span> product types
-				</div>
-				
-				{#if filteredProductTypes.length > 0}
-					<div class="flex items-center gap-2">
-						<Button variant="outline" size="sm" class="h-8 bg-white/80 hover:bg-white border-white/20 shadow-sm rounded-lg dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50">
-							Previous
-						</Button>
-						<Button variant="outline" size="sm" class="h-8 bg-white/80 hover:bg-white border-white/20 shadow-sm rounded-lg dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50">
-							Next
+			{:else if ($productTypes.data?.length || 0) === 0}
+				<div class="text-center py-12">
+					<div class="flex flex-col items-center gap-3">
+						<div class="p-3 bg-slate-100 rounded-full dark:bg-slate-800">
+							<Package class="h-6 w-6 text-slate-400" />
+						</div>
+						<p class="text-slate-600 dark:text-slate-400">
+							No product types found
+						</p>
+						<Button on:click={createNewProductType} class="mt-4">
+							<Plus class="w-4 h-4 mr-2" />
+							Create Your First Product Type
 						</Button>
 					</div>
-				{/if}
-			</div>
-		</Card.Footer>
+				</div>
+			{:else}
+				<!-- Card Grid Layout -->
+				<div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{#each $productTypes.data as pt}
+						<Card.Root class="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 hover:scale-[1.02] rounded-2xl">
+							<!-- Card Header with Icon and Title -->
+							<Card.Header class="pb-4">
+								<div class="flex items-start justify-between">
+									<div class="flex items-center gap-3">
+										<div class="p-3 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl group-hover:from-primary/20 group-hover:to-accent/20 transition-all duration-300">
+											<Package class="h-6 w-6 text-primary" />
+										</div>
+										<div>
+											<h3 class="font-semibold text-foreground text-lg leading-tight">
+												{pt.title}
+											</h3>
+											<p class="text-sm text-muted-foreground mt-1">
+												SKU: <code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-mono">{pt.sku_substring}</code>
+											</p>
+										</div>
+									</div>
+								</div>
+							</Card.Header>
+
+							<!-- Card Content with Type Badges -->
+							<Card.Content class="pt-0 pb-4">
+								<div class="flex flex-wrap gap-2 mb-4">
+									<Badge 
+										variant={pt.digital ? 'secondary' : 'default'}
+										class="font-medium {pt.digital 
+											? 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300' 
+											: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300'
+										} transition-colors duration-200"
+									>
+										{#if pt.digital}
+											<Download class="h-3 w-3 mr-1" />
+											Digital
+										{:else}
+											<Package class="h-3 w-3 mr-1" />
+											Physical
+										{/if}
+									</Badge>
+									
+									<Badge 
+										variant={pt.shippable ? 'secondary' : 'destructive'}
+										class="font-medium {pt.shippable 
+											? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300' 
+											: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
+										} transition-colors duration-200"
+									>
+										{#if pt.shippable}
+											<Truck class="h-3 w-3 mr-1" />
+											Shippable
+										{:else}
+											Not Shippable
+										{/if}
+									</Badge>
+								</div>
+							</Card.Content>
+
+							<!-- Card Footer with Action Buttons -->
+							<Card.Footer class="pt-0 pb-6">
+								<div class="flex gap-2 w-full">
+									<Button 
+										href={`/${$page.params.shop}/product-types/${pt.id}`}
+										variant="outline" 
+										size="sm"
+										class="flex-1 h-9 gap-2 bg-white/80 hover:bg-white border-white/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50"
+									>
+										<Eye class="h-3.5 w-3.5" />
+										View
+									</Button>
+									
+									<Button 
+										href={`/${$page.params.shop}/product-types/${pt.id}/edit`}
+										variant="outline" 
+										size="sm"
+										class="flex-1 h-9 gap-2 bg-white/80 hover:bg-white border-white/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-slate-700/50"
+									>
+										<Edit class="h-3.5 w-3.5" />
+										Edit
+									</Button>
+									
+									<Button 
+										variant="outline" 
+										size="sm"
+										class="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 dark:border-red-800 dark:hover:border-red-700 transition-all duration-300 rounded-lg"
+									>
+										<Trash2 class="h-3.5 w-3.5" />
+									</Button>
+								</div>
+							</Card.Footer>
+						</Card.Root>
+					{/each}
+				</div>
+			{/if}
+		</Card.Content>
 	</Card.Root>
 </div>

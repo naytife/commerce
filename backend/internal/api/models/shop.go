@@ -72,3 +72,9 @@ type ShopImagesUpdateParams struct {
 	CoverImageUrl     *string `json:"cover_image_url"`
 	CoverImageUrlDark *string `json:"cover_image_url_dark"`
 }
+
+type SubdomainAvailabilityResponse struct {
+	Subdomain string `json:"subdomain"`
+	Available bool   `json:"available"`
+	Message   string `json:"message"`
+}

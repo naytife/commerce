@@ -116,6 +116,30 @@ export const deleteShop = async (
   }
 };
 
+// Check subdomain availability
+export const checkSubdomainAvailability = async (
+  subdomain: string,
+  customFetch = fetch
+) => {
+  try {
+    const response = await customFetch(`http://127.0.0.1:8080/v1/shops/check-subdomain/${subdomain}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json() as ApiResponse<{ subdomain: string; available: boolean; message: string }>;
+    if (response.ok) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to check subdomain availability');
+    }
+  } catch (error) {
+    console.error('Error checking subdomain availability:', error);
+    throw error;
+  }
+};
+
 export const api = (customFetch = fetch) => {
   // Helper to get base URL with current shop ID
   const getShopUrl = () => {

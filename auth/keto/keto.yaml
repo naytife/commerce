@@ -1,8 +1,0 @@
-keto:
-  config:
-    dsn: postgres://postgres:bdQGszmfyR@postgres-postgresql.default.svc.cluster.local:5432/naytifedb?search_path=keto&sslmode=disable
-    namespaces:
-    - id: 0
-      name: shops
-  automigration:
-    enabled: true
