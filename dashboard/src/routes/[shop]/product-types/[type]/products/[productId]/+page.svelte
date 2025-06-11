@@ -17,7 +17,7 @@
 	import { CirclePlus } from 'lucide-svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { api } from '$lib/api'
-	import type { Product, ProductAttribute, ProductVariant, ProductTypeAttribute, AttributeOption, ProductType, ProductImage } from '$lib/types'
+	import type { Product, ProductAttribute, ProductVariant, ProductTypeAttribute, AttributeOption, ProductType, ProductImage, Shop } from '$lib/types'
 	import { getContext } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -25,6 +25,7 @@
 	import { uploadToR2, deleteFromR2 } from '$lib/cloudflare/r2-client';
 	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
+	import { getCurrencySymbol, formatAsCurrency, parseCurrencyInput } from '$lib/utils/currency';
 	const authFetch = getContext('authFetch');
 	const queryClient = useQueryClient();
 	// Define an extended product type to handle category_id
@@ -33,6 +34,15 @@
 	}
 
 	export let data: PageData;
+
+	// Get shop currency
+	const shopQuery = createQuery<Shop, Error>({
+		queryKey: [`shop-${$page.params.shop}`],
+		queryFn: () => api(authFetch as any).getShop(),
+		enabled: !!$page.params.shop
+	});
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
+	$: currencySymbol = getCurrencySymbol(currencyCode);
 
 	// Get product data
 	const productQuery = createQuery<ExtendedProduct>({
@@ -109,13 +119,13 @@
 		return attr;
 	}
 
-	// Format price as currency
+	// Format price as currency for input fields (without symbol)
 	function formatAsCurrency(value: number): string {
 		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 2
-		}).format(value).replace('$', '');
+			style: 'decimal',
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(value);
 	}
 
 	// Parse currency input back to number
@@ -773,7 +783,7 @@
 														<Table.Cell class="whitespace-nowrap">
 															<Label for={`price-active-${index}`} class="sr-only">Price</Label>
 															<div class="relative">
-																<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span>
+																<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">{currencySymbol}</span>
 																<Input
 																	id={`price-active-${index}`}
 																	type="text"

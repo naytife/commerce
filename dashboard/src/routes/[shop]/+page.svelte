@@ -28,8 +28,19 @@
 	import { api } from '$lib/api';
 	import type { Product } from '$lib/types';
 	import { page } from '$app/stores';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+
 	const client = useQueryClient()
 	const authFetch = getContext('authFetch')
+
+	// Get shop data for currency
+	const shopQuery = createQuery({
+		queryKey: [`shop-${$page.params.shop}`],
+		queryFn: () => api(authFetch as any).getShop($page.params.shop),
+	});
+
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
+	$: currencySymbol = getCurrencySymbol(currencyCode);
 
 	let limit = 10
 
@@ -43,7 +54,7 @@
 
 	// Mock data for dashboard stats (replace with real API calls)
 	const dashboardStats = {
-		totalRevenue: '$24,580',
+		totalRevenue: 24580,
 		revenueChange: '+12.5%',
 		totalOrders: 1234,
 		ordersChange: '+8.2%',
@@ -54,10 +65,10 @@
 	};
 
 	const recentOrders = [
-		{ id: '#3210', customer: 'John Doe', status: 'completed', amount: '$156.00', date: '2 hours ago' },
-		{ id: '#3209', customer: 'Jane Smith', status: 'processing', amount: '$89.50', date: '4 hours ago' },
-		{ id: '#3208', customer: 'Mike Johnson', status: 'pending', amount: '$234.75', date: '6 hours ago' },
-		{ id: '#3207', customer: 'Sarah Wilson', status: 'completed', amount: '$67.25', date: '8 hours ago' },
+		{ id: '#3210', customer: 'John Doe', status: 'completed', amount: 156.00, date: '2 hours ago' },
+		{ id: '#3209', customer: 'Jane Smith', status: 'processing', amount: 89.50, date: '4 hours ago' },
+		{ id: '#3208', customer: 'Mike Johnson', status: 'pending', amount: 234.75, date: '6 hours ago' },
+		{ id: '#3207', customer: 'Sarah Wilson', status: 'completed', amount: 67.25, date: '8 hours ago' },
 	];
 </script>
 
@@ -96,7 +107,7 @@
 			</div>
 			<div class="space-y-1">
 				<p class="text-sm text-muted-foreground">Total Revenue</p>
-				<p class="text-2xl font-bold text-foreground">{dashboardStats.totalRevenue}</p>
+				<p class="text-2xl font-bold text-foreground">{formatCurrencyWithLocale(dashboardStats.totalRevenue, currencyCode)}</p>
 			</div>
 		</div>
 
@@ -357,7 +368,7 @@
 								>
 									{order.status}
 								</Badge>
-								<p class="text-sm font-medium text-foreground mt-1">{order.amount}</p>
+								<p class="text-sm font-medium text-foreground mt-1">{formatCurrencyWithLocale(order.amount, currencyCode)}</p>
 							</div>
 						</div>
 					{/each}

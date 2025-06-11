@@ -30,6 +30,7 @@ type Shop implements Node {
   seoDescription: String
   seoKeywords: [String!]!
   seoTitle: String
+  paymentMethods: [PaymentMethodInfo!]!
 }
 type ShopImages {
   siteLogo: Image
@@ -39,4 +40,17 @@ type ShopImages {
   bannerDark: Image
   coverImage: Image
   coverImageDark: Image
+}
+
+type PaymentMethodInfo {
+  id: String!
+  name: String!
+  provider: String!
+  enabled: Boolean!
+  config: PaymentMethodConfig!
+}
+
+type PaymentMethodConfig {
+  publishableKey: String
+  testMode: Boolean
 }

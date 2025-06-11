@@ -249,7 +249,7 @@ data:
           "url": "http://backend.naytife:8000"
         },
         "match": {
-          "url": "http://127.0.0.1:8080/v1/<{shops}><**>",
+          "url": "http://127.0.0.1:8080/v1/<{shops,predefined-product-types}><**>",
           "methods": [
             "GET",
             "POST",
@@ -287,7 +287,7 @@ data:
           "url": "http://backend.naytife:8000"
         },
         "match": {
-          "url": "http://<*>.127.0.0.1:8080/graph",
+          "url": "http://<*>.localhost:8080/graph",
           "methods": [
             "GET"
           ]
@@ -313,7 +313,7 @@ data:
           "url": "http://backend.naytife:8000"
         },
         "match": {
-          "url": "http://<*>.127.0.0.1:8080/query",
+          "url": "http://<*>.localhost:8080/query",
           "methods": [
             "GET",
             "POST",

@@ -15,6 +15,7 @@
 	import ListFilter from 'lucide-svelte/icons/list-filter';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
 
 	const authFetch = getContext<typeof fetch>('authFetch');
 	const queryClient = useQueryClient();
@@ -33,8 +34,8 @@
 		queryFn: () => api(authFetch).getShop(),
 	});
 	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
-	$: currencySymbol = currencyCode === 'NGN' ? '₦' : '$';
-	$: formatCurrency = (amount: number) => `${currencySymbol}${amount.toFixed(2)}`;
+	$: currencySymbol = getCurrencySymbol(currencyCode);
+	$: formatCurrency = (amount: number) => formatCurrencyWithLocale(amount, currencyCode);
 
 	let statusFilter: Record<string, boolean> = { pending: true, processing: true, completed: true, cancelled: true, refunded: true };
 	let searchQuery = '';
@@ -193,7 +194,7 @@
 		
 		<!-- Total Revenue -->
 		<div class="card-interactive text-center">
-			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
+			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<ArrowUpDown class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{formatCurrency(orderStats.totalRevenue)}</div>

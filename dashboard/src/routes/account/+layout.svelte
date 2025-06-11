@@ -3,7 +3,6 @@
 		Home,
 		LineChart,
 		Package,
-		Package2,
 		PanelLeft,
 		Search,
 		Settings,
@@ -87,9 +86,13 @@
 					<nav class="grid gap-6 text-lg font-medium pt-8">
 						<a
 							href="##"
-							class="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-semibold text-primary-foreground md:text-base hover:scale-110 transition-all duration-300 shadow-brand"
+							class="group flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 hover:scale-105 transition-all duration-300 shadow-glass p-2"
 						>
-							<Package2 class="h-6 w-6 transition-all group-hover:scale-110" />
+							<img 
+								src="/images/logo.svg" 
+								alt="Naytife Logo" 
+								class="h-8 w-8 transition-all group-hover:scale-110"
+							/>
 							<span class="sr-only">Naytife</span>
 						</a>
 					</nav>
@@ -98,8 +101,12 @@
 
 			<!-- Enhanced logo for desktop -->
 			<div class="hidden sm:flex items-center gap-3">
-				<div class="group flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground hover:scale-110 transition-all duration-300 shadow-brand relative">
-					<Package2 class="h-6 w-6 transition-all group-hover:scale-110 group-hover:rotate-12" />
+				<div class="group flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 hover:scale-105 transition-all duration-300 shadow-glass p-2 relative">
+					<img 
+						src="/images/logo.svg" 
+						alt="Naytife Logo" 
+						class="h-8 w-8 transition-all group-hover:scale-110 group-hover:rotate-12"
+					/>
 					<div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-accent to-secondary rounded-full animate-pulse"></div>
 				</div>
 				<div class="flex flex-col">
@@ -180,8 +187,8 @@
 							class="overflow-hidden rounded-2xl glass border-border/50 hover:bg-surface-elevated hover:scale-105 transition-all duration-300 shadow-glass p-0"
 						>
 							<div class="relative">
-								<div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center">
-									<User class="w-4 h-4 text-primary-foreground" />
+								<div class="w-8 h-8 bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 rounded-2xl flex items-center justify-center">
+									<User class="w-4 h-4 text-foreground" />
 								</div>
 								<div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-success to-emerald-500 rounded-full border-2 border-background animate-pulse"></div>
 							</div>

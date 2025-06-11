@@ -148,6 +148,19 @@ type ComplexityRoot struct {
 		StartCursor     func(childComplexity int) int
 	}
 
+	PaymentMethodConfig struct {
+		PublishableKey func(childComplexity int) int
+		TestMode       func(childComplexity int) int
+	}
+
+	PaymentMethodInfo struct {
+		Config   func(childComplexity int) int
+		Enabled  func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Provider func(childComplexity int) int
+	}
+
 	Product struct {
 		Attributes     func(childComplexity int) int
 		CreatedAt      func(childComplexity int) int
@@ -218,6 +231,7 @@ type ComplexityRoot struct {
 		ID                   func(childComplexity int) int
 		Images               func(childComplexity int) int
 		InstagramLink        func(childComplexity int) int
+		PaymentMethods       func(childComplexity int) int
 		Products             func(childComplexity int, first *int, after *string) int
 		SeoDescription       func(childComplexity int) int
 		SeoKeywords          func(childComplexity int) int
@@ -279,6 +293,8 @@ type ShopResolver interface {
 	Categories(ctx context.Context, obj *model.Shop, first *int, after *string) (*model.CategoryConnection, error)
 
 	Images(ctx context.Context, obj *model.Shop) (*model.ShopImages, error)
+
+	PaymentMethods(ctx context.Context, obj *model.Shop) ([]model.PaymentMethodInfo, error)
 }
 
 type executableSchema struct {
@@ -728,6 +744,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
+	case "PaymentMethodConfig.publishableKey":
+		if e.complexity.PaymentMethodConfig.PublishableKey == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.PublishableKey(childComplexity), true
+
+	case "PaymentMethodConfig.testMode":
+		if e.complexity.PaymentMethodConfig.TestMode == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.TestMode(childComplexity), true
+
+	case "PaymentMethodInfo.config":
+		if e.complexity.PaymentMethodInfo.Config == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodInfo.Config(childComplexity), true
+
+	case "PaymentMethodInfo.enabled":
+		if e.complexity.PaymentMethodInfo.Enabled == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodInfo.Enabled(childComplexity), true
+
+	case "PaymentMethodInfo.id":
+		if e.complexity.PaymentMethodInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodInfo.ID(childComplexity), true
+
+	case "PaymentMethodInfo.name":
+		if e.complexity.PaymentMethodInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodInfo.Name(childComplexity), true
+
+	case "PaymentMethodInfo.provider":
+		if e.complexity.PaymentMethodInfo.Provider == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodInfo.Provider(childComplexity), true
+
 	case "Product.attributes":
 		if e.complexity.Product.Attributes == nil {
 			break
@@ -1103,6 +1168,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Shop.InstagramLink(childComplexity), true
+
+	case "Shop.paymentMethods":
+		if e.complexity.Shop.PaymentMethods == nil {
+			break
+		}
+
+		return e.complexity.Shop.PaymentMethods(childComplexity), true
 
 	case "Shop.products":
 		if e.complexity.Shop.Products == nil {
@@ -1629,6 +1701,7 @@ type Shop implements Node {
   seoDescription: String
   seoKeywords: [String!]!
   seoTitle: String
+  paymentMethods: [PaymentMethodInfo!]!
 }
 type ShopImages {
   siteLogo: Image
@@ -1638,6 +1711,19 @@ type ShopImages {
   bannerDark: Image
   coverImage: Image
   coverImageDark: Image
+}
+
+type PaymentMethodInfo {
+  id: String!
+  name: String!
+  provider: String!
+  enabled: Boolean!
+  config: PaymentMethodConfig!
+}
+
+type PaymentMethodConfig {
+  publishableKey: String
+  testMode: Boolean
 }
 `, BuiltIn: false},
 }
@@ -5055,6 +5141,314 @@ func (ec *executionContext) fieldContext_PageInfo_hasPreviousPage(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _PaymentMethodConfig_publishableKey(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_publishableKey(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublishableKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_publishableKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_testMode(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_testMode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TestMode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_testMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodInfo_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodInfo_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodInfo_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodInfo_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodInfo_provider(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodInfo_provider(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Provider, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodInfo_provider(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodInfo_enabled(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodInfo_enabled(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Enabled, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodInfo_enabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodInfo_config(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodInfo_config(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Config, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PaymentMethodConfig)
+	fc.Result = res
+	return ec.marshalNPaymentMethodConfig2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodConfig(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodInfo_config(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "publishableKey":
+				return ec.fieldContext_PaymentMethodConfig_publishableKey(ctx, field)
+			case "testMode":
+				return ec.fieldContext_PaymentMethodConfig_testMode(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PaymentMethodConfig", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Product_id(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Product_id(ctx, field)
 	if err != nil {
@@ -6981,6 +7375,8 @@ func (ec *executionContext) fieldContext_Query_shop(_ context.Context, field gra
 				return ec.fieldContext_Shop_seoKeywords(ctx, field)
 			case "seoTitle":
 				return ec.fieldContext_Shop_seoTitle(ctx, field)
+			case "paymentMethods":
+				return ec.fieldContext_Shop_paymentMethods(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Shop", field.Name)
 		},
@@ -7972,6 +8368,62 @@ func (ec *executionContext) fieldContext_Shop_seoTitle(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Shop_paymentMethods(ctx context.Context, field graphql.CollectedField, obj *model.Shop) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Shop_paymentMethods(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Shop().PaymentMethods(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.PaymentMethodInfo)
+	fc.Result = res
+	return ec.marshalNPaymentMethodInfo2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodInfoᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Shop_paymentMethods(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Shop",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PaymentMethodInfo_id(ctx, field)
+			case "name":
+				return ec.fieldContext_PaymentMethodInfo_name(ctx, field)
+			case "provider":
+				return ec.fieldContext_PaymentMethodInfo_provider(ctx, field)
+			case "enabled":
+				return ec.fieldContext_PaymentMethodInfo_enabled(ctx, field)
+			case "config":
+				return ec.fieldContext_PaymentMethodInfo_config(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PaymentMethodInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -11572,6 +12024,103 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var paymentMethodConfigImplementors = []string{"PaymentMethodConfig"}
+
+func (ec *executionContext) _PaymentMethodConfig(ctx context.Context, sel ast.SelectionSet, obj *model.PaymentMethodConfig) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paymentMethodConfigImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PaymentMethodConfig")
+		case "publishableKey":
+			out.Values[i] = ec._PaymentMethodConfig_publishableKey(ctx, field, obj)
+		case "testMode":
+			out.Values[i] = ec._PaymentMethodConfig_testMode(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var paymentMethodInfoImplementors = []string{"PaymentMethodInfo"}
+
+func (ec *executionContext) _PaymentMethodInfo(ctx context.Context, sel ast.SelectionSet, obj *model.PaymentMethodInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paymentMethodInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PaymentMethodInfo")
+		case "id":
+			out.Values[i] = ec._PaymentMethodInfo_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._PaymentMethodInfo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "provider":
+			out.Values[i] = ec._PaymentMethodInfo_provider(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "enabled":
+			out.Values[i] = ec._PaymentMethodInfo_enabled(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "config":
+			out.Values[i] = ec._PaymentMethodInfo_config(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var productImplementors = []string{"Product", "Node"}
 
 func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, obj *model.Product) graphql.Marshaler {
@@ -12354,6 +12903,42 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "seoTitle":
 			out.Values[i] = ec._Shop_seoTitle(ctx, field, obj)
+		case "paymentMethods":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Shop_paymentMethods(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13209,6 +13794,64 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋpetrejonnᚋnayti
 		return graphql.Null
 	}
 	return ec._PageInfo(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPaymentMethodConfig2ᚖgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodConfig(ctx context.Context, sel ast.SelectionSet, v *model.PaymentMethodConfig) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PaymentMethodConfig(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPaymentMethodInfo2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodInfo(ctx context.Context, sel ast.SelectionSet, v model.PaymentMethodInfo) graphql.Marshaler {
+	return ec._PaymentMethodInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPaymentMethodInfo2ᚕgithubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []model.PaymentMethodInfo) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPaymentMethodInfo2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNPaymentMethodType2githubᚗcomᚋpetrejonnᚋnaytifeᚋinternalᚋgqlᚋpublicᚋmodelᚐPaymentMethodType(ctx context.Context, v any) (model.PaymentMethodType, error) {

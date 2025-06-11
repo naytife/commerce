@@ -19,7 +19,31 @@ const config: Config = {
 				brand: {
 					primary: 'hsl(var(--brand-primary))',
 					secondary: 'hsl(var(--brand-secondary))',
-					accent: 'hsl(var(--brand-accent))'
+					accent: 'hsl(var(--brand-accent))',
+					// Additional brand variants
+					50: 'hsl(141, 70%, 95%)',   // Very light green
+					100: 'hsl(141, 70%, 85%)',  // Light green
+					200: 'hsl(141, 70%, 75%)',  // Lighter green
+					300: 'hsl(141, 70%, 65%)',  // Medium light green
+					400: 'hsl(141, 70%, 55%)',  // Medium green
+					500: 'hsl(var(--brand-primary))', // Primary green (#19a342)
+					600: 'hsl(141, 70%, 30%)',  // Darker green
+					700: 'hsl(141, 70%, 25%)',  // Dark green
+					800: 'hsl(141, 70%, 20%)',  // Very dark green
+					900: 'hsl(141, 70%, 15%)',  // Darkest green
+					// Charcoal variants
+					charcoal: {
+						50: 'hsl(60, 6%, 95%)',   // Very light gray
+						100: 'hsl(60, 6%, 85%)',  // Light gray
+						200: 'hsl(60, 6%, 75%)',  // Medium light gray
+						300: 'hsl(60, 6%, 65%)',  // Medium gray
+						400: 'hsl(60, 6%, 45%)',  // Dark gray
+						500: 'hsl(60, 6%, 25%)',  // Darker gray
+						600: 'hsl(60, 6%, 18%)',  // Very dark gray
+						700: 'hsl(60, 6%, 15%)',  // Charcoal
+						800: 'hsl(var(--brand-secondary))', // Logo charcoal (#1d1d1b)
+						900: 'hsl(60, 6%, 8%)',   // Darkest
+					}
 				},
 				// Base colors
 				border: 'hsl(var(--border) / <alpha-value>)',
@@ -147,9 +171,12 @@ const config: Config = {
 			boxShadow: {
 				'glass': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
 				'glass-dark': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-				'brand': '0 10px 15px -3px hsl(var(--primary) / 0.2), 0 4px 6px -4px hsl(var(--primary) / 0.1)',
-				'glow': '0 0 20px hsl(var(--primary) / 0.3)',
-				'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)'
+				'brand': '0 10px 15px -3px hsl(var(--brand-primary) / 0.2), 0 4px 6px -4px hsl(var(--brand-primary) / 0.1)',
+				'brand-lg': '0 20px 25px -5px hsl(var(--brand-primary) / 0.3), 0 8px 10px -6px hsl(var(--brand-primary) / 0.2)',
+				'glow': '0 0 20px hsl(var(--brand-primary) / 0.3)',
+				'glow-lg': '0 0 30px hsl(var(--brand-primary) / 0.4), 0 0 60px hsl(var(--brand-primary) / 0.2)',
+				'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+				'charcoal': '0 10px 15px -3px hsl(var(--brand-secondary) / 0.3), 0 4px 6px -4px hsl(var(--brand-secondary) / 0.2)'
 			}
 		}
 	}

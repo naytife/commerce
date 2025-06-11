@@ -22,6 +22,9 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+	import type { Shop } from '$lib/types';
+	import { createQuery } from '@tanstack/svelte-query';
 	import { 
 		Package, 
 		Search, 
@@ -45,6 +48,14 @@
 
 	const authFetch = getContext('authFetch') as typeof fetch;
 	const apiWithAuth = api(authFetch);
+
+	// Get shop currency
+	const shopQuery = createQuery<Shop, Error>({
+		queryKey: [`shop-${$page.params.shop}`],
+		queryFn: () => apiWithAuth.getShop(),
+		enabled: !!$page.params.shop
+	});
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
 
 	let inventoryReport: InventoryReport | null = null;
 	let lowStockVariants: LowStockVariant[] = [];
@@ -228,10 +239,7 @@
 	};
 
 	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD'
-		}).format(amount);
+		return formatCurrencyWithLocale(amount, currencyCode);
 	};
 
 	onMount(() => {

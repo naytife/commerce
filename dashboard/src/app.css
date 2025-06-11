@@ -1,13 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
  
 @layer base {
   :root {
-    /* Core Brand Colors */
-    --brand-primary: 222 84% 28%;
-    --brand-secondary: 262 83% 58%;
-    --brand-accent: 210 100% 56%;
+    /* Core Brand Colors - Based on Logo Colors */
+    --brand-primary: 141 70% 37%;    /* #19a342 - Primary green from logo */
+    --brand-secondary: 60 6% 11%;    /* #1d1d1b - Dark charcoal from logo */
+    --brand-accent: 141 70% 45%;     /* Lighter variant of primary green */
     
     /* Semantic Colors - Light Mode */
     --background: 0 0% 100%;
@@ -41,7 +50,7 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     
-    --success: 142 76% 36%;
+    --success: var(--brand-primary);    /* Use brand green for success */
     --success-foreground: 355 100% 97%;
     
     --warning: 38 92% 50%;
@@ -79,9 +88,9 @@
  
   .dark {
     /* Core Brand Colors - Adjusted for dark mode */
-    --brand-primary: 222 84% 45%;
-    --brand-secondary: 262 83% 65%;
-    --brand-accent: 210 100% 60%;
+    --brand-primary: 141 70% 45%;    /* Slightly brighter green for dark mode */
+    --brand-secondary: 60 6% 85%;    /* Light gray (inverted from dark logo color) */
+    --brand-accent: 141 70% 55%;     /* Even brighter green accent for dark mode */
     
     /* Semantic Colors - Dark Mode */
     --background: 222 84% 4.9%;
@@ -115,7 +124,7 @@
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
     
-    --success: 142 76% 36%;
+    --success: var(--brand-primary);    /* Use brand green for success */
     --success-foreground: 142 76% 96%;
     
     --warning: 38 92% 50%;
@@ -301,6 +310,14 @@
   .animate-fade-in {
     animation: fadeIn 0.5s ease-out forwards;
   }
+  
+  .animate-slide-in {
+    animation: slideInFromTop 0.3s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleInModal 0.3s ease-out forwards;
+  }
 }
 
 /* Keyframe animations */
@@ -351,4 +368,93 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+@keyframes slideInUp {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes floatUp {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes floatDown {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(15px);
+  }
+}
+
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleInModal {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Demo section specific animations */
+.demo-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.demo-slide-up {
+  animation: slideInUp 0.8s ease-out forwards;
+}
+
+.demo-bounce-in {
+  animation: bounceIn 1s ease-out forwards;
+}
+
+.animate-float-up {
+  animation: floatUp 4s ease-in-out infinite;
+}
+
+.animate-float-down {
+  animation: floatDown 4s ease-in-out infinite;
 }

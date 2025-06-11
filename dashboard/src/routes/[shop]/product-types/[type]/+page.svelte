@@ -15,6 +15,7 @@
 	import type { Product, Shop } from '$lib/types';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
 	const queryClient = useQueryClient()
 	const authFetch = getContext('authFetch')
 	import type { PageData } from './$types';
@@ -39,8 +40,8 @@
 		enabled: !!$page.params.shop
 	});
 	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
-	$: currencySymbol = currencyCode === 'NGN' ? '₦' : '$';
-	$: formatCurrency = (amount: number) => `${currencySymbol}${amount.toFixed(2)}`;
+	$: currencySymbol = getCurrencySymbol(currencyCode);
+	$: formatCurrency = (amount: number) => formatCurrencyWithLocale(amount, currencyCode);
 
 	onMount(async () => {
 		await queryClient.prefetchQuery({

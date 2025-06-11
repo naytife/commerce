@@ -5,8 +5,4 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(),houdini(), sveltekit()],
-	server: {
-		host: '0.0.0.0', // Allow external access
-		allowedHosts: ['gossip.naytife.dev'], // Add your local domain here
-	  },
 });

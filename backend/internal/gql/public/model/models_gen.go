@@ -166,6 +166,19 @@ type PageInfo struct {
 	HasPreviousPage bool   `json:"has_previous_page"`
 }
 
+type PaymentMethodConfig struct {
+	PublishableKey *string `json:"publishable_key,omitempty"`
+	TestMode       *bool   `json:"test_mode,omitempty"`
+}
+
+type PaymentMethodInfo struct {
+	ID       string               `json:"id"`
+	Name     string               `json:"name"`
+	Provider string               `json:"provider"`
+	Enabled  bool                 `json:"enabled"`
+	Config   *PaymentMethodConfig `json:"config"`
+}
+
 type Product struct {
 	ID             string             `json:"id"`
 	ProductID      int                `json:"product_id"`
@@ -256,6 +269,7 @@ type Shop struct {
 	SeoDescription       *string             `json:"seo_description,omitempty"`
 	SeoKeywords          []string            `json:"seo_keywords"`
 	SeoTitle             *string             `json:"seo_title,omitempty"`
+	PaymentMethods       []PaymentMethodInfo `json:"payment_methods"`
 }
 
 func (Shop) IsNode()            {}

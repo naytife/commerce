@@ -18,10 +18,11 @@
 	import { getContext } from 'svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { api } from '$lib/api';
-	import type { ProductTypeAttribute, AttributeOption, ProductCreatePayload, ProductAttribute, ProductVariant, ProductType } from '$lib/types';
+	import type { ProductTypeAttribute, AttributeOption, ProductCreatePayload, ProductAttribute, ProductVariant, ProductType, Shop } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { getCurrencySymbol, formatAsCurrency, parseCurrencyInput } from '$lib/utils/currency';
 	interface PageData {
 		typeId: string;
 	}
@@ -29,6 +30,15 @@
 	export let data: PageData;
 	const authFetch = getContext<typeof fetch>('authFetch');
 	const queryClient = useQueryClient();
+
+	// Get shop currency
+	const shopQuery = createQuery<Shop, Error>({
+		queryKey: [`shop-${$page.params.shop}`],
+		queryFn: () => api(authFetch).getShop(),
+		enabled: !!$page.params.shop
+	});
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
+	$: currencySymbol = getCurrencySymbol(currencyCode);
 
 	// Get product type details
 	const productTypeQuery = createQuery<ProductType>({
@@ -271,13 +281,13 @@
 		}
 	}
 
-	// Format price as currency
+	// Format price as currency for input fields (without symbol)
 	function formatAsCurrency(value: number): string {
 		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 2
-		}).format(value).replace('$', '');
+			style: 'decimal',
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(value);
 	}
 
 	// Parse currency input back to number
@@ -544,7 +554,7 @@
 											<Table.Cell class="whitespace-nowrap">
 												<Label for={`price-active-${index}`} class="sr-only">Price</Label>
 												<div class="relative">
-													<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span>
+													<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">{currencySymbol}</span>
 													<Input
 														id={`price-active-${index}`}
 														type="text"

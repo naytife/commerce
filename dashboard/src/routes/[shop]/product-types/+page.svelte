@@ -99,7 +99,7 @@
 		</div>
 		
 		<div class="card-interactive text-center">
-			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
+			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<Download class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{$productTypes.data?.filter(pt => pt.digital).length || 0}</div>
@@ -117,7 +117,7 @@
 					<Input
 						type="text"
 						placeholder="Search product types..."
-						class="pl-10 bg-white/80 border-white/20 shadow-sm focus:shadow-lg focus:shadow-blue-500/20 transition-all duration-300 rounded-xl dark:bg-slate-800/80 dark:border-slate-700/50"
+						class="pl-10 glass border-border/50 focus:border-primary/50 transition-all duration-300 rounded-xl"
 						bind:value={searchTerm}
 					/>
 				</div>
@@ -139,13 +139,13 @@
 						<DropdownMenu.Content align="end" class="bg-white/95 backdrop-blur-xl border-white/20 shadow-2xl dark:bg-slate-900/95 dark:border-slate-700/50">
 							<DropdownMenu.Label class="font-semibold">Filter by Status</DropdownMenu.Label>
 							<DropdownMenu.Separator class="bg-slate-200/50 dark:bg-slate-700/50" />
-							<DropdownMenu.CheckboxItem checked class="hover:bg-blue-50 focus:bg-blue-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800">
+							<DropdownMenu.CheckboxItem checked class="hover:bg-surface-elevated focus:bg-surface-elevated">
 								Active
 							</DropdownMenu.CheckboxItem>
-							<DropdownMenu.CheckboxItem class="hover:bg-blue-50 focus:bg-blue-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800">
+							<DropdownMenu.CheckboxItem class="hover:bg-surface-elevated focus:bg-surface-elevated">
 								Draft
 							</DropdownMenu.CheckboxItem>
-							<DropdownMenu.CheckboxItem class="hover:bg-blue-50 focus:bg-blue-50 dark:hover:bg-slate-800 dark:focus:bg-slate-800">
+							<DropdownMenu.CheckboxItem class="hover:bg-surface-elevated focus:bg-surface-elevated">
 								Archived
 							</DropdownMenu.CheckboxItem>
 						</DropdownMenu.Content>
@@ -191,8 +191,8 @@
 							<Table.Row class="hover:bg-transparent">
 								<Table.Cell colspan={5} class="text-center py-12">
 									<div class="flex flex-col items-center gap-3">
-										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-										<p class="text-slate-600 dark:text-slate-400">Loading product types...</p>
+										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+										<p class="text-muted-foreground">Loading product types...</p>
 									</div>
 								</Table.Cell>
 							</Table.Row>
@@ -227,11 +227,11 @@
 								<Table.Row class="border-slate-200/30 dark:border-slate-700/30 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all duration-200 group">
 									<Table.Cell class="py-4">
 										<div class="flex items-center gap-3">
-											<div class="p-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-lg group-hover:from-blue-500/20 group-hover:to-indigo-500/20 transition-all duration-200">
-												<Package class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+											<div class="p-2 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg group-hover:from-primary/20 group-hover:to-accent/20 transition-all duration-200">
+												<Package class="h-4 w-4 text-primary" />
 											</div>
 											<div>
-												<p class="font-medium text-slate-900 dark:text-slate-100">
+												<p class="font-medium text-foreground">
 													{pt.title}
 												</p>
 											</div>

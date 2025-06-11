@@ -119,4 +119,6 @@ models:
         resolver: true
       images:
         resolver: true
+      paymentMethods:
+        resolver: true
  

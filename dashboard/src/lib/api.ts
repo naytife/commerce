@@ -20,7 +20,9 @@ import type {
   StockMovementSearchParams,
   PaginatedResponse,
   PaymentMethod,
-  PaymentMethodConfig
+  PaymentMethodConfig,
+  PredefinedProductType,
+  ProductTypeWithTemplateResponse
 } from './types'
 import { toast } from 'svelte-sonner'
 import { writable } from 'svelte/store'
@@ -248,6 +250,51 @@ export const api = (customFetch = fetch) => {
           }
         );
         const responseData = await response.json() as ApiResponse<ProductType>;
+        return responseData.data;
+      } catch (error) {
+        console.error('Error creating product type:', error);
+        throw error;
+      }
+    },
+    // Predefined product type functions
+    getPredefinedProductTypes: async (): Promise<PredefinedProductType[]> => {
+      try {
+        const response = await customFetch('http://127.0.0.1:8080/v1/predefined-product-types');
+        const data = await response.json() as ApiResponse<PredefinedProductType[]>;
+        return data.data;
+      } catch (error) {
+        console.error('Error fetching predefined product types:', error);
+        throw error;
+      }
+    },
+    getPredefinedProductType: async (templateId: string): Promise<PredefinedProductType> => {
+      try {
+        const response = await customFetch(`http://127.0.0.1:8080/v1/predefined-product-types/${templateId}`);
+        const data = await response.json() as ApiResponse<PredefinedProductType>;
+        return data.data;
+      } catch (error) {
+        console.error('Error fetching predefined product type:', error);
+        throw error;
+      }
+    },
+    createProductTypeFromTemplate: async (templateId: string): Promise<ProductTypeWithTemplateResponse> => {
+      try {
+        const response = await customFetch(
+          `${getShopUrl()}/product-types/from-template`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ template_id: templateId }),
+          }
+        );
+        const responseData = await response.json() as ApiResponse<ProductTypeWithTemplateResponse>;
+        
+        if (!response.ok) {
+          throw new Error(responseData.message || 'Failed to create product type from template');
+        }
+        
         return responseData.data;
       } catch (error) {
         console.error('Error creating product type:', error);

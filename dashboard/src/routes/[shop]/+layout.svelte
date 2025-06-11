@@ -174,12 +174,10 @@
 			<!-- Logo with enhanced styling -->
 			<a
 				href="/account"
-				class="group/logo relative flex h-12 w-12 shrink-0 items-center justify-center gap-3 rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-bold text-primary-foreground shadow-brand transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 mb-4"
+				class="group/logo relative flex h-12 w-12 shrink-0 items-center justify-center gap-3 rounded-2xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 shadow-glass transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 mb-4"
 			>
-				<img src="/images/naytifelogo.svg" alt="Naytife" class="h-6 w-6 transition-all group-hover/logo:scale-110" />
-				<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap text-sm font-semibold">
-					Naytife
-				</span>
+				<img src="/images/logo.svg" alt="Naytife" class="h-6 w-6 transition-all group-hover/logo:scale-110" />
+				
 				<!-- Shine effect -->
 				<div class="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300"></div>
 			</a>
@@ -270,9 +268,9 @@
 					<nav class="grid gap-4 text-lg font-medium pt-8">
 						<a
 							href="/account"
-							class="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-semibold text-primary-foreground shadow-brand mb-4"
+							class="group flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 shadow-glass mb-4"
 						>
-							<img src="/images/naytifelogo.svg" alt="Naytife" class="h-6 w-6 transition-all group-hover:scale-110" />
+							<img src="/images/logo.svg" alt="Naytife" class="h-6 w-6 transition-all group-hover:scale-110" />
 							<span class="sr-only">Naytife</span>
 						</a>
 						

@@ -283,7 +283,7 @@
 						<Accordion.Item value="item-3" class="border-t border-gray-200 dark:border-gray-700">
 							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Shipping</Accordion.Trigger>
 							<Accordion.Content class="pb-4 text-sm text-gray-600 dark:text-gray-400">
-								Free shipping on orders over $50. Standard shipping takes 3-5 business days.
+								Free shipping on orders over {$currencySymbol}50. Standard shipping takes 3-5 business days.
 							</Accordion.Content>
 						</Accordion.Item>
 					</Accordion.Root>

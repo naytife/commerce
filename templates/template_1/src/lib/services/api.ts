@@ -16,7 +16,7 @@ export class ApiClient {
   private debug: boolean;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://gossip.localhost:8000/query';
+    this.baseUrl = import.meta.env.VITE_API_URL || 'http://ynt.localhost:8080/query';
     this.debug = import.meta.env.VITE_DEBUG === 'true' || dev;
   }
 

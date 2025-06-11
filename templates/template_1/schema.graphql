@@ -160,6 +160,19 @@ type PageInfo {
   startCursor: ID!
 }
 
+type PaymentMethodConfig {
+  publishableKey: String
+  testMode: Boolean
+}
+
+type PaymentMethodInfo {
+  config: PaymentMethodConfig!
+  enabled: Boolean!
+  id: String!
+  name: String!
+  provider: String!
+}
+
 enum PaymentMethodType {
   FLUTTERWAVE
   PAYPAL
@@ -259,6 +272,7 @@ type Shop implements Node {
   id: ID!
   images: ShopImages!
   instagramLink: String
+  paymentMethods: [PaymentMethodInfo!]!
   products(after: ID, first: Int = 20): ProductConnection
   seoDescription: String
   seoKeywords: [String!]!

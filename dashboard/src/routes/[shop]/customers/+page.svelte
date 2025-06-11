@@ -16,9 +16,20 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Plus, Search, Filter, Edit, Trash2, Mail, Phone, Calendar, Users, UserPlus, Download, MoreHorizontal, Eye, MapPin } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+	import type { Shop } from '$lib/types';
+	import { createQuery } from '@tanstack/svelte-query';
 
 	const authFetch = getContext('authFetch') as typeof fetch;
 	const apiWithAuth = api(authFetch);
+
+	// Get shop currency
+	const shopQuery = createQuery<Shop, Error>({
+		queryKey: [`shop-${$page.params.shop}`],
+		queryFn: () => apiWithAuth.getShop(),
+		enabled: !!$page.params.shop
+	});
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
 
 	let customers: Customer[] = [];
 	let loading = true;
@@ -192,10 +203,7 @@
 	};
 
 	const formatCurrency = (amount: number) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD'
-		}).format(amount);
+		return formatCurrencyWithLocale(amount, currencyCode);
 	};
 
 	const getStatusBadgeVariant = (status: string) => {
@@ -266,7 +274,7 @@
 		</div>
 		
 		<div class="card-interactive text-center">
-			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
+			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<Calendar class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">

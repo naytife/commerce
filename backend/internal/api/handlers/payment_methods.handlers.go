@@ -60,12 +60,24 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 			json.Unmarshal(pm.Attributes, &config)
 		}
 
+		// Extract safe config for frontend (no secrets)
+		safeConfig := map[string]interface{}{}
+		if publishableKey, ok := config["publishable_key"].(string); ok {
+			safeConfig["publishable_key"] = publishableKey
+		}
+		if testMode, ok := config["test_mode"].(bool); ok {
+			safeConfig["test_mode"] = testMode
+		}
+
+		// Map payment method type to human-readable name
+		methodName := strings.Title(string(pm.MethodType))
+
 		response[i] = map[string]interface{}{
-			"method_type": string(pm.MethodType),
-			"is_enabled":  pm.IsEnabled,
-			"config":      config,
-			"created_at":  pm.CreatedAt,
-			"updated_at":  pm.UpdatedAt,
+			"id":       string(pm.MethodType),
+			"name":     methodName,
+			"provider": string(pm.MethodType),
+			"enabled":  pm.IsEnabled,
+			"config":   safeConfig,
 		}
 	}
 

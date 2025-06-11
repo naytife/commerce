@@ -122,25 +122,44 @@ export async function fetchPaymentMethods(shopId: string): Promise<PaymentMethod
       
       // Fallback to GraphQL query
       const query = `
-        query GetShopPaymentMethods($shopId: ID!) {
-          shop(id: $shopId) {
+        query {
+          shop {
             paymentMethods {
               id
               name
               provider
               enabled
-              config
+              config {
+                publishableKey
+                testMode
+              }
             }
           }
         }
       `;
 
-      const result = await apiClient.query<{ shop: { paymentMethods: PaymentMethodConfig[] } }>(
-        query,
-        { shopId }
-      );
+      const result = await apiClient.query<{ shop: { paymentMethods: Array<{
+        id: string;
+        name: string;
+        provider: string;
+        enabled: boolean;
+        config: {
+          publishableKey?: string;
+          testMode?: boolean;
+        };
+      }> } }>(query);
 
-      return result.shop?.paymentMethods || [];
+      // Transform GraphQL result to match expected format
+      return result.shop?.paymentMethods?.map(pm => ({
+        id: pm.id,
+        name: pm.name,
+        provider: pm.provider,
+        enabled: pm.enabled,
+        config: {
+          publishable_key: pm.config.publishableKey,
+          test_mode: pm.config.testMode,
+        },
+      })) || [];
     }
   } catch (error) {
     console.error('Error fetching payment methods:', error);

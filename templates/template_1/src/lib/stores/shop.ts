@@ -45,7 +45,7 @@ function createShopStore() {
         const actualSubdomain = subdomain || (browser ? window.location.hostname.split('.')[0] : null);
         if (!actualSubdomain) return null;
 
-        const apiUrl = (import.meta.env.VITE_API_URL || 'http://gossip.localhost:8000').replace('/query', '');
+        const apiUrl = (import.meta.env.VITE_API_URL || 'http://ynt.localhost:8080').replace('/query', '');
         const response = await fetch(`${apiUrl}/shops/subdomain/${actualSubdomain}`);
         
         if (!response.ok) {
@@ -76,7 +76,7 @@ function createShopStore() {
       if (shopId) {
         // Development mode with direct shop ID
         try {
-          const apiUrl = (import.meta.env.VITE_API_URL || 'http://gossip.localhost:8000').replace('/query', '');
+          const apiUrl = (import.meta.env.VITE_API_URL || 'http://ynt.localhost:8080').replace('/query', '');
           const response = await fetch(`${apiUrl}/shops/${shopId}`);
           
           if (response.ok) {

@@ -124,6 +124,41 @@ export type ProductType = {
     updated_at?: string
   }
 
+  // Predefined Product Type Templates
+  export interface PredefinedProductType {
+    id: string;
+    title: string;
+    description: string;
+    sku_substring: string;
+    shippable: boolean;
+    digital: boolean;
+    category: string;
+    icon: string;
+    attributes: PredefinedAttributeTemplate[];
+  }
+
+  export interface PredefinedAttributeTemplate {
+    title: string;
+    data_type: string; // Text, Number, Date, Option, Color
+    unit?: string;
+    required: boolean;
+    applies_to: string; // Product, ProductVariation
+    options?: PredefinedAttributeOption[];
+  }
+
+  export interface PredefinedAttributeOption {
+    value: string;
+  }
+
+  export interface CreateProductTypeFromTemplateParams {
+    template_id: string;
+  }
+
+  export interface ProductTypeWithTemplateResponse {
+    product_type: ProductType;
+    attributes: Attribute[];
+  }
+
   export interface OrderItem {
     created_at: string;
     order_id: number;

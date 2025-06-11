@@ -12,6 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
 
 	const authFetch = getContext<typeof fetch>('authFetch');
 	const queryClient = useQueryClient();
@@ -28,8 +29,8 @@
 		enabled: !!$page.params.shop
 	});
 	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
-	$: currencySymbol = currencyCode === 'NGN' ? '₦' : '$';
-	$: formatCurrency = (amount: number) => `${currencySymbol}${amount.toFixed(2)}`;
+	$: currencySymbol = getCurrencySymbol(currencyCode);
+	$: formatCurrency = (amount: number) => formatCurrencyWithLocale(amount, currencyCode);
 
 	async function handleDeleteOrder() {
 		try {

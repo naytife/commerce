@@ -378,12 +378,11 @@
 							</h4>
 							<div>
 								<label for="price-range" class="sr-only">Price Range</label>
-								<input id="price-range" type="range" min="0" max="1000" value="500" class="w-full h-2 bg-gray-200 appearance-none dark:bg-gray-700" />
-								<div class="flex justify-between mt-2 text-xs text-gray-700 dark:text-gray-300">
-									<span>$0</span>
-									<span>$500</span>
-									<span>$1000</span>
-								</div>
+								<input id="price-range" type="range" min="0" max="1000" value="500" class="w-full h-2 bg-gray-200 appearance-none dark:bg-gray-700" />							<div class="flex justify-between mt-2 text-xs text-gray-700 dark:text-gray-300">
+								<span>{$currencySymbol}0</span>
+								<span>{$currencySymbol}500</span>
+								<span>{$currencySymbol}1000</span>
+							</div>
 							</div>
 						</div>
 						<div class="mt-6 flex items-center justify-between space-x-4">

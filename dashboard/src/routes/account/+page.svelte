@@ -134,7 +134,7 @@
 					<div class="w-12 h-12 bg-gradient-to-br from-accent to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 						<TrendingUp class="w-6 h-6 text-white" />
 					</div>
-					<div class="text-2xl font-bold text-foreground mb-1">$24.5K</div>
+					<div class="text-2xl font-bold text-foreground mb-1">₦24.5K</div>
 					<div class="text-sm text-muted-foreground">Total Revenue</div>
 				</div>
 				
@@ -295,7 +295,7 @@
 						<div class="grid grid-cols-2 gap-4 mb-6">
 							<div class="text-center p-3 bg-surface-elevated rounded-xl">
 								<div class="text-sm text-muted-foreground mb-1">Revenue</div>
-								<div class="font-semibold text-foreground">$2,458</div>
+								<div class="font-semibold text-foreground">₦2,458</div>
 							</div>
 							<div class="text-center p-3 bg-surface-elevated rounded-xl">
 								<div class="text-sm text-muted-foreground mb-1">Orders</div>

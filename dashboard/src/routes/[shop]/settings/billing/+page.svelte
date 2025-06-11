@@ -12,6 +12,8 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
+	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+
 	export let data: PageData;
 	const authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> =
 		getContext('authFetch');
@@ -21,6 +23,9 @@
 		queryFn: () => api(authFetch).getShop(),
 		enabled: !!$page.params.shop
 	});
+
+	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
+	$: currencySymbol = getCurrencySymbol(currencyCode);
 
 	// Initialize shop data from query
 	let shop: Partial<Shop> = {};
@@ -95,7 +100,7 @@
 							</ul>
 						</div>
 						<div class="text-right">
-							<span class="text-xl font-bold">$19</span>
+							<span class="text-xl font-bold">{currencySymbol}19</span>
 							<span class="text-sm text-muted-foreground">/month</span>
 						</div>
 					</div>
@@ -115,7 +120,7 @@
 							</ul>
 						</div>
 						<div class="text-right">
-							<span class="text-xl font-bold">$49</span>
+							<span class="text-xl font-bold">{currencySymbol}49</span>
 							<span class="text-sm text-muted-foreground">/month</span>
 						</div>
 					</div>
@@ -245,4 +250,4 @@
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
-</Dialog.Root> 
+</Dialog.Root>
