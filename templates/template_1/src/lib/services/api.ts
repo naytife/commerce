@@ -13,10 +13,14 @@ export interface GraphQLResponse<T = any> {
 
 export class ApiClient {
   private baseUrl: string;
+  private restUrl: string;
   private debug: boolean;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_URL || 'http://ynt.localhost:8080/query';
+    // Use GraphQL endpoint for GraphQL queries
+    this.baseUrl = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8002/query';
+    // Use REST API endpoint for REST calls
+    this.restUrl = import.meta.env.VITE_API_URL || 'http://localhost:8002/api/v1';
     this.debug = import.meta.env.VITE_DEBUG === 'true' || dev;
   }
 
@@ -61,7 +65,7 @@ export class ApiClient {
 
   async restGet<T = any>(endpoint: string): Promise<T> {
     try {
-      const url = this.baseUrl.replace('/query', endpoint);
+      const url = `${this.restUrl}${endpoint}`;
       
       if (this.debug) {
         console.log('REST GET:', url);
@@ -79,6 +83,11 @@ export class ApiClient {
         console.log('REST Response:', result);
       }
 
+      // Handle backend API response format
+      if (result.data) {
+        return result.data;
+      }
+      
       return result;
     } catch (error) {
       console.error('REST API Error:', error);
@@ -88,7 +97,7 @@ export class ApiClient {
 
   async restPost<T = any>(endpoint: string, data: any): Promise<T> {
     try {
-      const url = this.baseUrl.replace('/query', endpoint);
+      const url = `${this.restUrl}${endpoint}`;
       
       if (this.debug) {
         console.log('REST POST:', url, data);
@@ -112,6 +121,11 @@ export class ApiClient {
         console.log('REST Response:', result);
       }
 
+      // Handle backend API response format
+      if (result.data) {
+        return result.data;
+      }
+      
       return result;
     } catch (error) {
       console.error('REST API Error:', error);

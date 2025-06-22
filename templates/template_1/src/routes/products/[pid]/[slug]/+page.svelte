@@ -2,9 +2,11 @@
 
 	import * as Card from '$lib/components/ui/card';
 	import * as Accordion from '$lib/components/ui/accordion';
-	import { Info, MapPin, Minus, Plus, ShoppingBag } from 'lucide-svelte';
+	import Minus from 'lucide-svelte/icons/minus';
+	import Plus from 'lucide-svelte/icons/plus';
+	import ShoppingBag from 'lucide-svelte/icons/shopping-bag';
 	import * as Select from '$lib/components/ui/select';
-	import type { PageData } from './$houdini';
+	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { initFlowbite } from 'flowbite';
@@ -36,7 +38,7 @@
 	function syncActiveVariant() {
 		const pageData = get(page);
 		const slug = pageData.params.slug;
-		const variants = (get(ProductQuery) as any).data?.product?.variants;
+		const variants = ProductQuery.data?.product?.variants;
 		if (!slug || !variants) return;
 		// extract variationId from slug or hash
 		const parts = slug.split('-');
@@ -66,9 +68,9 @@
 	});
 
 	onMount(() => {
-	if ($ProductQuery.data?.product?.variants) {
+	if (ProductQuery.data?.product?.variants) {
 		const optionsMap = new Map<string, Set<string>>();
-		for (const variant of $ProductQuery.data.product.variants) {
+		for (const variant of ProductQuery.data.product.variants) {
 		for (const attr of variant.attributes) {
 			if (!optionsMap.has(attr.title)) {
 			optionsMap.set(attr.title, new Set());
@@ -89,7 +91,7 @@
 	}
 
 	function constructVariantUrl(variant: any): string {
-		const product = $ProductQuery.data?.product;
+		const product = ProductQuery.data?.product;
 		if (!product) return '';
 		const productId = product.productId;
 		const slug = product.slug;
@@ -102,7 +104,7 @@
 
 	// find a variant matching a given set of attribute selections
 	function findVariantByAttributes(attrs: Record<string, string>): any {
-		return $ProductQuery.data?.product?.variants.find((variant: any) =>
+		return ProductQuery.data?.product?.variants.find((variant: any) =>
 			variant.attributes.every((a: { title: string; value: string }) => attrs[a.title] === a.value)
 		);
 	}
@@ -125,7 +127,7 @@
 			<div class="w-full lg:w-3/5">
 				<div class="flex flex-col lg:flex-row gap-6">
 					<div class="order-2 lg:order-1 flex lg:flex-col gap-4 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0">
-						{#each $ProductQuery.data?.product?.images ?? [] as img, index}
+						{#each ProductQuery.data?.product?.images ?? [] as img, index}
 							<button 
 								class="border border-gray-200 dark:border-gray-700 p-1 min-w-20 h-20 flex-shrink-0 transition-colors duration-200 {selectedImage === index ? 'border-primary-700 dark:border-primary-500' : 'hover:border-gray-300 dark:hover:border-gray-600'}" 
 								on:click={() => selectedImage = index}
@@ -136,8 +138,8 @@
 					</div>
 					<div class="order-1 lg:order-2 bg-gray-50 dark:bg-gray-800 flex-grow">
 						<img 
-							src={$ProductQuery.data?.product?.images?.[selectedImage]?.url} 
-							alt={$ProductQuery.data?.product?.images?.[selectedImage]?.altText ?? 'Product'} 
+							src={ProductQuery.data?.product?.images?.[selectedImage]?.url} 
+							alt={ProductQuery.data?.product?.images?.[selectedImage]?.altText ?? 'Product'} 
 							class="w-full h-auto lg:h-[500px] object-contain" 
 						/>
 					</div>
@@ -147,9 +149,9 @@
 			<div class="w-full lg:w-2/5">
 				<div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
 					<h1 class="text-2xl font-medium text-gray-900 dark:text-white mb-3">
-						{$ProductQuery.data?.product?.title}
+						{ProductQuery.data?.product?.title}
 					</h1>
-					<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{$ProductQuery.data?.product?.description}</p>
+					<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{ProductQuery.data?.product?.description}</p>
 					
 					<div class="flex items-center justify-between">
 						{#if activeVariant}
@@ -188,6 +190,7 @@
 											<button 
 												class="w-10 h-10 border {selectedAttributes[attrOption.title] === value ? 'border-primary-700 dark:border-primary-500' : 'border-gray-200 dark:border-gray-700'} p-0.5"
 												on:click={() => handleAttributeSelect(attrOption.title, value)}
+												aria-label="Select {value} color"
 											>
 												<span class="block w-full h-full" style="background-color: {value.toLowerCase()}"></span>
 											</button>
@@ -242,10 +245,10 @@
 					<button
 						type="button"
 						on:click={() => cart.add({
-							id: (activeVariant?.variationId ?? $ProductQuery.data!.product!.defaultVariant.variationId).toString(),
-							title: $ProductQuery.data!.product!.title,
-							price: activeVariant?.price ?? $ProductQuery.data!.product!.defaultVariant.price,
-							image: $ProductQuery.data!.product!.images[selectedImage]?.url,
+							id: (activeVariant?.variationId ?? ProductQuery.data!.product!.defaultVariant.variationId).toString(),
+							title: ProductQuery.data!.product!.title,
+							price: activeVariant?.price ?? ProductQuery.data!.product!.defaultVariant.price,
+							image: ProductQuery.data!.product!.images[selectedImage]?.url,
 							slug: $page.params.slug
 						}, quantity)}
 						class="w-full bg-primary-700 hover:bg-primary-800 text-white font-medium uppercase tracking-wider py-4 flex items-center justify-center gap-2 transition-colors duration-200 focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
@@ -260,15 +263,15 @@
 						<Accordion.Item value="item-1" class="border-t-0">
 							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Product Details</Accordion.Trigger>
 							<Accordion.Content class="pb-4 text-sm text-gray-600 dark:text-gray-400">
-								{$ProductQuery.data?.product?.description}
+								{ProductQuery.data?.product?.description}
 							</Accordion.Content>
 						</Accordion.Item>
 						<Accordion.Item value="item-2" class="border-t border-gray-200 dark:border-gray-700">
 							<Accordion.Trigger class="text-sm font-medium uppercase tracking-wider py-4">Specifications</Accordion.Trigger>
 							<Accordion.Content class="pb-4">
-								{#if $ProductQuery.data?.product?.attributes && $ProductQuery.data.product.attributes.length > 0}
+								{#if ProductQuery.data?.product?.attributes && ProductQuery.data.product.attributes.length > 0}
 									<ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-										{#each $ProductQuery.data.product.attributes as attr}
+										{#each ProductQuery.data.product.attributes as attr}
 											<li class="flex justify-between">
 												<span class="font-medium text-gray-700 dark:text-gray-300">{attr.title}:</span> 
 												<span>{attr.value}</span>

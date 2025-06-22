@@ -148,6 +148,26 @@ type Repository interface {
 	UpsertShopPaymentMethod(ctx context.Context, arg UpsertShopPaymentMethodParams) (ShopPaymentMethod, error)
 	UpdateShopPaymentMethodStatus(ctx context.Context, arg UpdateShopPaymentMethodStatusParams) (ShopPaymentMethod, error)
 	DeleteShopPaymentMethod(ctx context.Context, arg DeleteShopPaymentMethodParams) error
+	// DEPLOYMENT TRACKING
+	CreateDeployment(ctx context.Context, arg CreateDeploymentParams) (ShopDeployment, error)
+	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
+	CompleteDeployment(ctx context.Context, arg CompleteDeploymentParams) error
+	GetDeploymentByID(ctx context.Context, deploymentID int64) (ShopDeployment, error)
+	GetLatestDeploymentByShop(ctx context.Context, shopID int64) (ShopDeployment, error)
+	GetDeploymentsByShop(ctx context.Context, arg GetDeploymentsByShopParams) ([]ShopDeployment, error)
+	GetShopCurrentTemplate(ctx context.Context, shopID int64) (GetShopCurrentTemplateRow, error)
+	IsShopDeployed(ctx context.Context, shopID int64) (bool, error)
+	UpdateShopLastDeployment(ctx context.Context, arg UpdateShopLastDeploymentParams) error
+	// DATA UPDATE TRACKING
+	CreateDataUpdate(ctx context.Context, arg CreateDataUpdateParams) (ShopDataUpdate, error)
+	UpdateDataUpdateStatus(ctx context.Context, arg UpdateDataUpdateStatusParams) error
+	CompleteDataUpdate(ctx context.Context, arg CompleteDataUpdateParams) error
+	GetDataUpdateByID(ctx context.Context, updateID int64) (ShopDataUpdate, error)
+	GetLatestDataUpdateByShop(ctx context.Context, shopID int64) (ShopDataUpdate, error)
+	UpdateShopLastDataUpdate(ctx context.Context, shopID int64) error
+	// DEPLOYMENT URL TRACKING
+	CreateDeploymentURL(ctx context.Context, arg CreateDeploymentURLParams) (ShopDeploymentUrl, error)
+	GetDeploymentURLs(ctx context.Context, deploymentID int64) ([]ShopDeploymentUrl, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {

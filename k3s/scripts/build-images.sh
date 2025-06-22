@@ -49,13 +49,13 @@ build_image "backend" "$PROJECT_ROOT/backend" "$PROJECT_ROOT/backend/Dockerfile"
 echo -e "\n${YELLOW}🔐 Building Auth Handler${NC}"
 build_image "auth-handler" "$PROJECT_ROOT/auth/authentication-handler" "$PROJECT_ROOT/auth/authentication-handler/Dockerfile"
 
-# Build cloud build service
-echo -e "\n${YELLOW}🏗️  Building Cloud Build Service${NC}"
-build_image "cloud-build" "$PROJECT_ROOT/cloud-build" "$PROJECT_ROOT/cloud-build/Dockerfile"
+# Build template system services
+echo -e "\n${YELLOW}🏗️  Building Template System Services${NC}"
+./k3s/scripts/build-template-services.sh
 
 echo -e "\n${GREEN}🎉 All images built successfully!${NC}"
 echo -e "\n${BLUE}📊 Built Images:${NC}"
-docker images | grep "naytife/" | head -6
+docker images | grep -E "(naytife/|template-registry|store-deployer)" | head -10
 
 echo -e "\n${BLUE}📝 Next Steps:${NC}"
 echo "  1. Load images into k3d: ./scripts/load-images.sh"

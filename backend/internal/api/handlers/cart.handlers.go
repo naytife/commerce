@@ -86,22 +86,17 @@ func (h *Handler) AddToCart(c *fiber.Ctx) error {
 func (h *Handler) UpdateCartItem(c *fiber.Ctx) error {
 	itemID := c.Params("item_id")
 	if itemID == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Item ID is required", nil)
+		return api.BusinessLogicErrorResponse(c, "Item ID is required")
 	}
 
 	var req models.UpdateCartItemRequest
 	if err := c.BodyParser(&req); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid request body")
 	}
 
 	// Validate request
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&req); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &req); err != nil {
+		return err
 	}
 
 	// Since we're using client-side cart, return success response
@@ -127,7 +122,7 @@ func (h *Handler) UpdateCartItem(c *fiber.Ctx) error {
 func (h *Handler) RemoveFromCart(c *fiber.Ctx) error {
 	itemID := c.Params("item_id")
 	if itemID == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Item ID is required", nil)
+		return api.BusinessLogicErrorResponse(c, "Item ID is required")
 	}
 
 	// Since we're using client-side cart, return success response

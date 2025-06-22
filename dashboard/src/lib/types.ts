@@ -159,6 +159,29 @@ export type ProductType = {
     attributes: Attribute[];
   }
 
+  // Store Template Types
+  export interface StoreTemplate {
+    name: string;
+    title: string;
+    description: string;
+    preview_url?: string;
+    thumbnail_url?: string;
+    category: string;
+    features: string[];
+    version: string;
+    created_at: string;
+    updated_at: string;
+  }
+
+  export interface StoreTemplateVersion {
+    version: string;
+    build_id: string;
+    git_commit: string;
+    status: string;
+    assets_url?: string;
+    created_at: string;
+  }
+
   export interface OrderItem {
     created_at: string;
     order_id: number;

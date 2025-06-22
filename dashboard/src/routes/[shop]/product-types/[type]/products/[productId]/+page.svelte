@@ -119,22 +119,6 @@
 		return attr;
 	}
 
-	// Format price as currency for input fields (without symbol)
-	function formatAsCurrency(value: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'decimal',
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		}).format(value);
-	}
-
-	// Parse currency input back to number
-	function parseCurrencyInput(value: string): number {
-		// Remove any non-numeric characters except decimal point
-		const numericValue = value.replace(/[^0-9.]/g, '');
-		return parseFloat(numericValue) || 0;
-	}
-
 	// Generate all combinations of variant attributes
 	function generateCombinations(attributes: ProductTypeAttribute[]): { title: string; value: string }[][] {
 		if (attributes.length === 0) return [[]];

@@ -26,6 +26,7 @@
 	import { setContext } from 'svelte';
 	import { writable } from 'svelte/store';
 	import { toggleMode, mode } from 'mode-watcher';
+	import { createAuthenticatedFetch } from '$lib/auth-fetch';
 	export let data: { session: any };
     
 	const sessionStore = writable(data.session);
@@ -39,7 +40,9 @@
 				Authorization: `Bearer ${accessToken}`,
 			};
 		}
-		return fetch(url, options);
+		const baseFetch = (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init);
+		const authenticatedFetch = createAuthenticatedFetch(baseFetch);
+		return authenticatedFetch(url, options);
 	};
 	setContext('authFetch', authFetch);
 

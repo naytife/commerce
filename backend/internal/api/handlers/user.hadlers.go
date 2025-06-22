@@ -21,19 +21,14 @@ import (
 // @Router       /auth/register [post]
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param models.RegisterUserParams
-	err := c.BodyParser(&param)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
+	if err := c.BodyParser(&param); err != nil {
+		return api.BusinessLogicErrorResponse(c, "Failed to parse request body")
 	}
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&param); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
 
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &param); err != nil {
+		return err
 	}
+
 	objDB, err := h.Repository.UpsertUser(c.Context(), db.UpsertUserParams{
 		Sub:            param.Email,
 		AuthProviderID: param.ProviderID,
@@ -45,7 +40,7 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 		VerifiedEmail:  param.VerifiedEmail,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create or update user", nil)
+		return api.SystemErrorResponse(c, err, "Failed to create or update user")
 	}
 	resp := models.UserResponse{
 		UserID:         objDB.UserID,

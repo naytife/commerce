@@ -1,14 +1,20 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
@@ -75,11 +81,12 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		}
 	}
 	param := db.CreateShopParams{
-		OwnerID:      user.UserID,
-		Title:        shop.Title,
-		Subdomain:    shop.Subdomain,
-		CurrencyCode: shop.CurrencyCode,
-		Status:       shop.Status,
+		OwnerID:         user.UserID,
+		Title:           shop.Title,
+		Subdomain:       shop.Subdomain,
+		CurrencyCode:    shop.CurrencyCode,
+		Status:          shop.Status,
+		CurrentTemplate: &shop.Template,
 	}
 	objDB, err := h.Repository.CreateShop(c.Context(), param)
 	if err != nil {
@@ -110,7 +117,12 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		SeoDescription:      objDB.SeoDescription,
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
+		CurrentTemplate:     objDB.CurrentTemplate,
 	}
+
+	// Auto-trigger deployment for new shops
+	go h.autoDeployNewShop(objDB.ShopID, objDB.Subdomain, shop.Template)
+
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Shop created")
 }
 
@@ -168,6 +180,7 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 			SeoDescription:      obj.SeoDescription,
 			SeoKeywords:         obj.SeoKeywords,
 			SeoTitle:            obj.SeoTitle,
+			CurrentTemplate:     obj.CurrentTemplate,
 		}
 
 		// Fetch shop images
@@ -257,6 +270,7 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 		SeoDescription:      objDB.SeoDescription,
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
+		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
 	// Fetch shop images
@@ -322,6 +336,7 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 		SeoDescription:      objDB.SeoDescription,
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
+		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
 	// Fetch shop images
@@ -466,6 +481,7 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		SeoDescription:      objDB.SeoDescription,
 		SeoKeywords:         objDB.SeoKeywords,
 		SeoTitle:            objDB.SeoTitle,
+		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
 }
@@ -586,4 +602,63 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
+}
+
+// autoDeployNewShop automatically triggers deployment for newly created shops
+func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName string) {
+	// Wait a bit to ensure shop creation is fully complete
+	time.Sleep(2 * time.Second)
+
+	// Create deployment record in database
+	startedAt := pgtype.Timestamptz{
+		Time:  time.Now(),
+		Valid: true,
+	}
+
+	deployment, err := h.Repository.CreateDeployment(context.Background(), db.CreateDeploymentParams{
+		ShopID:          shopID,
+		TemplateName:    templateName, // Use selected template for new shops
+		TemplateVersion: "latest",     // Use latest version
+		Status:          "deploying",
+		DeploymentType:  "full",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
+	if err != nil {
+		fmt.Printf("Failed to create deployment record for new shop %d: %v\n", shopID, err)
+		return
+	}
+
+	deploymentReq := map[string]interface{}{
+		"shop_id":       fmt.Sprintf("%d", shopID),
+		"subdomain":     subdomain,
+		"template_name": templateName, // Use selected template for new shops
+		"version":       "",           // Use latest version
+		"data_override": map[string]string{},
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	reqBody, _ := json.Marshal(deploymentReq)
+
+	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
+	if storeDeployerURL == "" {
+		storeDeployerURL = "http://store-deployer:9003"
+	}
+
+	resp, err := client.Post(storeDeployerURL+"/deploy", "application/json",
+		bytes.NewReader(reqBody))
+	if err != nil {
+		fmt.Printf("Failed to auto-deploy new shop %d: %v\n", shopID, err)
+		// Update deployment status to failed
+		errMsg := err.Error()
+		h.Repository.UpdateDeploymentStatus(context.Background(), db.UpdateDeploymentStatusParams{
+			DeploymentID: deployment.DeploymentID,
+			Status:       "failed",
+			Message:      &errMsg,
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("Auto-deployment triggered for new shop: %d (%s) - Deployment ID: %d\n", shopID, subdomain, deployment.DeploymentID)
 }

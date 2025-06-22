@@ -59,3 +59,27 @@ type ErrorResponse struct {
 type Meta struct {
 	Timestamp string `json:"timestamp" example:"2025-02-12T18:31:40Z"`
 }
+
+// HealthResponse represents the health status of services
+// @Schema HealthResponse
+// @description Health check response object
+// @property status {string} "healthy" "The health status of the services"
+// @property services {array} "The list of services and their health status"
+type HealthResponse struct {
+	Status   string          `json:"status" example:"healthy"`
+	Services []ServiceHealth `json:"services"`
+}
+
+// ServiceHealth represents the health status of an individual service
+// @Schema ServiceHealth
+// @description Service health response object
+// @property service {string} "template-registry" "The name of the service"
+// @property status {string} "healthy" "The health status of the service"
+// @property url {string} "http://template-registry:9001" "The URL of the service"
+// @property error {string} "Connection timeout" "The error message if the service is unhealthy"
+type ServiceHealth struct {
+	Service string `json:"service" example:"template-registry"`
+	Status  string `json:"status" example:"healthy"`
+	URL     string `json:"url,omitempty" example:"http://template-registry:9001"`
+	Error   string `json:"error,omitempty" example:"Connection timeout"`
+}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { WithElementRef } from "bits-ui";
 	import type { HTMLAttributes } from "svelte/elements";
 	import { cn } from "$lib/utils.js";
 
@@ -9,8 +8,10 @@
 		level = 3,
 		children,
 		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+	}: HTMLAttributes<HTMLDivElement> & {
+		ref?: HTMLDivElement | null;
 		level?: 1 | 2 | 3 | 4 | 5 | 6;
+		children?: any;
 	} = $props();
 </script>
 

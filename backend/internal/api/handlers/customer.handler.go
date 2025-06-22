@@ -23,19 +23,14 @@ import (
 // @Router       /auth/register-customer [post]
 func (h *Handler) UpsertCustomer(c *fiber.Ctx) error {
 	var param models.RegisterCustomerParams
-	err := c.BodyParser(&param)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
+	if err := c.BodyParser(&param); err != nil {
+		return api.BusinessLogicErrorResponse(c, "Failed to parse request body")
 	}
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&param); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
 
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &param); err != nil {
+		return err
 	}
+
 	objDB, err := h.Repository.UpsertCustomer(c.Context(), db.UpsertCustomerParams{
 		ShopID:         param.ShopID,
 		Email:          *param.Email,
@@ -47,7 +42,7 @@ func (h *Handler) UpsertCustomer(c *fiber.Ctx) error {
 		AuthProviderID: param.AuthProviderID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create or update customer", nil)
+		return api.SystemErrorResponse(c, err, "Failed to create or update customer")
 	}
 	resp := models.CustomerResponse{
 		CustomerID:     objDB.ShopCustomerID,
@@ -114,17 +109,15 @@ func (h *Handler) GetCustomerByEmail(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/customers [get]
 func (h *Handler) GetCustomers(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
-	limitStr := c.Query("limit", "20")
-	offsetStr := c.Query("offset", "0")
-
-	limit, _ := strconv.ParseInt(limitStr, 10, 32)
-	offset, _ := strconv.ParseInt(offsetStr, 10, 32)
+	limit, offset, err := api.ParsePaginationParams(c)
+	if err != nil {
+		return api.BusinessLogicErrorResponse(c, "Invalid pagination parameters")
+	}
 
 	customers, err := h.Repository.GetCustomers(c.Context(), db.GetCustomersParams{
 		ShopID: shopID,
@@ -132,12 +125,12 @@ func (h *Handler) GetCustomers(c *fiber.Ctx) error {
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch customers", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch customers")
 	}
 
 	totalCount, err := h.Repository.GetCustomersCount(c.Context(), shopID)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get customer count", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get customer count")
 	}
 
 	// Convert to response format
@@ -158,14 +151,8 @@ func (h *Handler) GetCustomers(c *fiber.Ctx) error {
 		}
 	}
 
-	response := models.CustomerListResponse{
-		Customers: customerResponses,
-		Total:     totalCount,
-		Page:      int(offset/limit) + 1,
-		Limit:     int(limit),
-	}
-
-	return api.SuccessResponse(c, fiber.StatusOK, response, "Customers fetched successfully")
+	page := (offset / limit) + 1
+	return api.PaginatedSuccessResponse(c, fiber.StatusOK, customerResponses, totalCount, page, limit, "Customers fetched successfully")
 }
 
 // SearchCustomers searches customers by name or email
@@ -308,28 +295,24 @@ func (h *Handler) GetCustomerById(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/customers/{customer_id} [put]
 func (h *Handler) UpdateCustomer(c *fiber.Ctx) error {
-	shopIDStr := c.Params("shop_id", "0")
-	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
 	customerIDStr := c.Params("customer_id")
 	customerID, err := uuid.Parse(customerIDStr)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid customer ID", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid customer ID")
 	}
 
 	var param models.UpdateCustomerParams
-	err = c.BodyParser(&param)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
+	if err := c.BodyParser(&param); err != nil {
+		return api.BusinessLogicErrorResponse(c, "Failed to parse request body")
 	}
 
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&param); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return api.ErrorResponse(c, fiber.StatusBadRequest, errMsgs, nil)
+	if err := api.ValidateRequest(c, &param); err != nil {
+		return err
 	}
 
 	updatedCustomer, err := h.Repository.UpdateCustomer(c.Context(), db.UpdateCustomerParams{
@@ -341,9 +324,9 @@ func (h *Handler) UpdateCustomer(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Customer not found", nil)
+			return api.NotFoundErrorResponse(c, "Customer")
 		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update customer", nil)
+		return api.SystemErrorResponse(c, err, "Failed to update customer")
 	}
 
 	response := models.CustomerResponse{

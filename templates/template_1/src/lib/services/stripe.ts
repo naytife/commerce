@@ -192,10 +192,11 @@ export async function createPaymentIntent(
     // Try REST endpoint first (if available)
     try {
       return await apiClient.restPost<PaymentIntentResponse>(`/shops/${request.shopId}/payment/intent`, {
-        amount: Math.round(request.amount * 100), // Convert to cents
-        currency: request.currency,
-        order_id: request.orderId,
-        customer_id: request.customerId,
+        amount: request.amount, // Keep in dollars, backend will convert to cents
+        currency_code: request.currency,
+        payment_method: 'stripe',
+        checkout_session_id: `checkout_${Date.now()}`,
+        description: 'Order payment',
         metadata: {
           shop_id: request.shopId,
           order_id: request.orderId || '',

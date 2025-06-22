@@ -44,29 +44,32 @@ check_service() {
     local timeout=${3:-5}
     
     echo -n "$name: "
-    if timeout $timeout curl -s "$url" >/dev/null 2>&1; then
+    # Use curl with built-in timeout for macOS compatibility
+    if curl -s --max-time $timeout "$url" >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Healthy${NC}"
     else
         echo -e "${RED}❌ Unhealthy or not ready${NC}"
     fi
 }
 
-check_service "🔐 Oathkeeper  " "http://127.0.0.1:8080/health"
-check_service "🔙 Backend     " "http://127.0.0.1:8000/health"
-check_service "🔑 Auth Handler" "http://127.0.0.1:3000/health"
-check_service "🏗️  Cloud Build " "http://127.0.0.1:9000/health"
-check_service "🆔 Hydra Public" "http://127.0.0.1:4444/health/alive"
+check_service "🔐 Oathkeeper    " "http://127.0.0.1:8080/health"
+check_service "🔙 Backend       " "http://127.0.0.1:8000/health"
+check_service "🔑 Auth Handler  " "http://127.0.0.1:3000/health"
+check_service "🏗️  Template Registry" "http://127.0.0.1:9001/health"
+check_service "🚀 Store Deployer " "http://127.0.0.1:9003/health"
+check_service "🆔 Hydra Public  " "http://127.0.0.1:4444/health/alive"
 
 echo -e "\n${BLUE}🔗 Service URLs:${NC}"
 echo "======================================"
-echo "  🔐 API Gateway:    http://127.0.0.1:8080"
-echo "  🔙 Backend API:    http://127.0.0.1:8000"
-echo "  🔑 Auth Handler:   http://127.0.0.1:3000"
-echo "  🏗️  Cloud Build:    http://127.0.0.1:9000"
-echo "  🐘 PostgreSQL:     localhost:5432"
-echo "  📊 Redis:          localhost:6379"
-echo "  🆔 Hydra Public:   http://127.0.0.1:4444"
-echo "  🆔 Hydra Admin:    http://127.0.0.1:4445"
+echo "  🔐 API Gateway:      http://127.0.0.1:8080"
+echo "  🔙 Backend API:      http://127.0.0.1:8000"
+echo "  🔑 Auth Handler:     http://127.0.0.1:3000"
+echo "  🏗️  Template Registry: http://127.0.0.1:9001"
+echo "  🚀 Store Deployer:   http://127.0.0.1:9003"
+echo "  🐘 PostgreSQL:       localhost:5432"
+echo "  📊 Redis:            localhost:6379"
+echo "  🆔 Hydra Public:     http://127.0.0.1:4444"
+echo "  🆔 Hydra Admin:      http://127.0.0.1:4445"
 
 echo -e "\n${BLUE}📋 Quick Commands:${NC}"
 echo "======================================"

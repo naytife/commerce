@@ -25,7 +25,7 @@ import (
 // @Param shop_id path string true "Shop ID"
 // @Param product_type_id path string true "Product Type ID"
 // @Param product body models.ProductCreateParams true "Product"
-// @Success 200 {object} models.SuccessResponse{data=nil} "Product created successfully"
+// @Success 201 {object} models.SuccessResponse{data=models.Product} "Product created successfully"
 // @Failure 400 {object} models.ErrorResponse "Bad request"
 // @Failure 401 {object} models.ErrorResponse "Unauthorized"
 // @Failure 500 {object} models.ErrorResponse "Internal server error"
@@ -115,12 +115,16 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		}
 	}
 
-	// Execute transaction
+	// Execute transaction and capture created product
+	var createdProduct db.Product
 	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
 		product, err := q.CreateProduct(c.Context(), createProductParams)
 		if err != nil {
 			return err
 		}
+
+		// Store the created product for later use
+		createdProduct = product
 
 		// Handle attribute values if provided
 		if len(productArg.Attributes) > 0 {
@@ -248,7 +252,17 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create product", nil)
 	}
 
-	return api.SuccessResponse(c, fiber.StatusCreated, nil, "Product created successfully")
+	// Return the created product with its ID
+	productResponse := models.Product{
+		ID:          createdProduct.ProductID,
+		Title:       createdProduct.Title,
+		Description: createdProduct.Description,
+		Status:      createdProduct.Status,
+		CreatedAt:   createdProduct.CreatedAt,
+		UpdatedAt:   createdProduct.UpdatedAt,
+	}
+
+	return api.SuccessResponse(c, fiber.StatusCreated, productResponse, "Product created successfully")
 }
 
 // GetProducts fetches all products
@@ -265,19 +279,19 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 // @Router /shops/{shop_id}/products [get]
 func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	// Parse query params safely
-	shopID, err := strconv.ParseInt(c.Params("shop_id", "0"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop_id", nil)
+		return err
 	}
 
 	after, err := strconv.ParseInt(c.Query("after", "0"), 10, 64)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid after parameter", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid after parameter")
 	}
 
 	limit, err := strconv.ParseInt(c.Query("limit", "10"), 10, 32)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid limit parameter", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid limit parameter")
 	}
 
 	param := db.GetProductsParams{
@@ -288,7 +302,7 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 
 	objsDB, err := h.Repository.GetProducts(c.Context(), param)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get products")
 	}
 	products := make([]models.Product, len(objsDB))
 	for i, prod := range objsDB {
@@ -297,15 +311,15 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 		var images []models.ProductImageResponse
 
 		if err := json.Unmarshal(prod.Attributes, &attributes); err != nil {
-			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
+			return api.SystemErrorResponse(c, err, "Failed to get products attribute")
 		}
 
 		if err := json.Unmarshal(prod.Variants, &variants); err != nil {
-			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+			return api.SystemErrorResponse(c, err, "Failed to get products variants")
 		}
 
 		if err := json.Unmarshal(prod.Images, &images); err != nil {
-			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
+			return api.SystemErrorResponse(c, err, "Failed to get product images")
 		}
 
 		products[i] = models.Product{
@@ -350,15 +364,15 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 // @Router /shops/{shop_id}/products/{product_id} [get]
 func (h *Handler) GetProduct(c *fiber.Ctx) error {
 	// Parse shop_id
-	shopID, err := strconv.ParseInt(c.Params("shop_id", "0"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop_id", nil)
+		return err
 	}
 
 	// Parse product_id
-	productID, err := strconv.ParseInt(c.Params("product_id", "0"), 10, 64)
+	productID, err := api.ParseIDParameter(c, "product_id", "Product")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid product_id", nil)
+		return err
 	}
 
 	// Fetch product and attributes in a single query
@@ -370,24 +384,24 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 	objDB, err := h.Repository.GetProduct(c.Context(), param)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Product not found", nil)
+			return api.NotFoundErrorResponse(c, "Product")
 		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch product")
 	}
 	var attributes []models.ProductAttribute
 	var variants []models.ProductVariant
 	var images []models.ProductImageResponse
 
 	if err := json.Unmarshal(objDB.Attributes, &attributes); err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products attribute", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get products attribute")
 	}
 
 	if err := json.Unmarshal(objDB.Variants, &variants); err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get products variants", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get products variants")
 	}
 
 	if err := json.Unmarshal(objDB.Images, &images); err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get product images")
 	}
 
 	// Return the single query result directly
@@ -421,51 +435,38 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 // @Router /shops/{shop_id}/products/{product_id} [put]
 func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 	// Parse path parameters
-	shopID, err := strconv.ParseInt(c.Params("shop_id", "0"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop_id", nil)
+		return err
 	}
-	productID, err := strconv.ParseInt(c.Params("product_id", "0"), 10, 64)
+
+	productID, err := api.ParseIDParameter(c, "product_id", "Product")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid product_id", nil)
+		return err
 	}
 
 	// Parse request body
 	var product models.ProductUpdateParams
 	if err := c.BodyParser(&product); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid request body")
 	}
 
 	// Validate input
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&product); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &product); err != nil {
+		return err
 	}
 
 	// Validate variants if provided
 	if len(product.Variants) > 0 {
 		for i, variant := range product.Variants {
+			validator := &models.XValidator{}
 			if errs := validator.Validate(&variant); len(errs) > 0 {
 				errMsgs := models.FormatValidationErrors(errs)
-				return api.ErrorResponse(
-					c,
-					fiber.StatusBadRequest,
-					fmt.Sprintf("Invalid variant at position %d: %s", i+1, errMsgs),
-					nil,
-				)
+				return api.BusinessLogicErrorResponse(c, fmt.Sprintf("Invalid variant at position %d: %s", i+1, errMsgs))
 			}
 
 			if !variant.Price.Valid || variant.Price.Int == nil || variant.Price.Int.Sign() <= 0 {
-				return api.ErrorResponse(
-					c,
-					fiber.StatusBadRequest,
-					fmt.Sprintf("Invalid price for variant %d: price must be greater than 0", i+1),
-					nil,
-				)
+				return api.BusinessLogicErrorResponse(c, fmt.Sprintf("Invalid price for variant %d: price must be greater than 0", i+1))
 			}
 		}
 	}

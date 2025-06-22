@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
@@ -40,6 +41,25 @@ func main() {
 	defer dbase.Close()
 
 	repo := db.NewRepository(dbase)
+
+	// Initialize Redis client for publish functionality
+	var redisClient *redis.Client
+	if env.REDIS_URL != "" {
+		// Parse Redis URL if provided
+		opt, err := redis.ParseURL(env.REDIS_URL)
+		if err != nil {
+			log.Printf("Warning: Failed to parse Redis URL: %v", err)
+		} else {
+			redisClient = redis.NewClient(opt)
+			// Test Redis connection
+			if _, err := redisClient.Ping(redisClient.Context()).Result(); err != nil {
+				log.Printf("Warning: Failed to connect to Redis: %v", err)
+				redisClient = nil
+			} else {
+				log.Println("✅ Redis connected successfully")
+			}
+		}
+	}
 
 	// Initialize services
 	stripeService := services.NewStripeService(repo)
@@ -141,6 +161,8 @@ func main() {
 	routes.OrderRouter(api, repo)
 	routes.CustomerRouter(api, repo)
 	routes.InventoryRouter(api, repo)
+	routes.TemplateRouter(api, repo)
+	routes.PublishRouter(api, repo, redisClient)
 	routes.WebhookRouter(v1, repo, paymentProcessorFactory)
 
 	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))

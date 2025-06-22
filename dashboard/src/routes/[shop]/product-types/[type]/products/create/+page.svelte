@@ -2,7 +2,6 @@
 <script lang="ts">
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
-	import Upload from 'lucide-svelte/icons/upload';
 
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -430,14 +429,14 @@
 			const createdProduct = await api(authFetch).createProduct(Number(data.typeId), productPayload);
 			console.log('Product created:', createdProduct);
 			// Use direct browser navigation instead of goto for more reliable redirection
-			if (createdProduct && createdProduct.id) {
+			if (createdProduct && createdProduct.product_id) {
 				// First try goto
 				try {
-					await goto(`/${$page.params.shop}/product-types/${$page.params.type}/products/${createdProduct.id}/`);
+					await goto(`/${$page.params.shop}/product-types/${$page.params.type}/products/${createdProduct.product_id}/`);
 				} catch (error) {
 					console.error('Error with goto navigation:', error);
 					// Fallback to direct browser navigation
-					window.location.href = `/${$page.params.shop}/product-types/${$page.params.type}/products/${createdProduct.id}/`;
+					window.location.href = `/${$page.params.shop}/product-types/${$page.params.type}/products/${createdProduct.product_id}/`;
 				}
 			}
 		} catch (error) {
@@ -468,8 +467,8 @@
 				<Button size="sm" on:click={saveProduct}>Save Product</Button>
 			</div>
 		</div>
-		<div class="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
-			<div class="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
+		<div class="grid gap-4 lg:gap-8">
+			<div class="grid auto-rows-max items-start gap-4 lg:gap-8">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Product Details</Card.Title>
@@ -711,7 +710,7 @@
 																		available_quantity: 0,
 																		description: '',
 																		is_default: false,
-																		price: 0,
+																		price: 1,
 																		seo_description: '',
 																		seo_keywords: [],
 																		seo_title: '',
@@ -730,11 +729,14 @@
 															<Input
 																id={`price-active-${index}`}
 																type="text"
-																placeholder="0.00"
+																placeholder="1.00"
 																class="pl-7"
-																value={formatAsCurrency(variants[index]?.price || 0)}
+																required
+																value={formatAsCurrency(variants[index]?.price || 1)}
 																on:input={(e) => {
 																	const value = parseCurrencyInput(e.currentTarget.value);
+																	// Ensure minimum value of 1
+																	const finalValue = Math.max(value, 1);
 																	if (!variants[index]) {
 																		variants[index] = {
 																			attributes: combination.map(attr => {
@@ -759,14 +761,14 @@
 																			available_quantity: 0,
 																			description: '',
 																			is_default: false,
-																			price: 0,
+																			price: 1,
 																			seo_description: '',
 																			seo_keywords: [],
 																			seo_title: '',
 																			sku: ''
 																		};
 																	}
-																	variants[index].price = value;
+																	variants[index].price = finalValue;
 																	variants = [...variants];
 																}}
 															/>
@@ -863,75 +865,6 @@
 								<p class="text-sm">Add variation attributes to the product type to create product variations.</p>
 							</div>
 						{/if}
-					</Card.Content>
-				</Card.Root>
-			</div>
-
-			<div class="grid auto-rows-max items-start gap-4 lg:gap-8">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Product Status</Card.Title>
-					</Card.Header>
-					<Card.Content>
-						<div class="grid gap-6">
-							<div class="grid gap-3">
-								<Label for="status">Status</Label>
-								<Select.Root>
-									<Select.Trigger id="status" aria-label="Select status">
-										<Select.Value placeholder="Select status" />
-									</Select.Trigger>
-									<Select.Content>
-										<Select.Item value="draft" label="Draft">Draft</Select.Item>
-										<Select.Item value="published" label="Active">Active</Select.Item>
-										<Select.Item value="archived" label="Archived">Archived</Select.Item>
-									</Select.Content>
-								</Select.Root>
-							</div>
-						</div>
-					</Card.Content>
-				</Card.Root>
-
-				<Card.Root class="overflow-hidden">
-					<Card.Header>
-						<Card.Title>Product Images</Card.Title>
-						<Card.Description>Upload product images</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<div class="grid gap-2">
-							<img
-								alt="Product"
-								class="aspect-square w-full rounded-md object-cover"
-								height="300"
-								src="/images/placeholder.png"
-								width="300"
-							/>
-							<div class="grid grid-cols-3 gap-2">
-								<button>
-									<img
-										alt="Product"
-										class="aspect-square w-full rounded-md object-cover"
-										height="84"
-										src="/images/placeholder.png"
-										width="84"
-									/>
-								</button>
-								<button>
-									<img
-										alt="Product"
-										class="aspect-square w-full rounded-md object-cover"
-										height="84"
-										src="/images/placeholder.png"
-										width="84"
-									/>
-								</button>
-								<button
-									class="flex aspect-square w-full items-center justify-center rounded-md border border-dashed"
-								>
-									<Upload class="h-4 w-4 text-muted-foreground" />
-									<span class="sr-only">Upload</span>
-								</button>
-							</div>
-						</div>
 					</Card.Content>
 				</Card.Root>
 			</div>

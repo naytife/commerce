@@ -29,9 +29,9 @@ import (
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/orders [get]
 func (h *Handler) GetOrders(c *fiber.Ctx) error {
-	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
 	// Parse query parameters
@@ -45,7 +45,7 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch orders", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch orders")
 	}
 
 	// Map database models to API models
@@ -57,7 +57,7 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 			ShopID:  shopID,
 		})
 		if err != nil {
-			return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order items", nil)
+			return api.SystemErrorResponse(c, err, "Failed to fetch order items")
 		}
 
 		// Map items
@@ -364,30 +364,25 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/orders/{order_id} [put]
 func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
-	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
-	orderID, err := strconv.ParseInt(c.Params("order_id"), 10, 64)
+	orderID, err := api.ParseIDParameter(c, "order_id", "Order")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid order ID", nil)
+		return err
 	}
 
 	// Parse request body
 	var orderParams models.UpdateOrderParams
 	if err := c.BodyParser(&orderParams); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid request body")
 	}
 
 	// Validate request body
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&orderParams); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &orderParams); err != nil {
+		return err
 	}
 
 	// Check if order exists
@@ -397,9 +392,9 @@ func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Order not found", nil)
+			return api.NotFoundErrorResponse(c, "Order")
 		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch order")
 	}
 
 	// Update order
@@ -423,7 +418,7 @@ func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
 		ShopID:          shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update order", nil)
+		return api.SystemErrorResponse(c, err, "Failed to update order")
 	}
 
 	// Get updated order
@@ -432,7 +427,7 @@ func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
 		ShopID:  shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch updated order", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch updated order")
 	}
 
 	// Get order items
@@ -441,7 +436,7 @@ func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
 		ShopID:  shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order items", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch order items")
 	}
 
 	// Map items
@@ -504,30 +499,25 @@ func (h *Handler) UpdateOrder(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/orders/{order_id}/status [patch]
 func (h *Handler) UpdateOrderStatus(c *fiber.Ctx) error {
-	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
-	orderID, err := strconv.ParseInt(c.Params("order_id"), 10, 64)
+	orderID, err := api.ParseIDParameter(c, "order_id", "Order")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid order ID", nil)
+		return err
 	}
 
 	// Parse request body
 	var statusParams models.UpdateOrderStatusParams
 	if err := c.BodyParser(&statusParams); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid request body")
 	}
 
 	// Validate request body
-	validator := &models.XValidator{}
-	if errs := validator.Validate(&statusParams); len(errs) > 0 {
-		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+	if err := api.ValidateRequest(c, &statusParams); err != nil {
+		return err
 	}
 
 	// Get current order to preserve other fields
@@ -537,9 +527,9 @@ func (h *Handler) UpdateOrderStatus(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return api.ErrorResponse(c, fiber.StatusNotFound, "Order not found", nil)
+			return api.NotFoundErrorResponse(c, "Order")
 		}
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch order")
 	}
 
 	// Update only the status
@@ -563,7 +553,7 @@ func (h *Handler) UpdateOrderStatus(c *fiber.Ctx) error {
 		ShopID:          shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update order status", nil)
+		return api.SystemErrorResponse(c, err, "Failed to update order status")
 	}
 
 	// Get updated order
@@ -572,7 +562,7 @@ func (h *Handler) UpdateOrderStatus(c *fiber.Ctx) error {
 		ShopID:  shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch updated order", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch updated order")
 	}
 
 	// Get order items
@@ -581,7 +571,7 @@ func (h *Handler) UpdateOrderStatus(c *fiber.Ctx) error {
 		ShopID:  shopID,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order items", nil)
+		return api.SystemErrorResponse(c, err, "Failed to fetch order items")
 	}
 
 	// Map items

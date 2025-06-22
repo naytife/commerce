@@ -133,20 +133,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: backend-migrations
-  namespace: naytife
-  labels:
-    app.kubernetes.io/name: backend-migrate
-    app.kubernetes.io/part-of: naytife-platform
-data:
-  # This will be populated by the deployment script
-  # The actual migration files will be added here
-  .placeholder: "This ConfigMap will contain the migration files"
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: migration-scripts
   namespace: naytife
   labels:

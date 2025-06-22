@@ -26,7 +26,8 @@ echo -e "${BLUE}Loading images into cluster: $CLUSTER_NAME${NC}"
 IMAGES=(
     "naytife/backend:latest"
     "naytife/auth-handler:latest"
-    "naytife/cloud-build:latest"
+    "template-registry:latest"
+    "store-deployer:latest"
 )
 
 for image in "${IMAGES[@]}"; do

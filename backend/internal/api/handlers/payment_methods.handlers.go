@@ -49,7 +49,7 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 	// Get payment methods
 	paymentMethods, err := h.Repository.GetShopPaymentMethods(c.Context(), shopID)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get payment methods", nil)
+		return api.SystemErrorResponse(c, err, "Failed to get payment methods")
 	}
 
 	// Convert to response format
@@ -100,25 +100,25 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/payment-methods/{method_type} [put]
 func (h *Handler) UpsertShopPaymentMethod(c *fiber.Ctx) error {
-	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
+	shopID, err := api.ParseIDParameter(c, "shop_id", "Shop")
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+		return err
 	}
 
 	methodType := c.Params("method_type")
 	if methodType == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Method type is required", nil)
+		return api.BusinessLogicErrorResponse(c, "Method type is required")
 	}
 
 	var req PaymentMethodConfig
 	if err := c.BodyParser(&req); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid request body")
 	}
 
 	// Verify shop exists
 	_, err = h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		return api.NotFoundErrorResponse(c, "Shop")
 	}
 
 	// Convert method type to enum
@@ -133,13 +133,13 @@ func (h *Handler) UpsertShopPaymentMethod(c *fiber.Ctx) error {
 	case "flutterwave":
 		pmType = db.PaymentMethodTypeFlutterwave
 	default:
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid payment method type", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid payment method type")
 	}
 
 	// Convert config to JSON
 	configJSON, err := json.Marshal(req.Config)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid config format", nil)
+		return api.BusinessLogicErrorResponse(c, "Invalid config format")
 	}
 
 	// Upsert payment method
@@ -150,7 +150,7 @@ func (h *Handler) UpsertShopPaymentMethod(c *fiber.Ctx) error {
 		Attributes: configJSON,
 	})
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update payment method", nil)
+		return api.SystemErrorResponse(c, err, "Failed to update payment method")
 	}
 
 	// Prepare response

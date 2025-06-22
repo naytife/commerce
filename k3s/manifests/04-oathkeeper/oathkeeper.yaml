@@ -422,6 +422,143 @@ data:
           }
         ]
       },
+
+      {
+        "id": "api:shop-deployment",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/*/deploy",
+          "methods": [
+            "POST"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "api:shop-redeployment",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/*/redeploy",
+          "methods": [
+            "POST"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "api:shop-deployment-status",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/*/deployment-status",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "api:shop-update-data",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/*/update-data",
+          "methods": [
+            "POST"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
       {
         "id": "api:public-graph-playground",
         "upstream": {
@@ -783,6 +920,144 @@ data:
         "authenticators": [{"handler": "oauth2_introspection"}],
         "authorizer": {"handler": "allow"},
         "mutators": [{"handler": "header"}]
+      },
+      {
+        "id": "backend:templates",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/templates<**>",
+          "methods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "X-User-Email": "{{ print .Extra.email }}",
+                "X-User-Name": "{{ print .Extra.name }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "backend:deployment",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/{shop_id}/deploy<**>",
+          "methods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "X-User-Email": "{{ print .Extra.email }}",
+                "X-User-Name": "{{ print .Extra.name }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "backend:deployment-status",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/{shop_id}/deployment-status<**>",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "X-User-Email": "{{ print .Extra.email }}",
+                "X-User-Name": "{{ print .Extra.name }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "backend:services-health",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/health/services",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
       }
     ]
 ---

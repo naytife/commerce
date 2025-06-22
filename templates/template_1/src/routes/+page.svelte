@@ -3,13 +3,13 @@
 	import { initFlowbite } from 'flowbite';
 	import { cart } from '$lib/stores/cart';
 	import { currencyCode, currencySymbol } from '$lib/stores/currency';
-	import type { PageData } from './$houdini';
-	/** @type { import('./$houdini').PageData } */
+	import type { PageData } from './$types';
 
-    export let data: PageData
+	export let data: PageData;
 
-    $: ({ ProductsQuery, ShopQuery } = data)
-	
+	$: ProductsQuery = data.ProductsQuery;
+	$: ShopQuery = data.ShopQuery;
+
 	onMount(() => {
 		initFlowbite();
 	});
@@ -55,8 +55,13 @@
 		return `/products/${productId}/${product.node.slug}-${attributesSlug}-${variationId}`;
 	}
 
-    $: if ($ShopQuery.data?.shop?.currencyCode) currencyCode.set($ShopQuery.data.shop.currencyCode);
+	$: if (ShopQuery.data?.shop?.currencyCode) currencyCode.set(ShopQuery.data.shop.currencyCode);
 </script>
+
+<svelte:head>
+	<title>{ShopQuery.data?.shop?.name || 'Loading...'} - Premium Products</title>
+	<meta name="description" content="Discover our premium collection of products with fast, optimized shopping experience.">
+</svelte:head>
 
 <section class="bg-white py-12 antialiased dark:bg-gray-900">
 	<div class="mx-auto max-w-7xl px-6">
@@ -220,66 +225,113 @@
 		</div>
 
 		<!-- Products Grid -->
-		<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-			{#each $ProductsQuery.data?.products?.edges ?? [] as product}
-				{#if product.node}
-					<div class="group relative border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors duration-200">
-						<a href={constructProductUrl(product)}>
-							<div class="aspect-h-1 aspect-w-1 overflow-hidden bg-gray-50 dark:bg-gray-800">
-								<img
-									src={product.node.images?.[0]?.url ?? ''}
-									alt={product.node.images?.[0]?.altText ?? product.node.title}
-									class="h-full w-full object-cover object-center"
-								/>
-							</div>
-							<div class="mt-4 px-2 pb-5">
-								<h3 class="text-sm font-medium text-gray-900 dark:text-white">
-									{product.node.title}
-								</h3>
-								<div class="mt-2 flex items-center justify-between">
-									<p class="text-sm font-medium text-gray-900 dark:text-white">
-										{$currencySymbol}{product.node.defaultVariant?.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? ''}
-									</p>
-									<div>
-										{#if product.node.defaultVariant?.stockStatus === 'IN_STOCK'}
-											<span class="inline-flex items-center text-xs font-medium text-green-700 dark:text-green-500">
-												In Stock
-											</span>
-										{:else if product.node.defaultVariant?.stockStatus === 'OUT_OF_STOCK'}
-											<span class="inline-flex items-center text-xs font-medium text-red-700 dark:text-red-500">
-												Out of Stock
-											</span>
-										{:else if product.node.defaultVariant?.stockStatus === 'PREORDER'}
-											<span class="inline-flex items-center text-xs font-medium text-blue-700 dark:text-blue-500">
-												Pre-order
-											</span>
-										{/if}
+		{#if ProductsQuery.data?.products?.edges && ProductsQuery.data.products.edges.length > 0}
+			<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{#each ProductsQuery.data?.products?.edges ?? [] as product}
+					{#if product.node}
+						<div class="group relative border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors duration-200">
+							<a href={constructProductUrl(product)}>
+								<div class="aspect-h-1 aspect-w-1 overflow-hidden bg-gray-50 dark:bg-gray-800">
+									<img
+										src={product.node.images?.[0]?.url ?? ''}
+										alt={product.node.images?.[0]?.altText ?? product.node.title}
+										class="h-full w-full object-cover object-center"
+									/>
+								</div>
+								<div class="mt-4 px-2 pb-5">
+									<h3 class="text-sm font-medium text-gray-900 dark:text-white">
+										{product.node.title}
+									</h3>
+									<div class="mt-2 flex items-center justify-between">
+										<p class="text-sm font-medium text-gray-900 dark:text-white">
+											{$currencySymbol}{product.node.defaultVariant?.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? ''}
+										</p>
+										<div>
+											{#if product.node.defaultVariant?.stockStatus === 'IN_STOCK'}
+												<span class="inline-flex items-center text-xs font-medium text-green-700 dark:text-green-500">
+													In Stock
+												</span>
+											{:else if product.node.defaultVariant?.stockStatus === 'OUT_OF_STOCK'}
+												<span class="inline-flex items-center text-xs font-medium text-red-700 dark:text-red-500">
+													Out of Stock
+												</span>
+											{:else if product.node.defaultVariant?.stockStatus === 'PREORDER'}
+												<span class="inline-flex items-center text-xs font-medium text-blue-700 dark:text-blue-500">
+													Pre-order
+												</span>
+											{/if}
+										</div>
 									</div>
 								</div>
-							</div>
-						</a>
+							</a>
 
-						<div class="absolute inset-x-0 bottom-0 h-12 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center justify-center">
-							<button
-								on:click={() => cart.add({
-									id: product.node.defaultVariant.variationId.toString(),
-									title: product.node.title,
-									price: product.node.defaultVariant.price,
-									image: product.node.images?.[0]?.url ?? '',
-									slug: `${product.node.slug}-${product.node.defaultVariant.attributes
-										.sort((a: ProductAttribute, b: ProductAttribute) => a.title.localeCompare(b.title))
-										.map((attr: ProductAttribute) => encodeURIComponent(attr.value.toLowerCase()))
-										.join('-')}-${product.node.defaultVariant.variationId}`
-								}, 1)}
-								class="text-sm text-primary-700 font-medium hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200"
-							>
-								Add to Cart
-							</button>
+							<div class="absolute inset-x-0 bottom-0 h-12 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center justify-center">
+								<button
+									on:click={() => cart.add({
+										id: product.node.defaultVariant.variationId.toString(),
+										title: product.node.title,
+										price: product.node.defaultVariant.price,
+										image: product.node.images?.[0]?.url ?? '',
+										slug: `${product.node.slug}-${product.node.defaultVariant.attributes
+											.sort((a: ProductAttribute, b: ProductAttribute) => a.title.localeCompare(b.title))
+											.map((attr: ProductAttribute) => encodeURIComponent(attr.value.toLowerCase()))
+											.join('-')}-${product.node.defaultVariant.variationId}`
+									}, 1)}
+									class="text-sm text-primary-700 font-medium hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200"
+								>
+									Add to Cart
+								</button>
+							</div>
 						</div>
-					</div>
-				{/if}
-			{/each}
-		</div>
+					{/if}
+				{/each}
+			</div>
+		{:else}
+			<!-- No Products Message -->
+			<div class="flex flex-col items-center justify-center py-16 px-4">
+				<div class="text-center max-w-md">
+					<svg
+						class="mx-auto h-24 w-24 text-gray-400 dark:text-gray-600 mb-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="1"
+							d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 9h6"
+						/>
+					</svg>
+					<h3 class="text-xl font-medium text-gray-900 dark:text-white mb-2">
+						No Products Found
+					</h3>
+					<p class="text-gray-500 dark:text-gray-400 mb-6">
+						We don't have any products available at the moment. Please check back later or browse our other collections.
+					</p>
+					<a
+						href="/"
+						class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 transition-colors duration-200"
+					>
+						<svg
+							class="mr-2 h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M10 19l-7-7m0 0l7-7m-7 7h18"
+							/>
+						</svg>
+						Back to Home
+					</a>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Filters Modal -->
 		<div
@@ -334,7 +386,7 @@
 										/>
 										<div
 											class="peer relative h-5 w-5 shrink-0 border border-gray-300 bg-white focus:outline-none focus:ring-0 peer-checked:bg-primary-600 peer-checked:border-primary-600 dark:border-gray-600 dark:bg-gray-700 peer-checked:after:absolute peer-checked:after:left-1/2 peer-checked:after:top-1/2 peer-checked:after:h-2 peer-checked:after:w-[5px] peer-checked:after:-translate-x-1/2 peer-checked:after:-translate-y-1/2 peer-checked:after:rotate-45 peer-checked:after:border-r-2 peer-checked:after:border-b-2 peer-checked:after:border-white"
-										/>
+										></div>
 										<span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300"
 											>Electronics</span
 										>
@@ -349,7 +401,7 @@
 										/>
 										<div
 											class="peer relative h-5 w-5 shrink-0 border border-gray-300 bg-white focus:outline-none focus:ring-0 peer-checked:bg-primary-600 peer-checked:border-primary-600 dark:border-gray-600 dark:bg-gray-700 peer-checked:after:absolute peer-checked:after:left-1/2 peer-checked:after:top-1/2 peer-checked:after:h-2 peer-checked:after:w-[5px] peer-checked:after:-translate-x-1/2 peer-checked:after:-translate-y-1/2 peer-checked:after:rotate-45 peer-checked:after:border-r-2 peer-checked:after:border-b-2 peer-checked:after:border-white"
-										/>
+										></div>
 										<span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300"
 											>Fashion</span
 										>
@@ -364,7 +416,7 @@
 										/>
 										<div
 											class="peer relative h-5 w-5 shrink-0 border border-gray-300 bg-white focus:outline-none focus:ring-0 peer-checked:bg-primary-600 peer-checked:border-primary-600 dark:border-gray-600 dark:bg-gray-700 peer-checked:after:absolute peer-checked:after:left-1/2 peer-checked:after:top-1/2 peer-checked:after:h-2 peer-checked:after:w-[5px] peer-checked:after:-translate-x-1/2 peer-checked:after:-translate-y-1/2 peer-checked:after:rotate-45 peer-checked:after:border-r-2 peer-checked:after:border-b-2 peer-checked:after:border-white"
-										/>
+										></div>
 										<span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300"
 											>Home & Garden</span
 										>
@@ -378,11 +430,12 @@
 							</h4>
 							<div>
 								<label for="price-range" class="sr-only">Price Range</label>
-								<input id="price-range" type="range" min="0" max="1000" value="500" class="w-full h-2 bg-gray-200 appearance-none dark:bg-gray-700" />							<div class="flex justify-between mt-2 text-xs text-gray-700 dark:text-gray-300">
-								<span>{$currencySymbol}0</span>
-								<span>{$currencySymbol}500</span>
-								<span>{$currencySymbol}1000</span>
-							</div>
+								<input id="price-range" type="range" min="0" max="1000" value="500" class="w-full h-2 bg-gray-200 appearance-none dark:bg-gray-700" />
+								<div class="flex justify-between mt-2 text-xs text-gray-700 dark:text-gray-300">
+									<span>{$currencySymbol}0</span>
+									<span>{$currencySymbol}500</span>
+									<span>{$currencySymbol}1000</span>
+								</div>
 							</div>
 						</div>
 						<div class="mt-6 flex items-center justify-between space-x-4">

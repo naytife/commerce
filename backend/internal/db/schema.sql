@@ -31,6 +31,9 @@ CREATE TABLE shops (
     seo_description TEXT,
     seo_keywords TEXT[],
     seo_title VARCHAR(255),
+    current_template VARCHAR(100),
+    last_deployment_id BIGINT,
+    last_data_update_at TIMESTAMP WITH TIME ZONE,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     CONSTRAINT fk_owner FOREIGN KEY (owner_id) REFERENCES users(user_id) 
@@ -388,6 +391,72 @@ WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
 ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY shop_policy ON stock_movements
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- Deployment tracking tables
+CREATE TABLE shop_deployments (
+    deployment_id BIGSERIAL PRIMARY KEY,
+    shop_id BIGINT NOT NULL REFERENCES shops(shop_id) ON DELETE CASCADE,
+    template_name VARCHAR(100) NOT NULL,
+    template_version VARCHAR(50) NOT NULL DEFAULT 'latest',
+    status VARCHAR(50) NOT NULL DEFAULT 'deploying', -- 'deploying', 'deployed', 'failed'
+    deployment_type VARCHAR(50) NOT NULL DEFAULT 'full', -- 'full', 'data_only'
+    message TEXT,
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indices for better performance
+CREATE INDEX idx_shop_deployments_shop_id ON shop_deployments(shop_id);
+CREATE INDEX idx_shop_deployments_status ON shop_deployments(status);
+CREATE INDEX idx_shop_deployments_template ON shop_deployments(template_name);
+
+-- Add deployment URLs table
+CREATE TABLE shop_deployment_urls (
+    url_id BIGSERIAL PRIMARY KEY,
+    deployment_id BIGINT NOT NULL REFERENCES shop_deployments(deployment_id) ON DELETE CASCADE,
+    url_type VARCHAR(50) NOT NULL, -- 'production', 'preview', 'assets'
+    url TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add data update tracking
+CREATE TABLE shop_data_updates (
+    update_id BIGSERIAL PRIMARY KEY,
+    shop_id BIGINT NOT NULL REFERENCES shops(shop_id) ON DELETE CASCADE,
+    data_type VARCHAR(50) NOT NULL, -- 'shop', 'products', 'settings', 'all'
+    status VARCHAR(50) NOT NULL DEFAULT 'updating', -- 'updating', 'completed', 'failed'
+    changes_summary JSONB,
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add indices
+CREATE INDEX idx_shop_data_updates_shop_id ON shop_data_updates(shop_id);
+CREATE INDEX idx_shop_data_updates_status ON shop_data_updates(status);
+
+-- Add foreign key constraint for last_deployment_id after deployment tables are created
+ALTER TABLE shops ADD CONSTRAINT fk_last_deployment FOREIGN KEY (last_deployment_id) REFERENCES shop_deployments(deployment_id);
+
+-- SET RLS for deployment tables
+ALTER TABLE shop_deployments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shop_deployments
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+ALTER TABLE shop_deployment_urls ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shop_deployment_urls
+FOR ALL
+USING (deployment_id IN (SELECT deployment_id FROM shop_deployments WHERE shop_id = current_setting('commerce.current_shop_id')::int));
+
+ALTER TABLE shop_data_updates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shop_data_updates
 FOR ALL
 USING (shop_id = current_setting('commerce.current_shop_id')::int)
 WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);

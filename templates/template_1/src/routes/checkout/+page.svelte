@@ -116,7 +116,73 @@
 
   function handleStripeSuccess(paymentIntentId: string) {
     // Process successful Stripe payment
-    processOrder(paymentIntentId);
+    processStripeOrder(paymentIntentId);
+  }
+
+  async function processStripeOrder(paymentIntentId: string) {
+    try {
+      const currentShopId = get(shopId);
+      if (!currentShopId) {
+        errorMessage = 'Shop ID not found';
+        return;
+      }
+
+      // Calculate shipping cost
+      const shippingOption = shippingOptions.find(o => o.value === shippingMethod);
+      const calculatedShippingCost = shippingOption?.cost ?? 0;
+      
+      // Build checkout request for backend
+      const checkoutRequest = {
+        items: get(cart).map(item => ({
+          product_variation_id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        customer_info: {
+          email,
+          first_name: name,
+          last_name: '',
+          phone: phoneNumber
+        },
+        shipping_address: {
+          first_name: name,
+          last_name: '',
+          address_line_1: address,
+          city,
+          postal_code: postalCode,
+          country
+        },
+        shipping_cost: calculatedShippingCost,
+        tax_rate: 0.0,
+        discount: 0.0
+      };
+
+      // First initiate checkout with backend
+      const checkoutResponse = await apiClient.restPost(`/shops/${currentShopId}/checkout`, checkoutRequest);
+      
+      // Process Stripe payment with the backend
+      const paymentRequest = {
+        checkout_session_id: checkoutResponse.session_id || `checkout_${Date.now()}`,
+        payment_method: 'stripe',
+        payment_details: {
+          payment_intent_id: paymentIntentId,
+          amount: orderTotal
+        }
+      };
+
+      const paymentResponse = await apiClient.restPost(`/shops/${currentShopId}/payment`, paymentRequest);
+      
+      if (paymentResponse.status === 'completed' || paymentResponse.status === 'succeeded') {
+        cart.clear();
+        goto('/checkout/success');
+      } else {
+        throw new Error('Payment verification failed');
+      }
+      
+    } catch (error: any) {
+      console.error(error);
+      errorMessage = (error instanceof Error ? error.message : '') || 'An error occurred while processing your payment.';
+    }
   }
 
   function handleStripeError(error: string) {
@@ -125,59 +191,70 @@
 
   async function processOrder(transactionId?: string) {
     try {
-      // Build order items input
-      const itemsInput = get(cart).map(item => ({
-        price: item.price,
-        // encode to base64 Node ID: ProductVariant:<id>
-        productVariationId: btoa(`ProductVariant:${item.id}`),
-        quantity: item.quantity
-      }));
-      
-      // Concatenate shipping address
-      const shippingAddressInput = `${address}, ${city}, ${postalCode}, ${country}`;
-      
-      // calculate shipping cost
-      const shippingOption = shippingOptions.find(o => o.value === shippingMethod);
-      const shippingCost = shippingOption?.cost ?? 0;
-      
-      // GraphQL mutation for creating an order
-      const mutation = `
-        mutation CreateOrder($input: CreateOrderInput!) {
-          createOrder(input: $input) {
-            errors { code message path }
-            order { id orderId status transactionId }
-          }
-        }
-      `;
-      
-      const variables = {
-        input: {
-          fullName: name,
-          email,
-          phoneNumber,
-          shippingAddress: shippingAddressInput,
-          shippingMethod,
-          paymentMethod: paymentProvider.toUpperCase(),
-          discount: 0,
-          shippingCost: shippingCost,
-          tax: 0,
-          items: itemsInput,
-          transactionId: transactionId || `pending_${Date.now()}`
-        }
-      };
-
-      const result = await apiClient.query(mutation, variables);
-      
-      const payload = result.createOrder;
-      if (payload.errors.length) {
-        // user input errors
-        errorMessage = payload.errors.map((e: { message: string }) => e.message).join(', ');
+      const currentShopId = get(shopId);
+      if (!currentShopId) {
+        errorMessage = 'Shop ID not found';
         return;
       }
+
+      // Calculate shipping cost
+      const shippingOption = shippingOptions.find(o => o.value === shippingMethod);
+      const calculatedShippingCost = shippingOption?.cost ?? 0;
       
-      // Success: clear cart and redirect
-      cart.clear();
-      goto('/checkout/success');
+      // Build checkout request for backend
+      const checkoutRequest = {
+        items: get(cart).map(item => ({
+          product_variation_id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        customer_info: {
+          email,
+          first_name: name,
+          last_name: '',
+          phone: phoneNumber
+        },
+        shipping_address: {
+          first_name: name,
+          last_name: '',
+          address_line_1: address,
+          city,
+          postal_code: postalCode,
+          country
+        },
+        shipping_cost: calculatedShippingCost,
+        tax_rate: 0.0,
+        discount: 0.0
+      };
+
+      // First initiate checkout with backend
+      const checkoutResponse = await apiClient.restPost(`/shops/${currentShopId}/checkout`, checkoutRequest);
+      
+      if (!checkoutResponse) {
+        throw new Error('Failed to initiate checkout');
+      }
+
+      // For non-Stripe payments, create order directly
+      if (paymentProvider !== 'stripe') {
+        const paymentRequest = {
+          checkout_session_id: checkoutResponse.session_id || `checkout_${Date.now()}`,
+          payment_method: paymentProvider,
+          payment_details: {
+            amount: orderTotal,
+            currency: $shop?.currency_code?.toLowerCase() || 'usd'
+          }
+        };
+
+        const paymentResponse = await apiClient.restPost(`/shops/${currentShopId}/payment`, paymentRequest);
+        
+        if (paymentResponse.status === 'completed') {
+          cart.clear();
+          goto('/checkout/success');
+        } else {
+          throw new Error('Payment processing failed');
+        }
+      }
+      
     } catch (error: any) {
       console.error(error);
       errorMessage = (error instanceof Error ? error.message : '') || 'An error occurred while placing your order.';
@@ -393,7 +470,7 @@
                     customer_phone: phoneNumber,
                     shipping_method: shippingMethod,
                     shipping_address: `${address}, ${city}, ${postalCode}, ${country}`,
-                    cart_items: JSON.stringify($cart.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })))
+                    cart_items: JSON.stringify($cart.map(item => ({ id: item.id, title: item.title, quantity: item.quantity })))
                   }}
                   onSuccess={handleStripeSuccess}
                   onError={handleStripeError}

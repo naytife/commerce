@@ -8,8 +8,8 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount } from 'svelte';
-	import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Loader2 } from 'lucide-svelte';
-	import type { PredefinedProductType } from '$lib/types';
+	import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Loader2, Eye, Palette } from 'lucide-svelte';
+	import type { PredefinedProductType, StoreTemplate } from '$lib/types';
 
 	let title = '';
 	let subdomain = '';
@@ -23,8 +23,11 @@
 	let loading = false;
 	let currentStep = 1;
 	let selectedProductTypeValue: { value: string; label: string } | undefined = undefined;
+	let selectedTemplateValue: { value: string; label: string } | undefined = undefined;
 	let productTypes: PredefinedProductType[] = [];
+	let storeTemplates: StoreTemplate[] = [];
 	let loadingProductTypes = true;
+	let loadingTemplates = true;
 	
 	// Subdomain availability check state
 	let checkingSubdomain = false;
@@ -35,6 +38,9 @@
 	};
 
 	const authFetch = getContext('authFetch') as typeof fetch;
+
+	// Get selected template object
+	$: selectedTemplate = storeTemplates.find(template => template.name === selectedTemplateValue?.value) || null;
 
 	// Get selected product type object
 	$: selectedProductType = productTypes.find(pt => pt.id === selectedProductTypeValue?.value) || null;
@@ -68,8 +74,19 @@
 		}
 	}
 
-	// Load product types on mount
+	// Load data on mount
 	onMount(async () => {
+		// Load store templates
+		try {
+			storeTemplates = await api(authFetch).getTemplates();
+		} catch (error) {
+			console.error('Failed to load store templates:', error);
+			toast.error('Failed to load store templates');
+		} finally {
+			loadingTemplates = false;
+		}
+
+		// Load product types
 		try {
 			productTypes = await api(authFetch).getPredefinedProductTypes();
 		} catch (error) {
@@ -98,6 +115,11 @@
 				toast.error('This subdomain is not available. Please choose a different one.');
 				return;
 			}
+		} else if (currentStep === 2) {
+			if (!selectedTemplateValue) {
+				toast.error('Please select a store template');
+				return;
+			}
 		}
 		currentStep++;
 	}
@@ -112,6 +134,11 @@
 			return;
 		}
 		
+		if (!selectedTemplate) {
+			toast.error('Please select a store template');
+			return;
+		}
+		
 		if (!selectedProductType) {
 			toast.error('Please select a product type');
 			return;
@@ -119,7 +146,12 @@
 
 		loading = true;
 		try {
-			const shop = await createShop({ subdomain: slug, title }, authFetch);
+			// Create shop with selected template
+			const shop = await createShop({ 
+				subdomain: slug, 
+				title,
+				template: selectedTemplate.name
+			}, authFetch);
 			
 			// Create product type from template for the new shop
 			try {
@@ -140,7 +172,7 @@
 				toast.error('Store created, but failed to add product type. You can add it later.');
 			}
 			
-			toast.success('Store created with your first product type!');
+			toast.success('Store created with your selected template and first product type!');
 			goto('/account');
 		} catch (error) {
 			console.error(error);
@@ -160,6 +192,8 @@
 			<Card.Description>
 				{#if currentStep === 1}
 					Enter your store details to get started.
+				{:else if currentStep === 2}
+					Choose a template for your store's design and layout.
 				{:else}
 					Choose what type of products you'll be selling.
 				{/if}
@@ -226,7 +260,118 @@
 					{/if}
 				</div>
 			{:else if currentStep === 2}
-				<!-- Step 2: Product Type Selection -->
+				<!-- Step 2: Template Selection -->
+				{#if loadingTemplates}
+					<div class="text-center py-8">
+						<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+						<p class="text-sm text-muted-foreground">Loading store templates...</p>
+					</div>
+				{:else}
+					<div class="space-y-4">
+						<div class="space-y-2">
+							<Label>Choose a Store Template</Label>
+							<p class="text-sm text-muted-foreground">Select a template that best fits your store's style and needs.</p>
+						</div>
+						
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							{#each storeTemplates as template}
+								<div 
+									class="relative border rounded-lg cursor-pointer transition-all duration-200 hover:border-primary hover:shadow-md {selectedTemplateValue?.value === template.name ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border'} group"
+									on:click={() => selectedTemplateValue = { value: template.name, label: template.title }}
+									role="button"
+									tabindex="0"
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											selectedTemplateValue = { value: template.name, label: template.title };
+										}
+									}}
+								>
+									{#if selectedTemplateValue?.value === template.name}
+										<div class="absolute top-2 right-2 z-10">
+											<div class="bg-primary text-primary-foreground rounded-full p-1">
+												<CheckCircle class="w-4 h-4" />
+											</div>
+										</div>
+									{/if}
+									
+									<div class="p-4">
+										{#if template.thumbnail_url}
+											<div class="aspect-video w-full mb-3 rounded-md overflow-hidden bg-muted group-hover:shadow-sm transition-shadow">
+												<img 
+													src={template.thumbnail_url} 
+													alt="{template.title} preview"
+													class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+													loading="lazy"
+												/>
+											</div>
+										{:else}
+											<div class="aspect-video w-full mb-3 rounded-md bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center group-hover:from-primary/15 group-hover:to-primary/25 transition-all duration-200">
+												<Palette class="w-8 h-8 text-primary" />
+											</div>
+										{/if}
+										
+										<div class="space-y-2">
+											<div class="flex items-start justify-between">
+												<div>
+													<h4 class="font-semibold text-sm">{template.title}</h4>
+													<p class="text-xs text-muted-foreground">{template.category}</p>
+												</div>
+												{#if template.version}
+													<span class="text-xs bg-muted px-2 py-1 rounded">
+														v{template.version}
+													</span>
+												{/if}
+											</div>
+											
+											<p class="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
+											
+											{#if template.features && template.features.length > 0}
+												<div class="flex flex-wrap gap-1">
+													{#each template.features.slice(0, 3) as feature}
+														<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-primary/10 text-primary">
+															{feature}
+														</span>
+													{/each}
+													{#if template.features.length > 3}
+														<span class="text-xs text-muted-foreground">
+															+{template.features.length - 3} more
+														</span>
+													{/if}
+												</div>
+											{/if}
+											
+											{#if template.preview_url}
+												<div class="pt-1">
+													<Button 
+														variant="ghost" 
+														size="sm" 
+														class="h-6 px-2 text-xs gap-1" 
+														on:click={(e) => {
+															e.stopPropagation();
+															window.open(template.preview_url, '_blank');
+														}}
+													>
+														<Eye class="w-3 h-3" />
+														Preview
+													</Button>
+												</div>
+											{/if}
+										</div>
+									</div>
+								</div>
+							{/each}
+						</div>
+						
+						{#if storeTemplates.length === 0}
+							<div class="text-center py-8">
+								<Palette class="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+								<p class="text-sm text-muted-foreground">No templates available</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			{:else if currentStep === 3}
+				<!-- Step 3: Product Type Selection -->
 				{#if loadingProductTypes}
 					<div class="text-center py-8">
 						<div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
@@ -270,6 +415,16 @@
 					<ChevronLeft class="mr-1 h-4 w-4" /> Back
 				</Button>
 				<Button 
+					on:click={nextStep} 
+					disabled={!selectedTemplateValue}
+				>
+					Next <ChevronRight class="ml-1 h-4 w-4" />
+				</Button>
+			{:else if currentStep === 3}
+				<Button variant="outline" on:click={prevStep}>
+					<ChevronLeft class="mr-1 h-4 w-4" /> Back
+				</Button>
+				<Button 
 					on:click={handleCreate} 
 					disabled={loading || !selectedProductTypeValue}
 				>
@@ -279,3 +434,13 @@
 		</Card.Footer>
 	</Card.Root>
 </div>
+
+<style>
+	.line-clamp-2 {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		overflow: hidden;
+	}
+</style>

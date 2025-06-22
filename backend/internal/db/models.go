@@ -507,6 +507,9 @@ type Shop struct {
 	SeoDescription      *string            `json:"seo_description"`
 	SeoKeywords         []string           `json:"seo_keywords"`
 	SeoTitle            *string            `json:"seo_title"`
+	CurrentTemplate     *string            `json:"current_template"`
+	LastDeploymentID    *int64             `json:"last_deployment_id"`
+	LastDataUpdateAt    pgtype.Timestamptz `json:"last_data_update_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 }
@@ -524,6 +527,39 @@ type ShopCustomer struct {
 	AuthProviderID *string            `json:"auth_provider_id"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	LastLogin      pgtype.Timestamptz `json:"last_login"`
+}
+
+type ShopDataUpdate struct {
+	UpdateID       int64              `json:"update_id"`
+	ShopID         int64              `json:"shop_id"`
+	DataType       string             `json:"data_type"`
+	Status         string             `json:"status"`
+	ChangesSummary []byte             `json:"changes_summary"`
+	StartedAt      pgtype.Timestamptz `json:"started_at"`
+	CompletedAt    pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type ShopDeployment struct {
+	DeploymentID    int64              `json:"deployment_id"`
+	ShopID          int64              `json:"shop_id"`
+	TemplateName    string             `json:"template_name"`
+	TemplateVersion string             `json:"template_version"`
+	Status          string             `json:"status"`
+	DeploymentType  string             `json:"deployment_type"`
+	Message         *string            `json:"message"`
+	StartedAt       pgtype.Timestamptz `json:"started_at"`
+	CompletedAt     pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ShopDeploymentUrl struct {
+	UrlID        int64              `json:"url_id"`
+	DeploymentID int64              `json:"deployment_id"`
+	UrlType      string             `json:"url_type"`
+	Url          string             `json:"url"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type ShopImage struct {

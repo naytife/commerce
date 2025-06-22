@@ -1,0 +1,34 @@
+{
+  "about": "We sell all kind of clothing for me, women and children all ages",
+  "address": {
+    "address": "18 Gregory mbah street, By St Peter's Anglican Church, Thinkers corner,  Enugu Nigeria."
+  },
+  "contactEmail": "contact@ynt.store",
+  "contactPhone": "+2340904455433",
+  "currencyCode": "NGN",
+  "defaultDomain": "",
+  "facebookLink": null,
+  "id": "U2hvcDox",
+  "images": {
+    "banner": null,
+    "bannerDark": null,
+    "coverImage": null,
+    "coverImageDark": null,
+    "favicon": null,
+    "siteLogo": {
+      "altText": null,
+      "url": "https://pub-f8b8a0c6d97a4b43a0368a700a720787.r2.dev/shops/1/images/logo_1750224410042_moAsset-13naytife.svg"
+    },
+    "siteLogoDark": null
+  },
+  "instagramLink": null,
+  "paymentMethods": [],
+  "seoDescription": null,
+  "seoKeywords": [],
+  "seoTitle": null,
+  "shopProductsCategory": null,
+  "shop_id": 1,
+  "title": "Ynt Store",
+  "whatsAppLink": null,
+  "whatsAppNumber": null
+}

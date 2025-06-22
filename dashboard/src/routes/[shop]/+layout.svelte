@@ -18,7 +18,8 @@
 		Bell,
 		User,
 		Menu,
-		X
+		X,
+		Palette
 	} from 'lucide-svelte';
 
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
@@ -38,6 +39,7 @@
 	import { QueryClientProvider } from '@tanstack/svelte-query'
 	import { Toaster } from '$lib/components/ui/sonner'
 	import { toggleMode, mode } from 'mode-watcher';
+	import { createAuthenticatedFetch } from '$lib/auth-fetch';
 
 	interface CustomSession extends AuthSession {
 		access_token?: string;
@@ -64,7 +66,9 @@
 			Authorization: `Bearer ${accessToken}`,
 		}
 		}
-		return fetch(input, options)
+		const baseFetch = (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init);
+		const authenticatedFetch = createAuthenticatedFetch(baseFetch);
+		return authenticatedFetch(input, options);
 	}
 
 	// Share authFetch via context
@@ -114,6 +118,8 @@
 			if (path.includes('/create')) {
 				items.push({ label: 'Create', type: 'page' });
 			}
+		} else if (path.includes('/templates')) {
+			items.push({ label: 'Templates', href: `/${shopId}/templates`, type: 'link' });
 		} else if (path.includes('/settings')) {
 			items.push({ label: 'Settings', href: `/${shopId}/settings`, type: 'link' });
 			if (path.includes('/domain')) {
@@ -149,7 +155,8 @@
 		{ href: 'product-types', icon: Boxes, label: 'Products' },
 		{ href: 'customers', icon: UsersRound, label: 'Customers' },
 		{ href: 'inventory', icon: Package, label: 'Inventory' },
-		{ href: 'categories', icon: Workflow, label: 'Categories' }
+		{ href: 'categories', icon: Workflow, label: 'Categories' },
+		{ href: 'templates', icon: Palette, label: 'Templates' }
 	];
 </script>
 

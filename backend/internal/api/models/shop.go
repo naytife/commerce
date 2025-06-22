@@ -21,6 +21,7 @@ type ShopCreateParams struct {
 	Subdomain    string `json:"subdomain" validate:"required,min=3,max=255"`
 	CurrencyCode string `json:"currency_code" validate:"required,oneof=USD NGN"`
 	Status       string `json:"status" validate:"required,oneof=PUBLISHED DRAFT"`
+	Template     string `json:"template" validate:"required"`
 }
 
 type Shop struct {
@@ -41,6 +42,7 @@ type Shop struct {
 	SeoDescription      *string            `json:"seo_description,omitempty"`
 	SeoKeywords         []string           `json:"seo_keywords,omitempty"`
 	SeoTitle            *string            `json:"seo_title,omitempty"`
+	CurrentTemplate     *string            `json:"current_template,omitempty"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 	Images              *ShopImagesData    `json:"images,omitempty"`

@@ -1,6 +1,6 @@
 -- name: CreateShop :one
-INSERT INTO shops (owner_id, title, subdomain,email, currency_code, about, status, address,phone_number, seo_description, seo_keywords, seo_title)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO shops (owner_id, title, subdomain, email, currency_code, about, status, address, phone_number, seo_description, seo_keywords, seo_title, current_template)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: GetShop :one
@@ -63,6 +63,7 @@ SET
     seo_title = COALESCE(sqlc.narg('seo_title'), seo_title),
     address = COALESCE(sqlc.narg('address'), address),
     email = COALESCE(sqlc.narg('email'), email),
+    current_template = COALESCE(sqlc.narg('current_template'), current_template),
     updated_at = NOW()
 WHERE shop_id = sqlc.arg('shop_id')
 RETURNING *;

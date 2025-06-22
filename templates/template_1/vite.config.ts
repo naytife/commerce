@@ -1,8 +1,28 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import houdini from 'houdini/vite'
 import { defineConfig } from 'vite'
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(),houdini(), sveltekit()],
-});
+	plugins: [sveltekit()],
+	define: {
+		global: 'globalThis',
+		'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+	},
+	build: {
+		target: 'es2020',
+		minify: true,
+		sourcemap: false,
+	},
+	optimizeDeps: {
+		include: [
+			'svelte',
+			'@sveltejs/kit',
+			'clsx',
+			'tailwind-merge',
+			'lucide-svelte'
+		],
+		exclude: [
+			'fsevents',
+			'lightningcss'
+		]
+	}
+})

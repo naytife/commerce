@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -304,22 +305,41 @@ func userExists(client *http.Client, email, appType, shopID string) (bool, error
 
 func registerUser(client *http.Client, userInfo *GoogleUserInfo, appType, shopID string) error {
 	var urlStr string
+	var payload map[string]interface{}
+
 	if appType == "storefront" {
 		// Call the register customer endpoint
 		urlStr = fmt.Sprintf("%s/v1/auth/register-customer", backendURL)
+		// Convert shopID to int64 for customer registration
+		shopIDInt, err := strconv.ParseInt(shopID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid shop_id: %s", shopID)
+		}
+		payload = map[string]interface{}{
+			"shop_id":          shopIDInt,
+			"email":            userInfo.Email,
+			"name":             userInfo.Name,
+			"picture":          userInfo.Picture,
+			"locale":           userInfo.Locale,
+			"verified_email":   userInfo.VerifiedEmail,
+			"auth_provider":    "google",
+			"auth_provider_id": userInfo.ID,
+		}
 	} else {
 		// Call the register user endpoint for admin
 		urlStr = fmt.Sprintf("%s/v1/auth/register", backendURL)
+		payload = map[string]interface{}{
+			"email":          userInfo.Email,
+			"name":           userInfo.Name,
+			"id":             userInfo.ID,
+			"sub":            userInfo.Sub,
+			"provider":       "google",
+			"picture":        userInfo.Picture,
+			"locale":         userInfo.Locale,
+			"verified_email": userInfo.VerifiedEmail,
+		}
 	}
 
-	payload := map[string]interface{}{
-		"email":    userInfo.Email,
-		"name":     userInfo.Name,
-		"app_type": appType,
-	}
-	if appType == "storefront" {
-		payload["shop_id"] = shopID // Only include shop_id if appType is "storefront"
-	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err

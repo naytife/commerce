@@ -732,6 +732,7 @@ cd backend && go test ./internal/db -integration
 - **Database Scaling**: PostgreSQL with read replicas support
 - **Caching Strategy**: Redis for session and application caching
 - **CDN Integration**: Cloudflare R2 for static asset delivery
+- **Storage Architecture**: Separated buckets for templates (`templates`) and stores (`stores`)
 
 ### Performance Optimization Roadmap
 - **Database Optimization**: Query optimization and advanced indexing

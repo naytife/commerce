@@ -9,6 +9,7 @@ import (
 func ShopRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
 
+	// Core shop management
 	app.Post("/shops", handler.CreateShop)
 	app.Get("/shops", handler.GetShops)
 	app.Delete("/shops/:shop_id", handler.DeleteShop)
@@ -18,4 +19,6 @@ func ShopRouter(app fiber.Router, repo db.Repository) {
 	app.Get("/shops/subdomain/:subdomain", handler.GetShopBySubDomain)
 	app.Get("/shops/check-subdomain/:subdomain", handler.CheckSubdomainAvailability)
 	app.Get("/customerinfo", handler.GetCustomerByEmail)
+
+	// Deployment endpoints are now handled by TemplateRouter via proxy
 }

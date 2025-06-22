@@ -74,7 +74,7 @@ echo -e "${GREEN}✅ Namespaces created${NC}"
 
 echo -e "\n${BLUE}🐘 Step 2: Deploying PostgreSQL${NC}"
 kubectl apply -f "$MANIFESTS_DIR/01-postgres/"
-wait_for_deployment "naytife" "postgres" 120
+wait_for_deployment "naytife" "postgres" 200
 
 echo -e "\n${BLUE}📊 Step 3: Deploying Redis${NC}"
 kubectl apply -f "$MANIFESTS_DIR/02-redis/"
@@ -97,6 +97,11 @@ wait_for_deployment "naytife-auth" "auth-handler" 120
 
 echo -e "\n${BLUE}🔙 Step 7: Deploying Backend API${NC}"
 
+# Deploy backend configuration and secrets first (needed for migrations)
+echo -e "${YELLOW}🔐 Applying backend configuration...${NC}"
+kubectl apply -f "$MANIFESTS_DIR/06-backend/backend.yaml"
+echo -e "${GREEN}✅ Backend configuration applied${NC}"
+
 # First, create migration ConfigMap with actual migration files
 echo -e "${YELLOW}📝 Creating migration ConfigMap...${NC}"
 BACKEND_DIR="$(cd "$SCRIPT_DIR/../../backend" && pwd)"
@@ -117,7 +122,7 @@ else
     exit 1
 fi
 
-# Deploy migration job first
+# Now run the migration job
 echo -e "${YELLOW}🗄️  Running database migrations...${NC}"
 kubectl apply -f "$MANIFESTS_DIR/06-backend/backend-migration.yaml"
 
@@ -135,14 +140,18 @@ else
     exit 1
 fi
 
-# Now deploy the backend application
-echo -e "${YELLOW}🚀 Deploying backend application...${NC}"
-kubectl apply -f "$MANIFESTS_DIR/06-backend/backend.yaml"
+# Wait for backend deployment to be ready
 wait_for_deployment "naytife" "backend" 180
 
-echo -e "\n${BLUE}🏗️  Step 8: Deploying Cloud Build${NC}"
-kubectl apply -f "$MANIFESTS_DIR/07-cloud-build/"
-wait_for_deployment "naytife-build" "cloud-build" 180
+echo -e "\n${BLUE}🏗️  Step 8: Deploying Template System${NC}"
+kubectl apply -f "$MANIFESTS_DIR/08-template-system/"
+
+# Wait for template system deployments
+echo -e "${YELLOW}⏳ Waiting for template system deployments to be ready...${NC}"
+wait_for_deployment "naytife" "template-registry" 180
+wait_for_deployment "naytife" "store-deployer" 180
+
+echo -e "${GREEN}✅ Template System deployed successfully${NC}"
 
 echo -e "\n${GREEN}🎉 All services deployed successfully!${NC}"
 
@@ -152,14 +161,15 @@ kubectl get pods --all-namespaces -l app.kubernetes.io/part-of=naytife-platform
 
 echo -e "\n${BLUE}🔗 Service Access Points:${NC}"
 echo "================================"
-echo "  🔐 API Gateway:    http://127.0.0.1:8080"
-echo "  🔙 Backend API:    http://127.0.0.1:8000"
-echo "  🔑 Auth Handler:   http://127.0.0.1:3000"
-echo "  🏗️  Cloud Build:    http://127.0.0.1:9000"
-echo "  🐘 PostgreSQL:     localhost:5432"
-echo "  📊 Redis:          localhost:6379"
-echo "  🆔 Hydra Public:   http://127.0.0.1:4444"
-echo "  🆔 Hydra Admin:    http://127.0.0.1:4445"
+echo "  🔐 API Gateway:      http://127.0.0.1:8080"
+echo "  🔙 Backend API:      http://127.0.0.1:8000"
+echo "  🔑 Auth Handler:     http://127.0.0.1:3000"
+echo "  🏗️  Template Registry: http://127.0.0.1:9001"
+echo "  🚀 Store Deployer:   http://127.0.0.1:9003"
+echo "  🐘 PostgreSQL:       localhost:5432"
+echo "  📊 Redis:            localhost:6379"
+echo "  🆔 Hydra Public:     http://127.0.0.1:4444"
+echo "  🆔 Hydra Admin:      http://127.0.0.1:4445"
 
 echo -e "\n${BLUE}📋 Quick Health Check:${NC}"
 echo "================================"
@@ -181,15 +191,22 @@ else
     echo -e "${RED}❌ Not ready${NC}"
 fi
 
-echo -n "🔑 Auth Handler: "
+echo -n "🔑 Auth Handler:     "
 if curl -s http://127.0.0.1:3000/health >/dev/null 2>&1; then
     echo -e "${GREEN}✅ Healthy${NC}"
 else
     echo -e "${RED}❌ Not ready${NC}"
 fi
 
-echo -n "🏗️  Cloud Build:  "
-if curl -s http://127.0.0.1:9000/health >/dev/null 2>&1; then
+echo -n "🏗️  Template Registry: "
+if curl -s http://127.0.0.1:9001/health >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Healthy${NC}"
+else
+    echo -e "${RED}❌ Not ready${NC}"
+fi
+
+echo -n "🚀 Store Deployer:   "
+if curl -s http://127.0.0.1:9003/health >/dev/null 2>&1; then
     echo -e "${GREEN}✅ Healthy${NC}"
 else
     echo -e "${RED}❌ Not ready${NC}"

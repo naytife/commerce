@@ -1,0 +1,708 @@
+{
+  "products": {
+    "edges": [
+      {
+        "node": {
+          "attributes": [
+            {
+              "title": "Brand",
+              "value": "NAYTIFE"
+            },
+            {
+              "title": "Material",
+              "value": "Cotton"
+            },
+            {
+              "title": "Care Instructions",
+              "value": "Dry Clean Only"
+            },
+            {
+              "title": "Season",
+              "value": "All Season"
+            }
+          ],
+          "createdAt": "2025-06-19T05:49:59.647161Z",
+          "defaultVariant": {
+            "attributes": [
+              {
+                "title": "Size",
+                "value": "S"
+              },
+              {
+                "title": "Color",
+                "value": "#000000"
+              },
+              {
+                "title": "Fit",
+                "value": "Oversized"
+              }
+            ],
+            "availableQuantity": 1,
+            "description": "",
+            "id": "UHJvZHVjdFZhcmlhbnQ6MjU=",
+            "isDefault": true,
+            "price": 100,
+            "stockStatus": "",
+            "variationId": 25
+          },
+          "description": "Naytife Polo",
+          "id": "UHJvZHVjdDox",
+          "images": [
+            {
+              "altText": "IMG_2829.JPG",
+              "url": "https://pub-f8b8a0c6d97a4b43a0368a700a720787.r2.dev/products/1/1750312352189-IMG_2829.JPG"
+            }
+          ],
+          "productId": 1,
+          "slug": "polo",
+          "title": "Polo",
+          "updatedAt": "2025-06-19T06:36:47.038583Z",
+          "variants": [
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "UHJvZHVjdFZhcmlhbnQ6MjU=",
+              "isDefault": true,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 25
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 26
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 27
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 28
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#0000FF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 29
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#0000FF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 30
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFF00"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 31
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFF00"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 32
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFA500"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 33
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFA500"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 34
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 35
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 36
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 37
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 38
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#0000FF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 39
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#0000FF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 40
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFF00"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 41
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFF00"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 42
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFA500"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 43
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFA500"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 44
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "L"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 45
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "L"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 46
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "L"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Oversized"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 47
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "L"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FF0000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 100,
+              "stockStatus": "",
+              "variationId": 48
+            }
+          ]
+        }
+      },
+      {
+        "node": {
+          "attributes": [
+            {
+              "title": "Brand",
+              "value": "NAYTIFE"
+            },
+            {
+              "title": "Material",
+              "value": "Denim"
+            },
+            {
+              "title": "Care Instructions",
+              "value": "Machine Wash Warm"
+            },
+            {
+              "title": "Season",
+              "value": "All Season"
+            }
+          ],
+          "createdAt": "2025-06-19T06:38:33.959533Z",
+          "defaultVariant": {
+            "attributes": [
+              {
+                "title": "Size",
+                "value": "S"
+              },
+              {
+                "title": "Color",
+                "value": "#000000"
+              },
+              {
+                "title": "Fit",
+                "value": "Slim"
+              }
+            ],
+            "availableQuantity": 1,
+            "description": "",
+            "id": "UHJvZHVjdFZhcmlhbnQ6NDk=",
+            "isDefault": true,
+            "price": 1000,
+            "stockStatus": "",
+            "variationId": 49
+          },
+          "description": "Naytife POLO",
+          "id": "UHJvZHVjdDoy",
+          "images": [
+            {
+              "altText": "IMG_2829.JPG",
+              "url": "https://pub-f8b8a0c6d97a4b43a0368a700a720787.r2.dev/products/2/1750315132156-IMG_2829.JPG"
+            }
+          ],
+          "productId": 2,
+          "slug": "polo-2",
+          "title": "Polo 2",
+          "updatedAt": "2025-06-19T06:38:33.959533Z",
+          "variants": [
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Slim"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "UHJvZHVjdFZhcmlhbnQ6NDk=",
+              "isDefault": true,
+              "price": 1000,
+              "stockStatus": "",
+              "variationId": 49
+            }
+          ]
+        }
+      }
+    ],
+    "pageInfo": {
+      "endCursor": "UHJvZHVjdDoy",
+      "hasNextPage": false,
+      "hasPreviousPage": false,
+      "startCursor": "UHJvZHVjdDox"
+    },
+    "totalCount": 2
+  }
+}

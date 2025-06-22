@@ -26,6 +26,8 @@ import type {
 } from './types'
 import { toast } from 'svelte-sonner'
 import { writable } from 'svelte/store'
+import { publishState } from './stores/publishState'
+import { createAuthenticatedFetch } from './auth-fetch'
 
 // Create a store to hold the shop ID
 export const currentShopId = writable<number | null>(null)
@@ -36,7 +38,9 @@ export const fetchShopIdFromSubdomain = async (shopIdentifier: string, customFet
     if (!shopIdentifier) {
       throw new Error('No shop identifier provided')
     }
-    const response = await customFetch(
+    
+    const authenticatedFetch = createAuthenticatedFetch(customFetch);
+    const response = await authenticatedFetch(
       `http://127.0.0.1:8080/v1/shops/subdomain/${shopIdentifier}`,
     )
     const data = await response.json() as ApiResponse<Shop>
@@ -56,7 +60,8 @@ export const fetchShopIdFromSubdomain = async (shopIdentifier: string, customFet
 // Fetch all shops (for account page, not shop-specific)
 export const getAllShops = async (customFetch = fetch) => {
   try {
-    const response = await customFetch('http://127.0.0.1:8080/v1/shops');
+    const authenticatedFetch = createAuthenticatedFetch(customFetch);
+    const response = await authenticatedFetch('http://127.0.0.1:8080/v1/shops');
     const data = await response.json() as ApiResponse<Shop[]>;
     return Array.isArray(data.data) ? data.data : [];
   } catch (error) {
@@ -68,16 +73,23 @@ export const getAllShops = async (customFetch = fetch) => {
 
 // Create a new shop (store)
 export const createShop = async (
-  shop: { subdomain: string; title: string },
+  shop: { subdomain: string; title: string; template?: string },
   customFetch = fetch
 ) => {
   try {
-    const response = await customFetch('http://127.0.0.1:8080/v1/shops', {
+    const authenticatedFetch = createAuthenticatedFetch(customFetch);
+    const response = await authenticatedFetch('http://127.0.0.1:8080/v1/shops', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(shop),
+      body: JSON.stringify({
+        subdomain: shop.subdomain,
+        title: shop.title,
+        template: shop.template || 'template_1', // Default to template_1 if not provided
+        currency_code: 'USD', // Default currency
+        status: 'DRAFT' // Default status
+      }),
     });
     const data = await response.json() as ApiResponse<Shop>;
     if (response.ok) {
@@ -99,7 +111,8 @@ export const deleteShop = async (
   customFetch = fetch
 ) => {
   try {
-    const response = await customFetch(`http://127.0.0.1:8080/v1/shops/${shopId}`, {
+    const authenticatedFetch = createAuthenticatedFetch(customFetch);
+    const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/shops/${shopId}`, {
       method: 'DELETE',
     });
     if (response.ok) {
@@ -122,7 +135,8 @@ export const checkSubdomainAvailability = async (
   customFetch = fetch
 ) => {
   try {
-    const response = await customFetch(`http://127.0.0.1:8080/v1/shops/check-subdomain/${subdomain}`, {
+    const authenticatedFetch = createAuthenticatedFetch(customFetch);
+    const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/shops/check-subdomain/${subdomain}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -141,6 +155,9 @@ export const checkSubdomainAvailability = async (
 };
 
 export const api = (customFetch = fetch) => {
+  // Create authenticated fetch wrapper
+  const authenticatedFetch = createAuthenticatedFetch(customFetch);
+  
   // Helper to get base URL with current shop ID
   const getShopUrl = () => {
     let shopId: number | null = null
@@ -159,7 +176,7 @@ export const api = (customFetch = fetch) => {
 
   return {
     getProducts: async (limit: number) => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}/products`,
       )
       const data = await response.json() as ApiResponse<Product[]>
@@ -167,12 +184,12 @@ export const api = (customFetch = fetch) => {
     },
     getProductsByType: async (typeId: number, limit: number = 10, after: number = 0) => {
       const url = `${getShopUrl()}/product-types/${typeId}/products?after=${after}&limit=${limit}`
-      const response = await customFetch(url)
+      const response = await authenticatedFetch(url)
       const data = await response.json() as ApiResponse<Product[]>
       return data.data
     },
     getProductById: async (id: number): Promise<Product> => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}/products/${id}`,
       );
       const data = await response.json() as ApiResponse<Product>;
@@ -193,14 +210,14 @@ export const api = (customFetch = fetch) => {
       return data.data;
     },
     getShop: async () => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}`,
       );
       const data = await response.json() as ApiResponse<Shop>;
       return data.data;
     },
     getProductTypes: async () => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}/product-types`,
       );
       const data = await response.json() as ApiResponse<ProductType[]>;
@@ -386,8 +403,16 @@ export const api = (customFetch = fetch) => {
         const responseData = await response.json();
         if (response.ok) {
           toast.success('Product created successfully');
+          
+          // Track the change for publish state
+          publishState.recordChange({
+            type: 'product_create',
+            entity: `product:${productData.title}`,
+            description: `Product "${productData.title}" created`
+          });
+          
         } else {
-          toast.error('Failed to create product');
+          toast.error(responseData.message || 'Failed to create product');
         }
         return responseData.data;
       } catch (error) {
@@ -410,6 +435,14 @@ export const api = (customFetch = fetch) => {
         const responseData = await response.json();
         if (response.ok) {
           toast.success('Product updated successfully');
+          
+          // Track the change for publish state
+          publishState.recordChange({
+            type: 'product_update',
+            entity: `product:${productId}`,
+            description: `Product updated`
+          });
+          
         } else {
           toast.error('Failed to update product');
         }
@@ -542,6 +575,14 @@ export const api = (customFetch = fetch) => {
         
         if (response.ok) {
           toast.success('Shop settings updated successfully');
+          
+          // Track the change for publish state
+          publishState.recordChange({
+            type: 'shop_update',
+            entity: 'shop',
+            description: 'Store settings updated'
+          });
+          
           return responseData.data;
         } else {
           toast.error(`Failed to update shop settings: ${responseData.message || 'Unknown error'}`);
@@ -577,6 +618,14 @@ export const api = (customFetch = fetch) => {
         
         if (response.ok) {
           toast.success('Shop images updated successfully');
+          
+          // Track the change for publish state
+          publishState.recordChange({
+            type: 'image_update',
+            entity: 'shop',
+            description: 'Store images updated'
+          });
+          
           return responseData.data;
         } else {
           toast.error(`Failed to update shop images: ${responseData.message || 'Unknown error'}`);
@@ -589,14 +638,14 @@ export const api = (customFetch = fetch) => {
     },
     // Order related functions
     getOrders: async () => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}/orders`,
       );
       const data = await response.json() as ApiResponse<Order[]>;
       return data.data;
     },
     getOrderById: async (orderId: number): Promise<Order> => {
-      const response = await customFetch(
+      const response = await authenticatedFetch(
         `${getShopUrl()}/orders/${orderId}`,
       );
       const data = await response.json() as ApiResponse<Order>;
@@ -658,20 +707,20 @@ export const api = (customFetch = fetch) => {
       }
       
       const url = `${getShopUrl()}/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await customFetch(url);
+      const response = await authenticatedFetch(url);
       const data = await response.json() as ApiResponse<PaginatedResponse<Customer>>;
       return data.data;
     },
 
     getCustomerById: async (customerId: number): Promise<Customer> => {
-      const response = await customFetch(`${getShopUrl()}/customers/${customerId}`);
+      const response = await authenticatedFetch(`${getShopUrl()}/customers/${customerId}`);
       const data = await response.json() as ApiResponse<Customer>;
       return data.data;
     },
 
     createCustomer: async (customerData: CustomerCreatePayload): Promise<Customer> => {
       try {
-        const response = await customFetch(`${getShopUrl()}/customers`, {
+        const response = await authenticatedFetch(`${getShopUrl()}/customers`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -696,7 +745,7 @@ export const api = (customFetch = fetch) => {
 
     updateCustomer: async (customerId: number, customerData: CustomerUpdatePayload): Promise<Customer> => {
       try {
-        const response = await customFetch(`${getShopUrl()}/customers/${customerId}`, {
+        const response = await authenticatedFetch(`${getShopUrl()}/customers/${customerId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -842,7 +891,7 @@ export const api = (customFetch = fetch) => {
     // Payment Methods API
     getPaymentMethods: async (): Promise<PaymentMethod[]> => {
       try {
-        const response = await customFetch(`${getShopUrl()}/payment-methods`);
+        const response = await authenticatedFetch(`${getShopUrl()}/payment-methods`);
         const data = await response.json() as ApiResponse<PaymentMethod[]>;
         if (response.ok) {
           return data.data || [];
@@ -949,5 +998,212 @@ export const api = (customFetch = fetch) => {
         throw error;
       }
     },
+
+    // Publish API
+    publishStore: async (templateName: string = 'template_1') => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/publish`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            template_name: templateName,
+            changes: [], // Will be set by PublishButton component
+          }),
+        });
+        
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          toast.success('Store publish initiated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to publish store');
+          throw new Error(data.message || 'Failed to publish store');
+        }
+      } catch (error) {
+        toast.error('An error occurred while publishing the store');
+        throw error;
+      }
+    },
+
+    getPublishStatus: async (jobId: string) => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/publish/status?job_id=${jobId}`);
+        const data = await response.json() as ApiResponse<any>;
+        return data.data;
+      } catch (error) {
+        console.error('Error fetching publish status:', error);
+        throw error;
+      }
+    },
+
+    getPublishHistory: async (limit: number = 10, offset: number = 0) => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/publish/history?limit=${limit}&offset=${offset}`);
+        const data = await response.json() as ApiResponse<any[]>;
+        return data.data || [];
+      } catch (error) {
+        console.error('Error fetching publish history:', error);
+        return [];
+      }
+    },
+
+    // Template Management API
+    getTemplates: async () => {
+      try {
+        const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/templates`);
+        const data = await response.json() as ApiResponse<any[]>;
+        
+        if (response.ok) {
+          return data.data || [];
+        } else {
+          toast.error(data.message || 'Failed to fetch templates');
+          throw new Error(data.message || 'Failed to fetch templates');
+        }
+      } catch (error) {
+        toast.error('An error occurred while fetching templates');
+        throw error;
+      }
+    },
+
+    getTemplateVersions: async (templateName: string) => {
+      try {
+        const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/templates/${templateName}/versions`);
+        const data = await response.json() as ApiResponse<any[]>;
+        
+        if (response.ok) {
+          return data.data || [];
+        } else {
+          toast.error(data.message || 'Failed to fetch template versions');
+          throw new Error(data.message || 'Failed to fetch template versions');
+        }
+      } catch (error) {
+        toast.error('An error occurred while fetching template versions');
+        throw error;
+      }
+    },
+
+    getLatestTemplateVersion: async (templateName: string) => {
+      try {
+        const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/templates/${templateName}/latest`);
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to fetch latest template version');
+          throw new Error(data.message || 'Failed to fetch latest template version');
+        }
+      } catch (error) {
+        toast.error('An error occurred while fetching latest template version');
+        throw error;
+      }
+    },
+
+    buildTemplate: async (request: {
+      template_name: string;
+      git_commit?: string;
+      force?: boolean;
+    }) => {
+      try {
+        const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/templates/build`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+        
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          toast.success('Template build initiated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to initiate template build');
+          throw new Error(data.message || 'Failed to initiate template build');
+        }
+      } catch (error) {
+        toast.error('An error occurred while building template');
+        throw error;
+      }
+    },
+
+    deployStore: async (request: {
+      template_name: string;
+      version?: string;
+      data_override?: Record<string, string>;
+    }) => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/deploy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+        
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          toast.success('Store deployment initiated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to initiate store deployment');
+          throw new Error(data.message || 'Failed to initiate store deployment');
+        }
+      } catch (error) {
+        toast.error('An error occurred while deploying store');
+        throw error;
+      }
+    },
+
+    updateStoreData: async (request: {
+      data_type?: string;
+      incremental?: boolean;
+      changes?: Record<string, string>;
+    }) => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/update-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+        
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          toast.success('Store data updated successfully');
+          return data.data;
+        } else {
+          toast.error(data.message || 'Failed to update store data');
+          throw new Error(data.message || 'Failed to update store data');
+        }
+      } catch (error) {
+        toast.error('An error occurred while updating store data');
+        throw error;
+      }
+    },
+
+    getDeploymentStatus: async () => {
+      try {
+        const response = await authenticatedFetch(`${getShopUrl()}/deployment-status`);
+        const data = await response.json() as ApiResponse<any>;
+        
+        if (response.ok) {
+          return data.data;
+        } else {
+          // Don't show error toast for deployment status as it might not exist yet
+          return null;
+        }
+      } catch (error) {
+        console.error('Error fetching deployment status:', error);
+        return null;
+      }
+    }
   }
 }

@@ -19,6 +19,7 @@
 	} from 'lucide-svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
+	import PublishButton from '$lib/components/PublishButton.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -86,6 +87,7 @@
 				<Calendar class="w-4 h-4 mr-2" />
 				Last 30 days
 			</Button>
+			<PublishButton />
 			<Button href="/{$page.params.shop}/product-types/create" class="btn-gradient shadow-brand">
 				<CirclePlus class="w-4 h-4 mr-2" />
 				Add Product

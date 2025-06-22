@@ -5,6 +5,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response>;
+			cachedSession?: any;
 		}
 		// interface PageData {}
 		// interface PageState {}

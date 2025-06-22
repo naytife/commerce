@@ -12,6 +12,7 @@ type EnvVars struct {
 	PORT           string `mapstructure:"PORT"`
 	DATABASE_URL   string `mapstructure:"DATABASE_URL"`
 	API_URL        string `mapstructure:"API_URL"`
+	REDIS_URL      string `mapstructure:"REDIS_URL"`
 }
 
 func LoadConfig() (config EnvVars, err error) {
@@ -21,6 +22,7 @@ func LoadConfig() (config EnvVars, err error) {
 	viper.BindEnv("PORT")           // Binds $PORT to viper.Get("PORT")
 	viper.BindEnv("DATABASE_URL")
 	viper.BindEnv("API_URL")
+	viper.BindEnv("REDIS_URL")
 
 	if _, err := os.Stat(".env.local"); err == nil {
 		viper.AddConfigPath(".")
