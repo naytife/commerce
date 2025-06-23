@@ -29,6 +29,7 @@ import (
 var (
 	s3Client   *s3.Client
 	bucketName string
+	publicURL  string
 	ctx        = context.Background()
 )
 
@@ -113,8 +114,9 @@ func init() {
 	secretAccessKey := os.Getenv("CLOUDFLARE_R2_SECRET_ACCESS_KEY")
 	endpoint := os.Getenv("CLOUDFLARE_R2_ENDPOINT")
 	bucketName = os.Getenv("CLOUDFLARE_R2_BUCKET_NAME")
+	publicURL = os.Getenv("CLOUDFLARE_R2_PUBLIC_URL")
 
-	if accessKeyID == "" || secretAccessKey == "" || endpoint == "" || bucketName == "" {
+	if accessKeyID == "" || secretAccessKey == "" || endpoint == "" || bucketName == "" || publicURL == "" {
 		log.Fatal("Missing required Cloudflare R2 environment variables")
 	}
 
@@ -559,12 +561,11 @@ func (tr *TemplateRegistry) uploadPreviewImage(previewImageFile multipart.File, 
 	}
 
 	// Construct the public URL
-	// Assuming the bucket has public read access or CDN configured
-	endpoint := os.Getenv("CLOUDFLARE_R2_ENDPOINT")
-	publicURL := fmt.Sprintf("%s/%s/%s", endpoint, bucketName, s3Key)
+	// Use the public CDN URL directly
+	publicPreviewURL := fmt.Sprintf("%s/%s", publicURL, s3Key)
 
 	log.Printf("Uploaded preview image: %s", s3Key)
-	return publicURL, nil
+	return publicPreviewURL, nil
 }
 
 // listTemplatesHandler lists all available templates
@@ -798,7 +799,7 @@ func listAvailableTemplatesWithMetadata() ([]Template, error) {
 				Title:        formatTemplateTitle(templateName),
 				Version:      latestManifest.Version,
 				Description:  latestManifest.Description,
-				Category:     "web", // Default category
+				Category:     "web",                            // Default category
 				Features:     []string{"responsive", "modern"}, // Default features
 				ThumbnailURL: thumbnailURL,
 				PreviewURL:   previewURL,
@@ -962,7 +963,7 @@ func formatTemplateTitle(templateName string) string {
 	// Replace underscores and hyphens with spaces
 	title := strings.ReplaceAll(templateName, "_", " ")
 	title = strings.ReplaceAll(title, "-", " ")
-	
+
 	// Capitalize each word
 	words := strings.Fields(title)
 	for i, word := range words {
@@ -970,7 +971,7 @@ func formatTemplateTitle(templateName string) string {
 			words[i] = strings.ToUpper(word[:1]) + word[1:]
 		}
 	}
-	
+
 	return strings.Join(words, " ")
 }
 

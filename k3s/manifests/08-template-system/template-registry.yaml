@@ -46,6 +46,11 @@ spec:
             secretKeyRef:
               name: cloudflare-secrets
               key: templates-bucket-name
+        - name: CLOUDFLARE_R2_PUBLIC_URL
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-secrets
+              key: templates-public-url
         resources:
           requests:
             memory: "128Mi"
