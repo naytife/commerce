@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -22,6 +23,7 @@ var (
 	s3Client            *s3.Client
 	storesBucketName    string
 	templatesBucketName string
+	imagesBucketName    string
 	ctx                 = context.Background()
 )
 
@@ -118,8 +120,9 @@ func init() {
 	endpoint := strings.TrimSpace(os.Getenv("CLOUDFLARE_R2_ENDPOINT"))
 	storesBucketName = strings.TrimSpace(os.Getenv("CLOUDFLARE_R2_BUCKET_NAME"))
 	templatesBucketName = strings.TrimSpace(os.Getenv("CLOUDFLARE_R2_TEMPLATES_BUCKET_NAME"))
+	imagesBucketName = strings.TrimSpace(os.Getenv("CLOUDFLARE_R2_IMAGES_BUCKET_NAME"))
 
-	if accessKey == "" || secretKey == "" || endpoint == "" || storesBucketName == "" || templatesBucketName == "" {
+	if accessKey == "" || secretKey == "" || endpoint == "" || storesBucketName == "" || templatesBucketName == "" || imagesBucketName == "" {
 		log.Fatal("Missing required R2 environment variables")
 	}
 
@@ -147,6 +150,7 @@ func main() {
 	r.HandleFunc("/redeploy/{subdomain}", redeployStoreHandler).Methods("POST")
 	r.HandleFunc("/update-data/{subdomain}", updateDataHandler).Methods("POST")
 	r.HandleFunc("/status/{subdomain}", getDeploymentStatusHandler).Methods("GET")
+	r.HandleFunc("/cleanup/{subdomain}", cleanupStoreHandler).Methods("DELETE")
 	r.HandleFunc("/health", healthHandler).Methods("GET")
 
 	port := os.Getenv("PORT")
@@ -317,7 +321,7 @@ func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
 	log.Printf("Copying %d template assets for store %s", len(manifest.Assets), sd.Subdomain)
 
 	templatePath := fmt.Sprintf("%s/%s", sd.TemplateName, sd.Version)
-	storePath := fmt.Sprintf("%s", sd.Subdomain)
+	storePath := sd.Subdomain
 
 	// Copy each asset from template to store location
 	for _, asset := range manifest.Assets {
@@ -541,6 +545,182 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		"service":   "store-deployer",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+func cleanupStoreHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	subdomain := vars["subdomain"]
+
+	var req struct {
+		ShopID string `json:"shop_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.ShopID == "" {
+		http.Error(w, "Missing required field: shop_id", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Starting cleanup for shop %s (subdomain: %s)", req.ShopID, subdomain)
+
+	// Perform the cleanup
+	err := cleanupStoreFiles(subdomain, req.ShopID)
+	if err != nil {
+		log.Printf("Cleanup failed for shop %s: %v", req.ShopID, err)
+		// Don't return error - log it but continue
+		// This ensures that database deletion isn't blocked by R2 issues
+		writeJSONResponse(w, map[string]interface{}{
+			"status":     "partial_success",
+			"message":    fmt.Sprintf("Cleanup completed with warnings: %v", err),
+			"subdomain":  subdomain,
+			"shop_id":    req.ShopID,
+			"cleaned_at": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	writeJSONResponse(w, map[string]interface{}{
+		"status":     "success",
+		"message":    "Store files cleaned up successfully",
+		"subdomain":  subdomain,
+		"shop_id":    req.ShopID,
+		"cleaned_at": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// cleanupStoreFiles removes all R2 files associated with a store
+func cleanupStoreFiles(subdomain, shopID string) error {
+	var errors []string
+
+	// 1. Delete deployed store files (stored under subdomain/ in stores bucket)
+	if subdomain != "" {
+		log.Printf("Cleaning up store files for subdomain: %s", subdomain)
+		if err := deleteDirectoryInBucket(storesBucketName, subdomain+"/"); err != nil {
+			errors = append(errors, fmt.Sprintf("failed to delete store files for subdomain %s: %v", subdomain, err))
+		}
+	}
+
+	// 2. Delete shop images (stored under shops/{shopID}/images/ in images bucket)
+	shopImagesPrefix := fmt.Sprintf("shops/%s/images/", shopID)
+	log.Printf("Cleaning up shop images for shop: %s", shopID)
+	if err := deleteDirectoryInBucket(imagesBucketName, shopImagesPrefix); err != nil {
+		errors = append(errors, fmt.Sprintf("failed to delete shop images: %v", err))
+	}
+
+	// 3. Delete product images for this shop (stored under products/shop_{shopId}/ in images bucket)
+	log.Printf("Cleaning up product images for shop: %s", shopID)
+	if err := cleanupProductImagesByShop(shopID); err != nil {
+		errors = append(errors, fmt.Sprintf("failed to delete product images: %v", err))
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("cleanup errors: %s", strings.Join(errors, "; "))
+	}
+
+	log.Printf("Successfully cleaned up R2 files for shop %s (subdomain: %s)", shopID, subdomain)
+	return nil
+}
+
+// deleteDirectoryInBucket deletes all objects under a given prefix in a specific bucket
+func deleteDirectoryInBucket(bucketName, prefix string) error {
+	// List all objects with the given prefix in the specified bucket
+	objects, err := listObjectsInBucket(bucketName, prefix)
+	if err != nil {
+		return fmt.Errorf("failed to list objects with prefix %s in bucket %s: %v", prefix, bucketName, err)
+	}
+
+	if len(objects) == 0 {
+		log.Printf("No objects found with prefix: %s in bucket: %s", prefix, bucketName)
+		return nil
+	}
+
+	// Delete objects in batches (max 1000 per batch)
+	const batchSize = 1000
+	for i := 0; i < len(objects); i += batchSize {
+		end := i + batchSize
+		if end > len(objects) {
+			end = len(objects)
+		}
+
+		batch := objects[i:end]
+		if err := deleteObjectsBatchInBucket(bucketName, batch); err != nil {
+			return fmt.Errorf("failed to delete batch in bucket %s: %v", bucketName, err)
+		}
+
+		log.Printf("Deleted %d objects from R2 bucket %s", len(batch), bucketName)
+	}
+
+	log.Printf("Successfully deleted %d objects with prefix: %s from bucket: %s", len(objects), prefix, bucketName)
+	return nil
+}
+
+// deleteDirectoryInBucket deletes all objects under a given prefix in a specific bucket
+func listObjectsInBucket(bucketName, prefix string) ([]string, error) {
+	var objects []string
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucketName),
+		Prefix: aws.String(prefix),
+	}
+
+	paginator := s3.NewListObjectsV2Paginator(s3Client, input)
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects in bucket %s: %v", bucketName, err)
+		}
+
+		for _, obj := range output.Contents {
+			if obj.Key != nil {
+				objects = append(objects, *obj.Key)
+			}
+		}
+	}
+
+	return objects, nil
+}
+
+// deleteObjectsBatchInBucket deletes a batch of objects from a specific bucket
+func deleteObjectsBatchInBucket(bucketName string, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	var objectsToDelete []types.ObjectIdentifier
+	for _, key := range keys {
+		objectsToDelete = append(objectsToDelete, types.ObjectIdentifier{
+			Key: aws.String(key),
+		})
+	}
+
+	_, err := s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+		Bucket: aws.String(bucketName),
+		Delete: &types.Delete{
+			Objects: objectsToDelete,
+		},
+	})
+
+	return err
+}
+
+// cleanupProductImagesByShop removes product images that belong to a specific shop
+// Uses the new shop-aware pattern: products/shop_{shopId}/
+func cleanupProductImagesByShop(shopID string) error {
+	log.Printf("Starting product image cleanup for shop %s", shopID)
+
+	// Delete shop-aware product images: products/shop_{shopId}/
+	shopProductsPrefix := fmt.Sprintf("products/shop_%s/", shopID)
+	err := deleteDirectoryInBucket(imagesBucketName, shopProductsPrefix)
+	if err != nil {
+		log.Printf("Failed to delete product images for shop %s: %v", shopID, err)
+		return fmt.Errorf("failed to delete product images for shop %s: %v", shopID, err)
+	}
+
+	log.Printf("Successfully cleaned up product images for shop %s", shopID)
+	return nil
 }
 
 // Helper functions

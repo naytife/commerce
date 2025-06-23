@@ -40,6 +40,8 @@
 	import { Toaster } from '$lib/components/ui/sonner'
 	import { toggleMode, mode } from 'mode-watcher';
 	import { createAuthenticatedFetch } from '$lib/auth-fetch';
+	import DeploymentIndicator from '$lib/components/deployment/DeploymentIndicator.svelte';
+	import { deploymentStore } from '$lib/stores/deployment';
 
 	interface CustomSession extends AuthSession {
 		access_token?: string;
@@ -139,6 +141,10 @@
 				fetchShopIdFromSubdomain($page.params.shop, authFetch);
 			}
 		});
+		
+		// Set up deployment store with auth fetch
+		deploymentStore.setAuthFetch(authFetch);
+		
 		return unsubscribe;
 	})
 
@@ -448,5 +454,8 @@
 			style: 'background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(20px);'
 		}}
 	/>
+
+	<!-- Deployment Indicator -->
+	<DeploymentIndicator />
 </div>
 </QueryClientProvider>

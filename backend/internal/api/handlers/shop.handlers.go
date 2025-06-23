@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -220,13 +221,33 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 	shopID := c.Params("shop_id", "0")
 	shopIDInt, _ := strconv.ParseInt(shopID, 10, 64)
-	err := h.Repository.DeleteShop(c.Context(), shopIDInt)
+
+	// First, get the shop data before deletion to extract subdomain for cleanup
+	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve shop", nil)
+	}
+
+	// Call store-deployer cleanup endpoint to remove R2 files
+	// This is done before database deletion to ensure we have the shop data
+	err = h.cleanupStoreFiles(shopIDInt, shop.Subdomain)
+	if err != nil {
+		// Log the error but don't fail the deletion - database cleanup should proceed
+		fmt.Printf("Warning: Failed to cleanup R2 files for shop %d: %v\n", shopIDInt, err)
+	}
+
+	// Proceed with database deletion
+	err = h.Repository.DeleteShop(c.Context(), shopIDInt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to delete shop", nil)
 	}
+
 	return api.SuccessResponse(c, fiber.StatusOK, nil, fmt.Sprintf("Deleted Shop {%s}", shopID))
 }
 
@@ -602,6 +623,50 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
+}
+
+// cleanupStoreFiles calls the store-deployer service to cleanup R2 files for a deleted shop
+func (h *Handler) cleanupStoreFiles(shopID int64, subdomain string) error {
+	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
+	if storeDeployerURL == "" {
+		storeDeployerURL = "http://store-deployer:9003"
+	}
+
+	// Prepare the cleanup request
+	cleanupReq := map[string]interface{}{
+		"shop_id": fmt.Sprintf("%d", shopID),
+	}
+
+	reqBody, err := json.Marshal(cleanupReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal cleanup request: %v", err)
+	}
+
+	// Call the store-deployer cleanup endpoint
+	client := &http.Client{Timeout: 30 * time.Second}
+	url := fmt.Sprintf("%s/cleanup/%s", storeDeployerURL, subdomain)
+
+	req, err := http.NewRequest("DELETE", url, bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create cleanup request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to call cleanup endpoint: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response for logging
+	responseBody, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("cleanup endpoint returned status %d: %s", resp.StatusCode, string(responseBody))
+	}
+
+	fmt.Printf("Successfully triggered cleanup for shop %d (subdomain: %s)\n", shopID, subdomain)
+	return nil
 }
 
 // autoDeployNewShop automatically triggers deployment for newly created shops

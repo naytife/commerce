@@ -27,11 +27,14 @@
 	import { writable } from 'svelte/store';
 	import { toggleMode, mode } from 'mode-watcher';
 	import { createAuthenticatedFetch } from '$lib/auth-fetch';
+	import DeploymentIndicator from '$lib/components/deployment/DeploymentIndicator.svelte';
+	import { deploymentStore } from '$lib/stores/deployment';
+	import { onMount } from 'svelte';
 	export let data: { session: any };
     
 	const sessionStore = writable(data.session);
 	$: sessionStore.set(data.session);
-	const authFetch = async (url: string, options: RequestInit = {}) => {
+	const authFetch = async (input: RequestInfo | URL, options: RequestInit = {}) => {
 		const session = $sessionStore;
 		const accessToken = session?.access_token;
 		if (accessToken) {
@@ -42,13 +45,18 @@
 		}
 		const baseFetch = (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init);
 		const authenticatedFetch = createAuthenticatedFetch(baseFetch);
-		return authenticatedFetch(url, options);
+		return authenticatedFetch(input, options);
 	};
 	setContext('authFetch', authFetch);
 
 	// Enhanced state for animations
 	let searchFocused = false;
 	let headerScrolled = false;
+
+	// Set up deployment store with auth fetch
+	onMount(() => {
+		deploymentStore.setAuthFetch(authFetch);
+	});
 
 	// Handle scroll for dynamic header
 	function handleScroll() {
@@ -242,4 +250,7 @@
 			</div>
 		</main>
 	</div>
+
+	<!-- Deployment Indicator -->
+	<DeploymentIndicator />
 </div>

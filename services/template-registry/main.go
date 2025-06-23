@@ -741,7 +741,7 @@ func listAvailableTemplates() ([]string, error) {
 	for _, commonPrefix := range resp.CommonPrefixes {
 		templateName := strings.TrimPrefix(*commonPrefix.Prefix, prefix)
 		templateName = strings.TrimSuffix(templateName, "/")
-		if templateName != "" {
+		if templateName != "" && templateName != "template-previews" {
 			templates = append(templates, templateName)
 		}
 	}
@@ -767,7 +767,7 @@ func listAvailableTemplatesWithMetadata() ([]Template, error) {
 	for _, commonPrefix := range resp.CommonPrefixes {
 		templateName := strings.TrimPrefix(*commonPrefix.Prefix, prefix)
 		templateName = strings.TrimSuffix(templateName, "/")
-		if templateName != "" {
+		if templateName != "" && templateName != "template-previews" {
 			// Get latest version manifest to retrieve metadata
 			latestManifest, err := getLatestManifest(templateName)
 			if err != nil {

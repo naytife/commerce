@@ -242,7 +242,7 @@ func (h *ProxyHandler) ProxyUploadTemplate(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Param        deploy body models.StoreDeploymentRequest true "Deployment parameters"
-// @Success      200  {object}  models.DeploymentResponse  "Store deployed successfully"
+// @Success      200  {object}  models.SuccessResponse  "Store deployed successfully"
 // @Failure      400  {object}  models.ErrorResponse "Invalid request"
 // @Failure      500  {object}  models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
@@ -259,7 +259,7 @@ func (h *ProxyHandler) ProxyDeployStore(c *fiber.Ctx) error {
 	// Add shop validation here if needed
 	_ = shopIDInt // Use the validated shop ID
 
-	return h.proxyRequest(c, h.StoreDeployerURL, "/deploy")
+	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, "/deploy", "Store deployed successfully")
 }
 
 // ProxyRedeployStore proxies requests to store-deployer /redeploy/{subdomain}
@@ -270,7 +270,7 @@ func (h *ProxyHandler) ProxyDeployStore(c *fiber.Ctx) error {
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Param        redeploy body models.StoreRedeploymentRequest true "Redeployment parameters"
-// @Success      200  {object}  models.DeploymentResponse  "Store redeployed successfully"
+// @Success      200  {object}  models.SuccessResponse  "Store redeployed successfully"
 // @Failure      400  {object}  models.ErrorResponse "Invalid request"
 // @Failure      500  {object}  models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
@@ -291,7 +291,7 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 	}
 
 	path := fmt.Sprintf("/redeploy/%s", shop.Subdomain)
-	return h.proxyRequest(c, h.StoreDeployerURL, path)
+	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Store redeployed successfully")
 }
 
 // ProxyDeploymentStatus proxies requests to store-deployer for deployment status
@@ -300,7 +300,7 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 // @Tags         deployment
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
-// @Success      200  {object}  models.DeploymentStatus  "Deployment status retrieved"
+// @Success      200  {object}  models.SuccessResponse  "Deployment status retrieved successfully"
 // @Failure      400  {object}  models.ErrorResponse "Invalid shop ID"
 // @Failure      500  {object}  models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
@@ -321,7 +321,7 @@ func (h *ProxyHandler) ProxyDeploymentStatus(c *fiber.Ctx) error {
 	}
 
 	path := fmt.Sprintf("/status/%s", shop.Subdomain)
-	return h.proxyRequest(c, h.StoreDeployerURL, path)
+	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Deployment status retrieved successfully")
 }
 
 // ProxyUpdateStoreData proxies requests to store-deployer /update-data/{subdomain}
@@ -353,7 +353,39 @@ func (h *ProxyHandler) ProxyUpdateStoreData(c *fiber.Ctx) error {
 	}
 
 	path := fmt.Sprintf("/update-data/%s", shop.Subdomain)
-	return h.proxyRequest(c, h.StoreDeployerURL, path)
+	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Store data updated successfully")
+}
+
+// ProxyCleanupStore proxies requests to store-deployer /cleanup/{subdomain}
+// @Summary      Cleanup store files
+// @Description  Cleanup R2 storage files when a store is deleted
+// @Tags         deployment
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        cleanup body models.CleanupRequest true "Cleanup request"
+// @Success      200  {object}  models.SuccessResponse  "Store files cleaned up successfully"
+// @Failure      400  {object}  models.ErrorResponse "Invalid request"
+// @Failure      500  {object}  models.ErrorResponse "Internal server error"
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id}/cleanup [delete]
+func (h *ProxyHandler) ProxyCleanupStore(c *fiber.Ctx) error {
+	shopID := c.Params("shop_id")
+
+	// Validate shop ownership before proxying
+	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Get shop details to extract subdomain for the proxy call
+	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+	}
+
+	path := fmt.Sprintf("/cleanup/%s", shop.Subdomain)
+	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Store files cleaned up successfully")
 }
 
 // Health Check Handlers - Aggregate health from services

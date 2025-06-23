@@ -123,3 +123,18 @@ type StoreRedeploymentRequest struct {
 	DataOverride map[string]string `json:"data_override,omitempty"`
 	Force        bool              `json:"force,omitempty"`
 }
+
+// CleanupRequest represents a request to cleanup store files
+type CleanupRequest struct {
+	ShopID    string `json:"shop_id" validate:"required"`
+	Subdomain string `json:"subdomain,omitempty"`
+}
+
+// CleanupResponse represents the response from a cleanup request
+type CleanupResponse struct {
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
+	ShopID    string    `json:"shop_id"`
+	Subdomain string    `json:"subdomain,omitempty"`
+	CleanedAt time.Time `json:"cleaned_at"`
+}

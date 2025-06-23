@@ -28,6 +28,7 @@ func TemplateRouter(app fiber.Router, repo db.Repository) {
 	app.Post("/shops/:shop_id/redeploy", proxyHandler.ProxyRedeployStore)
 	app.Get("/shops/:shop_id/deployment-status", proxyHandler.ProxyDeploymentStatus)
 	app.Post("/shops/:shop_id/update-data", proxyHandler.ProxyUpdateStoreData)
+	app.Delete("/shops/:shop_id/cleanup", proxyHandler.ProxyCleanupStore)
 
 	// Health check for services
 	app.Get("/health/services", proxyHandler.ProxyHealthCheck)

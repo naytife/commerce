@@ -208,10 +208,12 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	// Attach the tracer to the config
 	config.ConnConfig.Tracer = traceLogger
 
-	// Set pool settings
-	config.MaxConns = 5
-	config.MinConns = 1
-	config.MaxConnIdleTime = 5 * time.Minute
+	// Set pool settings - optimized for e-commerce workload
+	config.MaxConns = 25                       // Increase for better concurrency
+	config.MinConns = 5                        // Keep more connections warm
+	config.MaxConnLifetime = 30 * time.Minute  // Prevent stale connections
+	config.MaxConnIdleTime = 10 * time.Minute  // Longer idle time for efficiency
+	config.HealthCheckPeriod = 1 * time.Minute // Regular health checks
 
 	// Create the connection pool
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)

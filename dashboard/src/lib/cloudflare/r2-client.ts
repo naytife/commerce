@@ -2,13 +2,18 @@
  * Uploads a file to Cloudflare R2 storage
  * @param file The file to upload
  * @param productId The product ID to organize files
+ * @param shopId The shop ID to organize files (optional for backward compatibility)
  * @returns Object containing the uploaded file URL and filename
  */
-export async function uploadToR2(file: File, productId: string | number): Promise<{ url: string; filename: string }> {
+export async function uploadToR2(file: File, productId: string | number, shopId?: string | number): Promise<{ url: string; filename: string }> {
   try {
     // Generate a unique filename to avoid collisions
     const uniquePrefix = Date.now().toString();
-    const filename = `products/${productId}/${uniquePrefix}-${file.name.replace(/\s+/g, '-')}`;
+    
+    // Use new shop-aware storage pattern if shopId is provided, fallback to old pattern
+    const filename = shopId 
+      ? `products/shop_${shopId}/${productId}/${uniquePrefix}-${file.name.replace(/\s+/g, '-')}`
+      : `products/${productId}/${uniquePrefix}-${file.name.replace(/\s+/g, '-')}`;
     
     // Create FormData for the file upload
     const formData = new FormData();

@@ -56,6 +56,11 @@ spec:
             secretKeyRef:
               name: cloudflare-secrets
               key: templates-bucket-name
+        - name: CLOUDFLARE_R2_IMAGES_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-secrets
+              key: images-bucket-name
         - name: BACKEND_URL
           value: "http://backend:8002"
         - name: TEMPLATE_REGISTRY_URL

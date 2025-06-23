@@ -380,8 +380,15 @@
 		try {
 			const file = files[0];
 			
-			// Upload to Cloudflare R2 with product ID
-			cloudflareData = await uploadToR2(file, productId);
+			// Get shop ID from the shop query data
+			const shopId = $shopQuery.data?.shop_id;
+			if (!shopId) {
+				toast.error('Shop information not available');
+				return;
+			}
+			
+			// Upload to Cloudflare R2 with product ID and shop ID for better organization
+			cloudflareData = await uploadToR2(file, productId, shopId);
 			
 			// Add the image to the product in the database
 			const isPrimary = !$productImagesQuery.data || $productImagesQuery.data.length === 0;
