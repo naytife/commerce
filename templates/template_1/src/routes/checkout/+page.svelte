@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { initFlowbite } from 'flowbite';
   import { cart } from '$lib/stores/cart';
   import { shop, shopId } from '$lib/stores/shop';
   import { derived, get } from 'svelte/store';
@@ -11,6 +10,10 @@
   import { fetchPaymentMethods, type PaymentMethodConfig } from '$lib/services/stripe';
   import { apiClient } from '$lib/services/api';
   import StripeCheckout from '$lib/components/StripeCheckout.svelte';
+  import PayPalCheckout from '$lib/components/PayPalCheckout.svelte';
+  import PaystackCheckout from '$lib/components/PaystackCheckout.svelte';
+  import FlutterwaveCheckout from '$lib/components/FlutterwaveCheckout.svelte';
+  import { createOrder, type CreateOrderRequest } from '$lib/services/order';
 
   let name = '';
   let email = '';
@@ -38,7 +41,11 @@
   let phoneNumber = '';
   let errorMessage = '';
   let shippingCost: number;
+  // --- STRIPE ORDER-FIRST FLOW REFACTOR ---
+  // Remove auto-initialization of Stripe on mount. Only initialize when user clicks "Complete Order".
+  let stripeOrderId: string = '';
   let showStripeCheckout = false;
+  let creatingStripeOrder = false;
   $: shippingCost = shippingOptions.find(o => o.value === shippingMethod)?.cost ?? 0;
   $: orderTotal = $total + shippingCost;
 
@@ -46,22 +53,22 @@
     try {
       const currentShopId = get(shopId);
       if (!currentShopId) {
-        console.warn('No shop ID available, using default configuration');
-        // Fallback for development when no shop ID is available
-        paymentOptions = [
-          { 
-            value: 'stripe', 
-            name: 'Stripe', 
-            icon: Zap, 
-            enabled: true 
-          }
-        ];
-        paymentProvider = 'stripe';
+        errorMessage = 'Shop ID is not available. Cannot load payment methods.';
+        paymentOptions = [];
+        availablePaymentMethods = [];
+        paymentProvider = '';
         return;
       }
 
       availablePaymentMethods = await fetchPaymentMethods(currentShopId);
-      
+      console.log('DEBUG: availablePaymentMethods', availablePaymentMethods);
+      if (!Array.isArray(availablePaymentMethods)) {
+        errorMessage = 'Payment methods data is not an array!';
+        return;
+      }
+      if (availablePaymentMethods.length === 0) {
+        errorMessage = 'No payment methods found in shop.json!';
+      }
       // Build payment options based on available methods
       paymentOptions = [
         { 
@@ -88,105 +95,45 @@
           icon: Globe, 
           enabled: availablePaymentMethods.some(m => m.provider === 'flutterwave' && m.enabled) 
         }
-      ].filter(option => option.enabled);
-
+      ];
+      console.log('DEBUG: paymentOptions before filter', paymentOptions);
+      paymentOptions = paymentOptions.filter(option => option.enabled);
+      console.log('DEBUG: paymentOptions after filter', paymentOptions);
       // Select first available payment method
       if (paymentOptions.length > 0 && !paymentProvider) {
         paymentProvider = paymentOptions[0].value;
       }
     } catch (error) {
       console.error('Failed to load payment methods:', error);
-      // Fallback to Stripe for development
-      paymentOptions = [
-        { 
-          value: 'stripe', 
-          name: 'Stripe', 
-          icon: Zap, 
-          enabled: true 
-        }
-      ];
-      paymentProvider = 'stripe';
+      errorMessage = 'Failed to load payment methods.';
+      paymentOptions = [];
+      availablePaymentMethods = [];
+      paymentProvider = '';
     }
   }
 
   function handlePaymentSelection(provider: string) {
     paymentProvider = provider;
-    showStripeCheckout = provider === 'stripe';
+    // Reset Stripe state if user changes payment method
+    showStripeCheckout = false;
+    stripeOrderId = '';
   }
 
   function handleStripeSuccess(paymentIntentId: string) {
-    // Process successful Stripe payment
-    processStripeOrder(paymentIntentId);
+    cart.clear();
+    goto('/checkout/success');
   }
 
-  async function processStripeOrder(paymentIntentId: string) {
-    try {
-      const currentShopId = get(shopId);
-      if (!currentShopId) {
-        errorMessage = 'Shop ID not found';
-        return;
-      }
-
-      // Calculate shipping cost
-      const shippingOption = shippingOptions.find(o => o.value === shippingMethod);
-      const calculatedShippingCost = shippingOption?.cost ?? 0;
-      
-      // Build checkout request for backend
-      const checkoutRequest = {
-        items: get(cart).map(item => ({
-          product_variation_id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        customer_info: {
-          email,
-          first_name: name,
-          last_name: '',
-          phone: phoneNumber
-        },
-        shipping_address: {
-          first_name: name,
-          last_name: '',
-          address_line_1: address,
-          city,
-          postal_code: postalCode,
-          country
-        },
-        shipping_cost: calculatedShippingCost,
-        tax_rate: 0.0,
-        discount: 0.0
-      };
-
-      // First initiate checkout with backend
-      const checkoutResponse = await apiClient.restPost(`/shops/${currentShopId}/checkout`, checkoutRequest);
-      
-      // Process Stripe payment with the backend
-      const paymentRequest = {
-        checkout_session_id: checkoutResponse.session_id || `checkout_${Date.now()}`,
-        payment_method: 'stripe',
-        payment_details: {
-          payment_intent_id: paymentIntentId,
-          amount: orderTotal
-        }
-      };
-
-      const paymentResponse = await apiClient.restPost(`/shops/${currentShopId}/payment`, paymentRequest);
-      
-      if (paymentResponse.status === 'completed' || paymentResponse.status === 'succeeded') {
-        cart.clear();
-        goto('/checkout/success');
-      } else {
-        throw new Error('Payment verification failed');
-      }
-      
-    } catch (error: any) {
-      console.error(error);
-      errorMessage = (error instanceof Error ? error.message : '') || 'An error occurred while processing your payment.';
-    }
+  function handlePayPalSuccess(transactionId: string) {
+    processOrder(transactionId);
   }
 
-  function handleStripeError(error: string) {
-    errorMessage = `Payment failed: ${error}`;
+  function handlePaystackSuccess(transactionId: string) {
+    processOrder(transactionId);
+  }
+
+  function handleFlutterwaveSuccess(transactionId: string) {
+    processOrder(transactionId);
   }
 
   async function processOrder(transactionId?: string) {
@@ -201,60 +148,44 @@
       const shippingOption = shippingOptions.find(o => o.value === shippingMethod);
       const calculatedShippingCost = shippingOption?.cost ?? 0;
       
-      // Build checkout request for backend
+      // Build checkout request for backend (optimized)
       const checkoutRequest = {
-        items: get(cart).map(item => ({
-          product_variation_id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        customer_info: {
-          email,
-          first_name: name,
-          last_name: '',
-          phone: phoneNumber
-        },
-        shipping_address: {
-          first_name: name,
-          last_name: '',
-          address_line_1: address,
-          city,
-          postal_code: postalCode,
-          country
-        },
-        shipping_cost: calculatedShippingCost,
-        tax_rate: 0.0,
-        discount: 0.0
+        order_id: stripeOrderId, // use the created order id
+        shop_id: currentShopId,
+        payment_method_type: paymentProvider
       };
 
-      // First initiate checkout with backend
-      const checkoutResponse = await apiClient.restPost(`/shops/${currentShopId}/checkout`, checkoutRequest);
-      
-      if (!checkoutResponse) {
-        throw new Error('Failed to initiate checkout');
+      // 1. Create payment session
+      const checkoutResponse = await apiClient.restPost(`/v1/payments/checkout`, checkoutRequest);
+      if (!checkoutResponse || !checkoutResponse.payment_intent_id) {
+        throw new Error('Failed to create payment session');
       }
+      const paymentIntentId = checkoutResponse.payment_intent_id;
 
-      // For non-Stripe payments, create order directly
-      if (paymentProvider !== 'stripe') {
-        const paymentRequest = {
-          checkout_session_id: checkoutResponse.session_id || `checkout_${Date.now()}`,
-          payment_method: paymentProvider,
-          payment_details: {
-            amount: orderTotal,
-            currency: $shop?.currency_code?.toLowerCase() || 'usd'
-          }
-        };
-
-        const paymentResponse = await apiClient.restPost(`/shops/${currentShopId}/payment`, paymentRequest);
-        
-        if (paymentResponse.status === 'completed') {
+      // 2. Confirm payment
+      const confirmPayload: any = { payment_intent_id: paymentIntentId };
+      if (transactionId) confirmPayload.transaction_id = transactionId;
+      const confirmResponse = await apiClient.restPost(`/v1/payments/${currentShopId}/confirm`, confirmPayload);
+      if (confirmResponse.status === 'completed' || confirmResponse.status === 'succeeded') {
+        cart.clear();
+        goto('/checkout/success');
+      } else {
+        // 3. Optionally poll for status
+        let status = confirmResponse.status;
+        let attempts = 0;
+        while (status !== 'completed' && status !== 'succeeded' && attempts < 5) {
+          await new Promise(r => setTimeout(r, 1500));
+          const statusResp = await apiClient.restGet(`/v1/payments/${currentShopId}/status/${paymentIntentId}`);
+          status = statusResp.status;
+          attempts++;
+        }
+        if (status === 'completed' || status === 'succeeded') {
           cart.clear();
           goto('/checkout/success');
         } else {
           throw new Error('Payment processing failed');
         }
       }
-      
     } catch (error: any) {
       console.error(error);
       errorMessage = (error instanceof Error ? error.message : '') || 'An error occurred while placing your order.';
@@ -262,10 +193,7 @@
   }
 
   async function handlePlaceOrder() {
-    // clear previous warning
     errorMessage = '';
-    
-    // basic validation
     if (!phoneNumber) {
       errorMessage = 'Please enter a phone number.';
       return;
@@ -278,19 +206,58 @@
       errorMessage = 'Please select a shipping method.';
       return;
     }
-
-    // For Stripe, the payment is handled by the StripeCheckout component
     if (paymentProvider === 'stripe') {
-      showStripeCheckout = true;
+      creatingStripeOrder = true;
+      try {
+        const currentShopId = get(shopId) || '';
+        const orderReq = {
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phoneNumber,
+          shipping_address: `${address},${city},${postalCode},${country}`,
+          shipping_method: shippingMethod,
+          payment_method: 'stripe',
+          discount: 0,
+          shipping_cost: shippingCost,
+          tax: 0,
+          items: get(cart).map(item => ({
+            product_variation_id: item.id,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        };
+        const orderResp = await createOrder(currentShopId, orderReq);
+        if (orderResp && orderResp.order_id) {
+          stripeOrderId = orderResp.order_id;
+          showStripeCheckout = true;
+          console.log('[Checkout] Order created, setting showStripeCheckout:', showStripeCheckout, 'stripeOrderId:', stripeOrderId);
+        } else {
+          errorMessage = 'Failed to create order for payment.';
+          showStripeCheckout = false;
+          stripeOrderId = '';
+        }
+      } catch (err) {
+        errorMessage = 'Failed to create order for payment.';
+        showStripeCheckout = false;
+        stripeOrderId = '';
+      } finally {
+        creatingStripeOrder = false;
+      }
       return;
     }
-
-    // For other payment methods, process immediately
+    // For other providers, process order as before
     await processOrder();
   }
 
+  function handlePayError(error: string) {
+    errorMessage = `Payment failed: ${error}`;
+  }
+
+  function handleStripeError(error: string) {
+    errorMessage = `Payment failed: ${error}`;
+  }
+
   onMount(async () => {
-    initFlowbite();
     
     // Initialize shop context
     await shop.initialize();
@@ -454,29 +421,6 @@
                 </label>
               {/each}
             </div>
-
-            <!-- Stripe Checkout Integration -->
-            {#if showStripeCheckout && paymentProvider === 'stripe'}
-              <div class="mt-6 p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Complete Payment</h3>
-                <StripeCheckout 
-                  amount={orderTotal}
-                  currency={$shop?.currency_code?.toLowerCase() || 'usd'}
-                  orderId=""
-                  customerId=""
-                  metadata={{
-                    customer_name: name,
-                    customer_email: email,
-                    customer_phone: phoneNumber,
-                    shipping_method: shippingMethod,
-                    shipping_address: `${address}, ${city}, ${postalCode}, ${country}`,
-                    cart_items: JSON.stringify($cart.map(item => ({ id: item.id, title: item.title, quantity: item.quantity })))
-                  }}
-                  onSuccess={handleStripeSuccess}
-                  onError={handleStripeError}
-                />
-              </div>
-            {/if}
           {/if}
         </div>
       </div>
@@ -521,30 +465,45 @@
               </div>
             </div>
             
-            <button 
-              on:click={handlePlaceOrder} 
-              disabled={!paymentProvider || paymentOptions.length === 0}
-              class="w-full bg-primary-700 hover:bg-primary-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white flex items-center justify-center py-4 px-6 font-medium uppercase tracking-wider transition-colors duration-200 focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            >
-              {#if paymentProvider === 'stripe' && !showStripeCheckout}
-                Continue to Payment
-              {:else if paymentProvider === 'stripe' && showStripeCheckout}
-                Payment Form Above
-              {:else}
-                Complete Order
-              {/if}
-              <ArrowRight class="w-4 h-4 ml-2" />
-            </button>
-            
-            <div class="mt-6 flex items-center justify-center">
-              <a href="/cart" class="inline-flex items-center text-sm text-gray-600 hover:text-primary-700 dark:text-gray-400 dark:hover:text-primary-500 transition-colors duration-200">
-                <ShoppingBag class="w-4 h-4 mr-1" />
-                Return to Cart
-              </a>
-            </div>
+            <!-- --- UI: Only show StripeCheckout after order is created and showStripeCheckout is true --- -->
+            {#if showStripeCheckout && paymentProvider === 'stripe'}
+              <div class="mt-6 p-4 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Complete Payment</h3>
+                <StripeCheckout 
+                  amount={orderTotal}
+                  currency={$shop?.currency_code?.toLowerCase() || 'usd'}
+                  orderId={stripeOrderId}
+                  metadata={{
+                    customer_name: name,
+                    customer_email: email,
+                    customer_phone: phoneNumber,
+                    shipping_method: shippingMethod,
+                    shipping_address: `${address},${city},${postalCode},${country}`,
+                    cart_items: JSON.stringify($cart.map(item => ({ id: item.id, title: item.title, quantity: item.quantity })))
+                  }}
+                  onSuccess={handleStripeSuccess}
+                  onError={handleStripeError}
+                />
+              </div>
+            {:else}
+              <!-- Show the Complete Order button for all providers, including Stripe (before order is created) -->
+              <button 
+                on:click={handlePlaceOrder} 
+                disabled={!paymentProvider || paymentOptions.length === 0 || creatingStripeOrder}
+                class="w-full bg-primary-700 hover:bg-primary-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white flex items-center justify-center py-4 px-6 font-medium uppercase tracking-wider transition-colors duration-200 focus:ring-4 focus:ring-primary-300 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              >
+                {#if creatingStripeOrder}
+                  <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating Order...
+                {:else}
+                  {paymentProvider === 'stripe' ? 'Continue to Payment' : 'Complete Order'}
+                {/if}
+                <ArrowRight class="w-4 h-4 ml-2" />
+              </button>
+            {/if}
           </div>
         </div>
       </div>
     </div>
   </div>
-</section> 
+</section>

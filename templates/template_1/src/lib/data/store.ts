@@ -82,12 +82,10 @@ export interface InventoryData {
 }
 
 // Configuration
-const API_BASE_URL = browser ? 
-  (import.meta.env.VITE_API_URL || 'http://ynt.localhost:8080').replace('/query', '') : 
-  'http://ynt.localhost:8080';
+// All API calls are now obsolete; only static JSON files are used for data.
+// Remove API_BASE_URL, FALLBACK_SHOP_ID, and related backend config.
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const FALLBACK_SHOP_ID = 1;
 
 // Cache management
 interface CacheEntry<T> {
@@ -187,28 +185,8 @@ class DataManager {
   }
 
   async fetchFromEndpoint<T>(endpoint: string, ttl: number = CACHE_DURATION): Promise<T | null> {
-	const cacheKey = `api:${endpoint}`;
-	const cached = cache.get<T>(cacheKey);
-	
-	if (cached) {
-	  return cached;
-	}
-
-	try {
-	  const response = await fetch(`${API_BASE_URL}${endpoint}`);
-	  if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-	  }
-
-	  const result = await response.json();
-	  const data = result.data || result;
-	  
-	  cache.set(cacheKey, data, ttl);
-	  return data;
-	} catch (error) {
-	  console.error(`Failed to fetch ${endpoint}:`, error);
-	  return null;
-	}
+    // This method is obsolete and should not be used. Always return null.
+    return null;
   }
 
   async fetchFromStatic<T>(path: string): Promise<T | null> {
@@ -237,16 +215,8 @@ class DataManager {
   // Remove transformation methods since data is already in correct format
   
   getShopIdFromHostname(): number | null {
-	if (!browser) return null;
-	
-	const hostname = window.location.hostname;
-	
-	// For development (localhost, etc.)
-	if (hostname === 'localhost' || hostname.startsWith('127.0.0.1') || hostname.startsWith('192.168')) {
-	  return FALLBACK_SHOP_ID;
-	}
-	
-	return null;
+    // No fallback needed; always expect static JSON files to exist.
+    return null;
   }
 
   async loadAllData(shopId?: number): Promise<void> {
@@ -254,47 +224,29 @@ class DataManager {
 	errorState.set(null);
 
 	try {
-	  const id = shopId || this.getShopIdFromHostname() || FALLBACK_SHOP_ID;
-	  
-	  // Try to fetch from backend first
-	  const [backendShop, backendProducts] = await Promise.all([
-		this.fetchFromEndpoint(`/shops/${id}`),
-		this.fetchFromEndpoint(`/shops/${id}/products?limit=100`)
-	  ]);
-
-	  let shop: Shop;
-	  let productData: InventoryData;
-
-	  // Handle shop data - use static metadata as primary source
-	  const shopMetadata = await this.fetchFromStatic('/data/metadata.json');
+	  // Only use static files for shop and product data
+	  const shopMetadata = await this.fetchFromStatic('/data/shop.json');
 	  if (shopMetadata) {
-		shop = shopMetadata as Shop;
-		shopData.set(shop);
-	  } else if (backendShop) {
-		// Fallback to backend data if static not available
-		shop = backendShop as Shop;
-		shopData.set(shop);
+		shopData.set(shopMetadata as Shop);
 	  } else {
-		throw new Error('No shop data available');
+		throw new Error('No shop data available (static /data/shop.json missing)');
 	  }
 
-	  // Handle product data - use static inventory as primary source
-	  const staticInventory = await this.fetchFromStatic('/data/inventory.json');
+	  const staticInventory = await this.fetchFromStatic('/data/products.json');
 	  if (staticInventory) {
-		productData = staticInventory as InventoryData;
-	  } else if (backendProducts && Array.isArray(backendProducts)) {
-		// If we need to support backend data, it should already be in the correct format
-		productData = { products: { edges: backendProducts.map((product: Product) => ({ node: product })) } };
+		inventoryData.set(staticInventory as InventoryData);
 	  } else {
-		// Create empty structure
-		productData = { products: { edges: [] } };
+		// Create empty structure if static file missing
+		inventoryData.set({ products: { edges: [] } });
 	  }
 
-	  // Update inventory store
-	  inventoryData.set(productData);
-
-	  const productCount = productData.products.edges.length;
-	  console.log(`Loaded ${productCount} products for shop ${shop.title}`);
+      // Defensive: check if staticInventory is InventoryData
+      let productCount = 0;
+      const inv = staticInventory as Partial<InventoryData>;
+      if (inv && inv.products && Array.isArray(inv.products.edges)) {
+        productCount = inv.products.edges.length;
+      }
+      console.log(`Loaded ${productCount} products from static data`);
 	} catch (error) {
 	  console.error('Failed to load data:', error);
 	  errorState.set(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);

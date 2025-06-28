@@ -1,0 +1,384 @@
+{
+  "products": {
+    "edges": [
+      {
+        "node": {
+          "attributes": [
+            {
+              "title": "Material",
+              "value": "Denim"
+            },
+            {
+              "title": "Care Instructions",
+              "value": "Hand Wash Only"
+            },
+            {
+              "title": "Season",
+              "value": "All Season"
+            },
+            {
+              "title": "Brand",
+              "value": "Naytife"
+            }
+          ],
+          "createdAt": "2025-06-23T12:44:11.115658Z",
+          "defaultVariant": {
+            "attributes": [
+              {
+                "title": "Size",
+                "value": "S"
+              },
+              {
+                "title": "Color",
+                "value": "#000000"
+              },
+              {
+                "title": "Fit",
+                "value": "Regular"
+              }
+            ],
+            "availableQuantity": 1,
+            "description": "",
+            "id": "UHJvZHVjdFZhcmlhbnQ6ODU=",
+            "isDefault": true,
+            "price": 1000,
+            "stockStatus": "",
+            "variationId": 85
+          },
+          "description": "Nice trousers",
+          "id": "UHJvZHVjdDox",
+          "images": [
+            {
+              "altText": "jeans.jpeg",
+              "url": "https://pub-f8b8a0c6d97a4b43a0368a700a720787.r2.dev/products/shop_19/1/1750682675028-jeans.jpeg"
+            }
+          ],
+          "productId": 1,
+          "slug": "trousers",
+          "title": "Trousers",
+          "updatedAt": "2025-06-25T15:16:20.947793Z",
+          "variants": [
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "UHJvZHVjdFZhcmlhbnQ6ODU=",
+              "isDefault": true,
+              "price": 1000,
+              "stockStatus": "",
+              "variationId": 85
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#800080"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1100,
+              "stockStatus": "",
+              "variationId": 86
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1200,
+              "stockStatus": "",
+              "variationId": 87
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#800080"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1300,
+              "stockStatus": "",
+              "variationId": 88
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Slim"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1400,
+              "stockStatus": "",
+              "variationId": 89
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "S"
+                },
+                {
+                  "title": "Color",
+                  "value": "#800080"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Slim"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1500,
+              "stockStatus": "",
+              "variationId": 90
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#000000"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Slim"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1600,
+              "stockStatus": "",
+              "variationId": 91
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "M"
+                },
+                {
+                  "title": "Color",
+                  "value": "#800080"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Slim"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 1700,
+              "stockStatus": "",
+              "variationId": 92
+            }
+          ]
+        }
+      },
+      {
+        "node": {
+          "attributes": [
+            {
+              "title": "Material",
+              "value": "Silk"
+            },
+            {
+              "title": "Care Instructions",
+              "value": "Hand Wash Only"
+            },
+            {
+              "title": "Season",
+              "value": "Winter"
+            },
+            {
+              "title": "Brand",
+              "value": "Naytife"
+            }
+          ],
+          "createdAt": "2025-06-24T13:37:43.583586Z",
+          "defaultVariant": {
+            "attributes": [
+              {
+                "title": "Size",
+                "value": "L"
+              },
+              {
+                "title": "Color",
+                "value": "#FFFFFF"
+              },
+              {
+                "title": "Fit",
+                "value": "Regular"
+              }
+            ],
+            "availableQuantity": 1,
+            "description": "",
+            "id": "UHJvZHVjdFZhcmlhbnQ6ODI=",
+            "isDefault": true,
+            "price": 2000,
+            "stockStatus": "",
+            "variationId": 82
+          },
+          "description": "Naytife shirt",
+          "id": "UHJvZHVjdDoy",
+          "images": [
+            {
+              "altText": "gameofthrones.jpeg",
+              "url": "https://pub-f8b8a0c6d97a4b43a0368a700a720787.r2.dev/products/shop_19/2/1750772319458-gameofthrones.jpeg"
+            }
+          ],
+          "productId": 2,
+          "slug": "shirt",
+          "title": "Shirt",
+          "updatedAt": "2025-06-25T15:03:33.831395Z",
+          "variants": [
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "L"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFFFF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "UHJvZHVjdFZhcmlhbnQ6ODI=",
+              "isDefault": true,
+              "price": 2000,
+              "stockStatus": "",
+              "variationId": 82
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "XL"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFFFF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 2000,
+              "stockStatus": "",
+              "variationId": 83
+            },
+            {
+              "attributes": [
+                {
+                  "title": "Size",
+                  "value": "XXL"
+                },
+                {
+                  "title": "Color",
+                  "value": "#FFFFFF"
+                },
+                {
+                  "title": "Fit",
+                  "value": "Regular"
+                }
+              ],
+              "availableQuantity": 1,
+              "description": "",
+              "id": "",
+              "isDefault": false,
+              "price": 2000,
+              "stockStatus": "",
+              "variationId": 84
+            }
+          ]
+        }
+      }
+    ],
+    "pageInfo": {
+      "endCursor": "UHJvZHVjdDoy",
+      "hasNextPage": false
+    },
+    "totalCount": 2
+  }
+}

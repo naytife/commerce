@@ -204,7 +204,8 @@ CREATE TYPE payment_method_type AS ENUM (
   'flutterwave',
   'paystack',
   'paypal',
-  'stripe'
+  'stripe',
+  'pay_on_delivery'
 );
 CREATE TABLE shop_payment_methods(
   payment_method_id BIGSERIAL PRIMARY KEY,

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -34,45 +35,12 @@ func generateOrderID() string {
 }
 
 // CreateCheckoutSessionRequest represents the request to create a checkout session
+// Optimized: only order_id, shop_id, and payment_method_type are required
+// All other fields removed
 type CreateCheckoutSessionRequest struct {
-	ShopID            int64             `json:"shop_id" validate:"required"`
-	PaymentMethodType string            `json:"payment_method_type" validate:"required,oneof=stripe paystack flutterwave paypal pay_on_delivery"`
-	Items             []CheckoutItem    `json:"items" validate:"required,min=1"`
-	Customer          *CheckoutCustomer `json:"customer"`
-	Shipping          *CheckoutShipping `json:"shipping"`
-	Currency          string            `json:"currency" validate:"required"`
-	SuccessURL        string            `json:"success_url" validate:"required,url"`
-	CancelURL         string            `json:"cancel_url" validate:"required,url"`
-	Metadata          map[string]string `json:"metadata"`
-}
-
-type CheckoutItem struct {
-	ProductID   string `json:"product_id" validate:"required"`
-	Name        string `json:"name" validate:"required"`
-	Description string `json:"description"`
-	Amount      int64  `json:"amount" validate:"required,min=1"` // Amount in cents
-	Currency    string `json:"currency" validate:"required"`
-	Quantity    int64  `json:"quantity" validate:"required,min=1"`
-}
-
-type CheckoutCustomer struct {
-	Email string `json:"email" validate:"email"`
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
-}
-
-type CheckoutShipping struct {
-	Name    string          `json:"name" validate:"required"`
-	Address CheckoutAddress `json:"address" validate:"required"`
-}
-
-type CheckoutAddress struct {
-	Line1      string `json:"line1" validate:"required"`
-	Line2      string `json:"line2"`
-	City       string `json:"city" validate:"required"`
-	State      string `json:"state"`
-	PostalCode string `json:"postal_code" validate:"required"`
-	Country    string `json:"country" validate:"required"`
+	OrderID           int64  `json:"order_id" validate:"required"`
+	ShopID            int64  `json:"shop_id" validate:"required"`
+	PaymentMethodType string `json:"payment_method_type" validate:"required,oneof=stripe paystack flutterwave paypal pay_on_delivery"`
 }
 
 // CreateCheckoutSessionResponse represents the response from creating a checkout session
@@ -114,6 +82,26 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 		})
 	}
 
+	// Validate order exists and is pending
+	order, err := h.repository.GetOrder(c.Context(), db.GetOrderParams{
+		OrderID: req.OrderID,
+		ShopID:  req.ShopID,
+	})
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Order not found",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+	if string(order.Status) != "pending" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Order is not pending",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+
 	// Handle Pay on Delivery
 	if req.PaymentMethodType == "pay_on_delivery" {
 		// Create a simple response for Pay on Delivery
@@ -147,7 +135,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	if paymentMethodConfig == nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
-			Message: "Payment method not configured or disabled for this shop",
+			Message: "Payment method not enabled for this shop",
 			Code:    fiber.StatusBadRequest,
 		})
 	}
@@ -162,19 +150,22 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 		})
 	}
 
-	// Calculate total amount
-	var totalAmount float64
-	for _, item := range req.Items {
-		totalAmount += float64(item.Amount*item.Quantity) / 100 // Convert from cents
-	}
+	// Fetch order amount and currency from DB
+	// Convert pgtype.Numeric to float64
+	amountVal, _ := order.Amount.Value()
+	amountFloat, _ := strconv.ParseFloat(fmt.Sprintf("%v", amountVal), 64)
+	currency := "USD" // TODO: fetch from shop if needed
 
 	// Create payment intent request
 	paymentReq := models.PaymentIntentRequest{
-		Amount:            totalAmount,
-		CurrencyCode:      req.Currency,
+		Amount:            amountFloat,
+		CurrencyCode:      currency,
 		PaymentMethod:     req.PaymentMethodType,
 		CheckoutSessionID: "checkout_" + strconv.FormatInt(req.ShopID, 10) + "_" + generateOrderID(),
 		Description:       "Order payment",
+		Metadata: map[string]interface{}{
+			"order_id": req.OrderID,
+		},
 	}
 
 	// Create payment intent
@@ -194,7 +185,6 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 		PaymentMethodTypes: []string{req.PaymentMethodType},
 	}
 
-	// Add next action if present
 	if paymentResp.NextAction != nil {
 		response.NextAction = paymentResp.NextAction
 	}
@@ -205,6 +195,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 // ConfirmPaymentRequest represents the request to confirm a payment
 type ConfirmPaymentRequest struct {
 	PaymentIntentID string `json:"payment_intent_id" validate:"required"`
+	OrderID         int64  `json:"order_id" validate:"required"`
 	PaymentMethodID string `json:"payment_method_id"`
 }
 
@@ -228,7 +219,7 @@ type ConfirmPaymentResponse struct {
 // @Failure 500 {object} models.ErrorResponse
 // @Router /payments/{shop_id}/confirm [post]
 func (h *PaymentHandler) ConfirmPayment(c *fiber.Ctx) error {
-	_, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
+	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
@@ -252,6 +243,65 @@ func (h *PaymentHandler) ConfirmPayment(c *fiber.Ctx) error {
 			Status:  "error",
 			Message: err.Error(),
 			Code:    fiber.StatusBadRequest,
+		})
+	}
+
+	// Confirm payment with provider
+	order, err := h.repository.GetOrder(c.Context(), db.GetOrderParams{
+		OrderID: req.OrderID,
+		ShopID:  shopID,
+	})
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Order not found",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+
+	processor := h.paymentFactory.GetProcessor(string(order.PaymentMethod))
+	if processor == nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Payment processor not available",
+			Code:    fiber.StatusInternalServerError,
+		})
+	}
+
+	paymentResp, err := processor.ConfirmPayment(c.Context(), shopID, req.PaymentIntentID)
+	if err != nil || paymentResp.Status != "succeeded" {
+		return c.Status(fiber.StatusPaymentRequired).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Payment not successful",
+			Code:    fiber.StatusPaymentRequired,
+		})
+	}
+
+	// Update order status to paid/processing
+	err = h.repository.UpdateOrder(c.Context(), db.UpdateOrderParams{
+		Status:          db.OrderStatusType("processing"),
+		Amount:          order.Amount,
+		Discount:        order.Discount,
+		ShippingCost:    order.ShippingCost,
+		Tax:             order.Tax,
+		ShippingAddress: order.ShippingAddress,
+		PaymentMethod:   order.PaymentMethod,
+		PaymentStatus:   db.PaymentStatusType("paid"),
+		ShippingMethod:  order.ShippingMethod,
+		ShippingStatus:  order.ShippingStatus,
+		TransactionID:   &paymentResp.TransactionID,
+		Username:        order.Username,
+		CustomerName:    order.CustomerName,
+		CustomerEmail:   order.CustomerEmail,
+		CustomerPhone:   order.CustomerPhone,
+		OrderID:         req.OrderID,
+		ShopID:          shopID,
+	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to update order status",
+			Code:    fiber.StatusInternalServerError,
 		})
 	}
 

@@ -7,10 +7,12 @@ package resolver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/gql/public/generated"
 	"github.com/petrejonn/naytife/internal/gql/public/model"
@@ -120,6 +122,11 @@ func (r *shopResolver) Images(ctx context.Context, obj *model.Shop) (*model.Shop
 
 	shopImages, err := r.Repository.GetShopImages(ctx, shopID)
 	if err != nil {
+		// Only return error if it's not "no rows"
+		if errors.Is(err, pgx.ErrNoRows) {
+			// No images found, return nil (or you could return &model.ShopImages{} for empty object)
+			return &model.ShopImages{}, nil
+		}
 		return nil, fmt.Errorf("failed to fetch shop images: %w", err)
 	}
 
@@ -192,7 +199,6 @@ func (r *shopResolver) PaymentMethods(ctx context.Context, obj *model.Shop) ([]m
 	// Convert to GraphQL model
 	result := make([]model.PaymentMethodInfo, 0, len(paymentMethods))
 	for _, pm := range paymentMethods {
-		// Parse config from JSON
 		var config map[string]interface{}
 		if len(pm.Attributes) > 0 {
 			if err := json.Unmarshal(pm.Attributes, &config); err != nil {
@@ -200,20 +206,44 @@ func (r *shopResolver) PaymentMethods(ctx context.Context, obj *model.Shop) ([]m
 			}
 		}
 
-		// Extract publishable key (safe for frontend)
-		var publishableKey *string
-		var testMode bool = true // Default to test mode
-
-		if pk, ok := config["publishable_key"].(string); ok && pk != "" {
-			publishableKey = &pk
-		}
-		if tm, ok := config["test_mode"].(bool); ok {
-			testMode = tm
-		}
-
-		// Map payment method type to provider name
 		provider := string(pm.MethodType)
 		name := strings.Title(provider)
+
+		var (
+			publishableKey, clientID, publicKey, publicKeyFlutterwave    *string
+			testMode, sandboxMode, testModePaystack, testModeFlutterwave *bool
+		)
+
+		switch provider {
+		case "stripe":
+			if v, ok := config["publishable_key"].(string); ok {
+				publishableKey = &v
+			}
+			if v, ok := config["test_mode"].(bool); ok {
+				testMode = &v
+			}
+		case "paypal":
+			if v, ok := config["client_id"].(string); ok {
+				clientID = &v
+			}
+			if v, ok := config["sandbox_mode"].(bool); ok {
+				sandboxMode = &v
+			}
+		case "paystack":
+			if v, ok := config["public_key"].(string); ok {
+				publicKey = &v
+			}
+			if v, ok := config["test_mode_paystack"].(bool); ok {
+				testModePaystack = &v
+			}
+		case "flutterwave":
+			if v, ok := config["public_key_flutterwave"].(string); ok {
+				publicKeyFlutterwave = &v
+			}
+			if v, ok := config["test_mode_flutterwave"].(bool); ok {
+				testModeFlutterwave = &v
+			}
+		}
 
 		result = append(result, model.PaymentMethodInfo{
 			ID:       string(pm.MethodType),
@@ -221,8 +251,14 @@ func (r *shopResolver) PaymentMethods(ctx context.Context, obj *model.Shop) ([]m
 			Provider: provider,
 			Enabled:  pm.IsEnabled,
 			Config: &model.PaymentMethodConfig{
-				PublishableKey: publishableKey,
-				TestMode:       &testMode,
+				PublishableKey:       publishableKey,
+				TestMode:             testMode,
+				ClientID:             clientID,
+				SandboxMode:          sandboxMode,
+				PublicKey:            publicKey,
+				TestModePaystack:     testModePaystack,
+				PublicKeyFlutterwave: publicKeyFlutterwave,
+				TestModeFlutterwave:  testModeFlutterwave,
 			},
 		})
 	}

@@ -60,3 +60,29 @@ export const flyAndScale = (
 		easing: cubicOut
 	};
 };
+
+/**
+ * Decodes a base64 global ID like "U2hvcDox" ("Shop:1") and returns the raw ID as a string.
+ * If the ID is not base64 or not in the expected format, returns the input as-is.
+ */
+export function decodeShopId(globalId: string): string {
+  try {
+    // Try to decode base64 (browser and Node compatible)
+    let decoded: string;
+    if (typeof atob === 'function') {
+      decoded = atob(globalId);
+    } else if (typeof Buffer !== 'undefined') {
+      decoded = Buffer.from(globalId, 'base64').toString('utf8');
+    } else {
+      return globalId;
+    }
+    // Expect format: "Shop:1"
+    const parts = decoded.split(':');
+    if (parts.length === 2 && parts[0] === 'Shop') {
+      return parts[1];
+    }
+    return globalId;
+  } catch {
+    return globalId;
+  }
+}

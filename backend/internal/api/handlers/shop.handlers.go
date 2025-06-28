@@ -323,7 +323,7 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 // @Failure      404  {object}   models.ErrorResponse "Shop not found"
 // @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
-// @Router       /shops/subdomain/{subdomain} [get]
+// @Router       /subdomains/{subdomain} [get]
 func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 	subdomain := c.Params("subdomain", "")
 	if subdomain == "" {
@@ -389,7 +389,7 @@ func (h *Handler) GetShopBySubDomain(c *fiber.Ctx) error {
 // @Failure      400  {object}   models.ErrorResponse "Invalid subdomain format"
 // @Failure      500  {object}   models.ErrorResponse "Internal server error"
 // @Security     OAuth2AccessCode
-// @Router       /shops/check-subdomain/{subdomain} [get]
+// @Router       /subdomains/{subdomain}/check [get]
 func (h *Handler) CheckSubdomainAvailability(c *fiber.Ctx) error {
 	subdomain := c.Params("subdomain", "")
 	if subdomain == "" {
@@ -504,6 +504,10 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		SeoTitle:            objDB.SeoTitle,
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
+
+	// Auto-publish if publish handler is available
+	go h.autoPublishShopChanges(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop details updated")
+
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
 }
 
@@ -622,6 +626,9 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 		CoverImageUrlDark: updatedImages.CoverImageUrlDark,
 	}
 
+	// Auto-publish if publish handler is available
+	go h.autoPublishShopChanges(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop images updated")
+
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
 }
 
@@ -726,4 +733,19 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 	defer resp.Body.Close()
 
 	fmt.Printf("Auto-deployment triggered for new shop: %d (%s) - Deployment ID: %d\n", shopID, subdomain, deployment.DeploymentID)
+}
+
+// autoPublishShopChanges automatically triggers a publish when shop details are changed
+func (h *Handler) autoPublishShopChanges(shopID int64, changeType, entity, description string) {
+	// Get shop details for subdomain
+	shop, err := h.Repository.GetShop(context.Background(), shopID)
+	if err != nil {
+		return // Silently fail for auto-publish
+	}
+
+	// Call store-deployer to update shop data only
+	if err := h.updateStoreData(shop.Subdomain, shopID, "shop"); err != nil {
+		// Log error but don't fail the main operation
+		fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
+	}
 }

@@ -41,7 +41,7 @@ export const fetchShopIdFromSubdomain = async (shopIdentifier: string, customFet
     
     const authenticatedFetch = createAuthenticatedFetch(customFetch);
     const response = await authenticatedFetch(
-      `http://127.0.0.1:8080/v1/shops/subdomain/${shopIdentifier}`,
+      `http://127.0.0.1:8080/v1/subdomains/${shopIdentifier}`,
     )
     const data = await response.json() as ApiResponse<Shop>
     if (data.data && data.data.shop_id) {
@@ -136,7 +136,7 @@ export const checkSubdomainAvailability = async (
 ) => {
   try {
     const authenticatedFetch = createAuthenticatedFetch(customFetch);
-    const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/shops/check-subdomain/${subdomain}`, {
+    const response = await authenticatedFetch(`http://127.0.0.1:8080/v1/subdomains/${subdomain}/check`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

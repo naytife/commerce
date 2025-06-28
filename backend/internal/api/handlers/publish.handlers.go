@@ -37,6 +37,7 @@ type BuildJob struct {
 	Priority     int            `json:"priority"`
 	Timestamp    time.Time      `json:"timestamp"`
 	DataOnly     bool           `json:"data_only"` // true for JSON-only updates, false for full rebuilds
+	DataType     string         `json:"data_type"` // "shop", "products", "all" - determines which data files to update
 }
 
 // ChangeRecord represents a tracked change
@@ -104,18 +105,27 @@ func (h *PublishHandler) TriggerSiteBuild(c *fiber.Ctx) error {
 	// Create simplified build job - cloud-build will query data via GraphQL
 	jobID := fmt.Sprintf("build_%s_%d", shop.Subdomain, time.Now().Unix())
 
-	// Determine if this should be a data-only build
+	// Determine if this should be a data-only build and what type of data
 	dataOnly := false
+	dataType := "all" // Default to updating all data
 
-	// Check if all changes are data-only changes (product creation, inventory updates, etc.)
+	// Check if all changes are data-only changes and determine specific data type
 	if len(req.Changes) > 0 {
 		allDataOnlyChanges := true
+		shopChanges := false
+		productChanges := false
+
 		for _, change := range req.Changes {
 			switch change.Type {
-			case "product_create", "product_update", "inventory_update":
-				// These changes only require inventory data updates
+			case "product_create", "product_update", "product_delete", "inventory_update":
+				// These changes only require product data updates
+				productChanges = true
 				continue
-			case "product_delete", "category_update", "shop_update", "template_update":
+			case "shop_update":
+				// These changes only require shop data updates
+				shopChanges = true
+				continue
+			case "category_update", "template_update":
 				// These changes require full rebuilds
 				allDataOnlyChanges = false
 				break
@@ -128,6 +138,13 @@ func (h *PublishHandler) TriggerSiteBuild(c *fiber.Ctx) error {
 
 		if allDataOnlyChanges {
 			dataOnly = true
+			// Determine specific data type if only one type was changed
+			if shopChanges && !productChanges {
+				dataType = "shop"
+			} else if productChanges && !shopChanges {
+				dataType = "products"
+			}
+			// If both changed, keep "all"
 		}
 	}
 
@@ -140,6 +157,7 @@ func (h *PublishHandler) TriggerSiteBuild(c *fiber.Ctx) error {
 		Priority:     1, // Normal priority
 		Timestamp:    time.Now(),
 		DataOnly:     dataOnly,
+		DataType:     dataType,
 	}
 
 	// Serialize job to JSON

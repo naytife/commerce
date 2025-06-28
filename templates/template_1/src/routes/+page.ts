@@ -8,11 +8,11 @@ export const csr = true;
 export const load: PageLoad = async ({ fetch }) => {
 	try {
 		// Load inventory data directly (no transformation needed)
-		const inventoryResponse = await fetch('/data/inventory.json');
+		const inventoryResponse = await fetch('/data/products.json');
 		const inventory = await inventoryResponse.json();
 		
 		// Load metadata
-		const metadataResponse = await fetch('/data/metadata.json');
+		const metadataResponse = await fetch('/data/shop.json');
 		const metadata = await metadataResponse.json();
 
 		// Return data directly from JSON structure

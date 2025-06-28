@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
@@ -261,6 +266,9 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		CreatedAt:   createdProduct.CreatedAt,
 		UpdatedAt:   createdProduct.UpdatedAt,
 	}
+
+	// Auto-publish if publish handler is available
+	go h.autoPublishProductChanges(shopID, "product_create", fmt.Sprintf("product:%d", createdProduct.ProductID), fmt.Sprintf("Product \"%s\" created", createdProduct.Title))
 
 	return api.SuccessResponse(c, fiber.StatusCreated, productResponse, "Product created successfully")
 }
@@ -685,6 +693,9 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, statusCode, err.Error(), nil)
 	}
 
+	// Auto-publish if publish handler is available
+	go h.autoPublishProductChanges(shopID, "product_update", fmt.Sprintf("product:%d", productID), "Product updated")
+
 	return api.SuccessResponse(c, fiber.StatusOK, nil, "Product updated successfully")
 }
 
@@ -718,6 +729,9 @@ func (h *Handler) DeleteProduct(c *fiber.Ctx) error {
 		}
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete product", nil)
 	}
+
+	// Auto-publish if publish handler is available
+	go h.autoPublishProductChanges(shopID, "product_delete", fmt.Sprintf("product:%d", productID), "Product deleted")
 
 	return api.SuccessResponse(c, fiber.StatusOK, nil, "Product deleted successfully")
 }
@@ -822,4 +836,63 @@ func (h *Handler) GetProductsByType(c *fiber.Ctx) error {
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, products, "Products fetched successfully")
+}
+
+// autoPublishProductChanges automatically triggers a publish when products are changed
+func (h *Handler) autoPublishProductChanges(shopID int64, changeType, entity, description string) {
+	// Get shop details for subdomain
+	shop, err := h.Repository.GetShop(context.Background(), shopID)
+	if err != nil {
+		return // Silently fail for auto-publish
+	}
+
+	// Call store-deployer directly to update products JSON
+	go func() {
+		if err := h.updateStoreData(shop.Subdomain, shopID, "products"); err != nil {
+			// Log error but don't block the main operation
+			fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
+		}
+	}()
+}
+
+// updateStoreData calls the store-deployer service to update specific data types
+func (h *Handler) updateStoreData(subdomain string, shopID int64, dataType string) error {
+	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
+	if storeDeployerURL == "" {
+		storeDeployerURL = "http://store-deployer:9003"
+	}
+
+	// Prepare the update request
+	updateReq := map[string]interface{}{
+		"shop_id":   fmt.Sprintf("%d", shopID),
+		"data_type": dataType,
+	}
+
+	reqBody, err := json.Marshal(updateReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal update request: %v", err)
+	}
+
+	// Call the store-deployer update-data endpoint
+	client := &http.Client{Timeout: 30 * time.Second}
+	url := fmt.Sprintf("%s/update-data/%s", storeDeployerURL, subdomain)
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create update request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to call store-deployer: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("store-deployer returned status %d", resp.StatusCode)
+	}
+
+	return nil
 }

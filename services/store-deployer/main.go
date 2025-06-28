@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -277,44 +279,106 @@ func (sd *StoreDeployer) getTemplateManifest() (*TemplateManifest, error) {
 	return &manifest, nil
 }
 
-func (sd *StoreDeployer) fetchStoreData() (*StoreData, error) {
-	// In a real implementation, this would call the backend GraphQL API
-	// For now, return mock data structure
-
+// Change fetchStoreData to return map[string]interface{}
+func (sd *StoreDeployer) fetchStoreData() (map[string]interface{}, error) {
 	backendURL := os.Getenv("BACKEND_URL")
 	if backendURL == "" {
-		backendURL = "http://backend:8002"
+		backendURL = "http://backend:8000"
+	}
+	backendURL = strings.TrimRight(backendURL, "/") + "/query"
+
+	var wg sync.WaitGroup
+	var shopResp, productsResp map[string]interface{}
+	var shopErr, productsErr error
+
+	wg.Add(2)
+
+	// Shop query goroutine
+	go func() {
+		defer wg.Done()
+		log.Printf("[DEBUG] About to send shop GraphQL request to %s", backendURL)
+		shopQuery := `query GetShop { shop { id title defaultDomain contactPhone contactEmail address { address } whatsAppNumber whatsAppLink facebookLink instagramLink images { siteLogo { url altText } siteLogoDark { url altText } favicon { url altText } banner { url altText } bannerDark { url altText } coverImage { url altText } coverImageDark { url altText } } currencyCode about shopProductsCategory seoDescription seoKeywords seoTitle paymentMethods { id name provider enabled config { publishableKey testMode } } categories(first: 100) { edges { node { id slug title description images { banner { url altText } } } } } } }`
+		shopReq := map[string]interface{}{
+			"query":     shopQuery,
+			"variables": map[string]interface{}{},
+		}
+		shopResp, shopErr = doGraphQLRequest(backendURL, shopReq, sd.Subdomain)
+		if shopErr != nil {
+			log.Printf("[ERROR] shop GraphQL request failed: %v", shopErr)
+		} else {
+			log.Printf("[DEBUG] shop GraphQL request succeeded")
+		}
+	}()
+
+	// Products query goroutine
+	go func() {
+		defer wg.Done()
+		log.Printf("[DEBUG] About to send products GraphQL request to %s", backendURL)
+		productsQuery := `query GetProducts($first: Int) { products(first: $first) { edges { node { id productId slug title description attributes { title value } defaultVariant { id variationId price availableQuantity description isDefault attributes { title value } stockStatus } variants { id variationId price availableQuantity description isDefault attributes { title value } stockStatus } images { url altText } updatedAt createdAt } } pageInfo { hasNextPage endCursor } totalCount } }`
+		productsReq := map[string]interface{}{
+			"query":     productsQuery,
+			"variables": map[string]interface{}{"first": 100},
+		}
+		productsResp, productsErr = doGraphQLRequest(backendURL, productsReq, sd.Subdomain)
+		if productsErr != nil {
+			log.Printf("[ERROR] products GraphQL request failed: %v", productsErr)
+		} else {
+			log.Printf("[DEBUG] products GraphQL request succeeded")
+		}
+	}()
+
+	wg.Wait()
+
+	if shopErr != nil {
+		return nil, fmt.Errorf("failed to fetch shop: %w", shopErr)
+	}
+	if productsErr != nil {
+		return nil, fmt.Errorf("failed to fetch products: %w", productsErr)
 	}
 
-	// TODO: Implement GraphQL query to fetch:
-	// - Shop details
-	// - Products with variants
-	// - Store configuration/settings
-	// - Payment methods
-	// - Shipping configuration
+	return map[string]interface{}{
+		"shop":     shopResp,
+		"products": productsResp,
+	}, nil
+}
 
-	// Mock data for now
-	storeData := &StoreData{
-		Shop: ShopInfo{
-			ID:           sd.ShopID,
-			Name:         fmt.Sprintf("Store %s", sd.Subdomain),
-			Subdomain:    sd.Subdomain,
-			Currency:     "USD",
-			Description:  "Amazing store description",
-			Logo:         "",
-			ContactEmail: fmt.Sprintf("contact@%s.com", sd.Subdomain),
-			Theme:        sd.TemplateName,
-		},
-		Products: []Product{},
-		Settings: StoreConfig{
-			PaymentMethods: []string{"stripe", "paypal"},
-			ShippingZones:  []string{"US", "CA"},
-			TaxSettings:    map[string]string{"enabled": "true"},
-			Analytics:      map[string]string{"ga_id": ""},
-		},
+// Helper to do a GraphQL POST and parse JSON response
+func doGraphQLRequest(url string, reqBody map[string]interface{}, subdomain string) (map[string]interface{}, error) {
+	jsonBody, _ := json.Marshal(reqBody)
+	client := &http.Client{Timeout: 15 * time.Second}
+	req, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if subdomain != "" {
+		req.Header.Set("X-Shop-Subdomain", subdomain)
 	}
 
-	return storeData, nil
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Data   map[string]interface{} `json:"data"`
+		Errors interface{}            `json:"errors"`
+	}
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+		fmt.Printf("GraphQL HTTP %d, body: %s\n", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("failed to decode GraphQL response: %w", err)
+	}
+	if result.Errors != nil {
+		fmt.Printf("GraphQL error: %v, HTTP %d, body: %s\n", result.Errors, resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("GraphQL error: %v", result.Errors)
+	}
+	if resp.StatusCode != 200 {
+		fmt.Printf("GraphQL HTTP error: %d, body: %s\n", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("GraphQL HTTP error: %d", resp.StatusCode)
+	}
+	return result.Data, nil
 }
 
 func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
@@ -349,14 +413,16 @@ func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
 	return nil
 }
 
-func (sd *StoreDeployer) uploadStoreData(storeData *StoreData) error {
+// Update uploadStoreData to accept map[string]interface{} and write raw data files
+func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error {
 	log.Printf("Uploading store data for %s", sd.Subdomain)
 
-	// Generate data files
+	// Write raw data files as expected by the frontend
 	dataFiles := map[string]interface{}{
-		"shop.json":     storeData.Shop,
-		"products.json": storeData.Products,
-		"settings.json": storeData.Settings,
+		"shop.json":     storeData["shop"],
+		"products.json": storeData["products"],
+		// settings.json and metadata.json can be left as before or empty
+		"settings.json": map[string]interface{}{},
 		"metadata.json": map[string]interface{}{
 			"template_name":    sd.TemplateName,
 			"template_version": sd.Version,
@@ -365,7 +431,6 @@ func (sd *StoreDeployer) uploadStoreData(storeData *StoreData) error {
 		},
 	}
 
-	// Upload each data file
 	for filename, data := range dataFiles {
 		if err := sd.uploadDataFile(filename, data); err != nil {
 			return fmt.Errorf("failed to upload %s: %v", filename, err)
@@ -391,8 +456,221 @@ func (sd *StoreDeployer) uploadDataFile(filename string, data interface{}) error
 		ContentType:  aws.String("application/json"),
 		CacheControl: aws.String("no-cache, no-store, must-revalidate"), // Data files should not be cached
 	})
-
+	if err != nil {
+		log.Printf("[ERROR] Failed to upload %s to R2: %v", key, err)
+	} else {
+		log.Printf("[DEBUG] Successfully uploaded %s to R2", key)
+	}
 	return err
+}
+
+// updateSelectiveData updates only specific data files based on the data type
+func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
+	log.Printf("Updating selective data for %s (type: %s)", sd.Subdomain, dataType)
+
+	// Fetch store data based on the specific type
+	var dataToUpdate interface{}
+	var filename string
+
+	switch dataType {
+	case "shop":
+		// Fetch only shop data
+		shopData, err := sd.fetchShopDataOnly()
+		if err != nil {
+			return fmt.Errorf("failed to fetch shop data: %v", err)
+		}
+		dataToUpdate = shopData
+		filename = "shop.json"
+
+	case "products":
+		// Fetch only products data
+		productsData, err := sd.fetchProductsDataOnly()
+		if err != nil {
+			return fmt.Errorf("failed to fetch products data: %v", err)
+		}
+		dataToUpdate = productsData
+		filename = "products.json"
+
+	default:
+		return fmt.Errorf("unsupported data type: %s", dataType)
+	}
+
+	// Upload the specific data file
+	if err := sd.uploadDataFile(filename, dataToUpdate); err != nil {
+		return fmt.Errorf("failed to upload %s: %v", filename, err)
+	}
+
+	// Update metadata with last updated timestamp
+	metadata := map[string]interface{}{
+		"template_name":    sd.TemplateName,
+		"template_version": sd.Version,
+		"last_updated":     time.Now().UTC().Format(time.RFC3339),
+		"last_update_type": dataType,
+	}
+	if err := sd.uploadDataFile("metadata.json", metadata); err != nil {
+		log.Printf("Warning: failed to update metadata: %v", err)
+	}
+
+	log.Printf("Successfully updated %s data", dataType)
+	return nil
+}
+
+// fetchShopDataOnly fetches only shop information
+func (sd *StoreDeployer) fetchShopDataOnly() (interface{}, error) {
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = "http://backend:8000"
+	}
+	backendURL = strings.TrimRight(backendURL, "/") + "/query"
+
+	log.Printf("[DEBUG] About to send shop GraphQL request to %s (fetchShopDataOnly)", backendURL)
+
+	shopQuery := map[string]interface{}{
+		"query": `
+			query GetShop {
+				shop {
+					id
+					title
+					defaultDomain
+					contactPhone
+					contactEmail
+					address {
+						address
+					}
+					whatsAppNumber
+					whatsAppLink
+					facebookLink
+					instagramLink
+					images {
+						siteLogo {
+							url
+							altText
+						}
+						siteLogoDark {
+							url
+							altText
+						}
+						favicon {
+							url
+							altText
+						}
+						banner {
+							url
+							altText
+						}
+						bannerDark {
+							url
+							altText
+						}
+						coverImage {
+							url
+							altText
+						}
+						coverImageDark {
+							url
+							altText
+						}
+					}
+					currencyCode
+					about
+					seoDescription
+					seoKeywords
+					seoTitle
+				}
+			}
+		`,
+		"variables": map[string]interface{}{},
+	}
+
+	result, err := doGraphQLRequest(backendURL, shopQuery, sd.Subdomain)
+	if err != nil {
+		log.Printf("[ERROR] shop GraphQL request failed (fetchShopDataOnly): %v", err)
+		return nil, err
+	}
+	log.Printf("[DEBUG] shop GraphQL request succeeded (fetchShopDataOnly)")
+
+	return result["shop"], nil
+}
+
+func (sd *StoreDeployer) fetchProductsDataOnly() (interface{}, error) {
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = "http://backend:8000"
+	}
+	backendURL = strings.TrimRight(backendURL, "/") + "/query"
+
+	log.Printf("[DEBUG] About to send products GraphQL request to %s (fetchProductsDataOnly)", backendURL)
+
+	productsQuery := map[string]interface{}{
+		"query": `
+			query GetProducts($first: Int) {
+				products(first: $first) {
+					edges {
+						node {
+							id
+							productId
+							slug
+							title
+							description
+							attributes {
+								title
+								value
+							}
+							defaultVariant {
+								id
+								variationId
+								price
+								availableQuantity
+								description
+								isDefault
+								attributes {
+									title
+									value
+								}
+								stockStatus
+							}
+							variants {
+								id
+								variationId
+								price
+								availableQuantity
+								description
+								isDefault
+								attributes {
+									title
+									value
+								}
+								stockStatus
+							}
+							images {
+								url
+								altText
+							}
+							updatedAt
+							createdAt
+						}
+					}
+					pageInfo {
+						hasNextPage
+						endCursor
+					}
+					totalCount
+				}
+			}
+		`,
+		"variables": map[string]interface{}{
+			"first": 100,
+		},
+	}
+
+	result, err := doGraphQLRequest(backendURL, productsQuery, sd.Subdomain)
+	if err != nil {
+		log.Printf("[ERROR] products GraphQL request failed (fetchProductsDataOnly): %v", err)
+		return nil, err
+	}
+	log.Printf("[DEBUG] products GraphQL request succeeded (fetchProductsDataOnly)")
+
+	return result, nil
 }
 
 // HTTP Handlers
@@ -478,7 +756,8 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 	subdomain := vars["subdomain"]
 
 	var req struct {
-		ShopID string `json:"shop_id"`
+		ShopID   string `json:"shop_id"`
+		DataType string `json:"data_type,omitempty"` // "shop", "products", "all", or empty (defaults to "all")
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -489,6 +768,11 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 	if req.ShopID == "" {
 		http.Error(w, "Missing required field: shop_id", http.StatusBadRequest)
 		return
+	}
+
+	// Default to updating all data if not specified
+	if req.DataType == "" {
+		req.DataType = "all"
 	}
 
 	// Get current deployment info
@@ -505,24 +789,47 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		Version:      currentInfo["template_version"].(string),
 	}
 
-	// Fetch fresh store data
-	storeData, err := deployer.fetchStoreData()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to fetch store data: %v", err), http.StatusInternalServerError)
-		return
-	}
+	// Handle selective data updates
+	var updatedFiles []string
+	if req.DataType == "all" {
+		// Fetch all store data and update all files
+		storeData, err := deployer.fetchStoreData()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to fetch store data: %v", err), http.StatusInternalServerError)
+			return
+		}
 
-	// Upload only data files (no asset copying needed)
-	if err := deployer.uploadStoreData(storeData); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update store data: %v", err), http.StatusInternalServerError)
-		return
+		// Upload all data files
+		if err := deployer.uploadStoreData(storeData); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to update store data: %v", err), http.StatusInternalServerError)
+			return
+		}
+		updatedFiles = []string{"shop.json", "products.json", "settings.json", "metadata.json"}
+	} else {
+		// Selective update based on data type
+		if err := deployer.updateSelectiveData(req.DataType); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to update %s data: %v", req.DataType, err), http.StatusInternalServerError)
+			return
+		}
+
+		switch req.DataType {
+		case "shop":
+			updatedFiles = []string{"shop.json"}
+		case "products":
+			updatedFiles = []string{"products.json"}
+		default:
+			http.Error(w, fmt.Sprintf("Invalid data_type: %s. Valid values are 'shop', 'products', or 'all'", req.DataType), http.StatusBadRequest)
+			return
+		}
 	}
 
 	writeJSONResponse(w, map[string]interface{}{
-		"status":     "success",
-		"message":    "Store data updated successfully",
-		"subdomain":  subdomain,
-		"updated_at": time.Now().UTC().Format(time.RFC3339),
+		"status":        "success",
+		"message":       fmt.Sprintf("Store data updated successfully (%s)", req.DataType),
+		"subdomain":     subdomain,
+		"data_type":     req.DataType,
+		"updated_files": updatedFiles,
+		"updated_at":    time.Now().UTC().Format(time.RFC3339),
 	})
 }
 

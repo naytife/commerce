@@ -9,16 +9,13 @@ import (
 func ShopRouter(app fiber.Router, repo db.Repository) {
 	handler := handlers.NewHandler(repo)
 
-	// Core shop management
 	app.Post("/shops", handler.CreateShop)
 	app.Get("/shops", handler.GetShops)
 	app.Delete("/shops/:shop_id", handler.DeleteShop)
 	app.Get("/shops/:shop_id", handler.GetShop)
 	app.Put("/shops/:shop_id", handler.UpdateShop)
 	app.Put("/shops/:shop_id/images", handler.UpdateShopImages)
-	app.Get("/shops/subdomain/:subdomain", handler.GetShopBySubDomain)
-	app.Get("/shops/check-subdomain/:subdomain", handler.CheckSubdomainAvailability)
+	app.Get("/subdomains/:subdomain", handler.GetShopBySubDomain)
+	app.Get("/subdomains/:subdomain/check", handler.CheckSubdomainAvailability)
 	app.Get("/customerinfo", handler.GetCustomerByEmail)
-
-	// Deployment endpoints are now handled by TemplateRouter via proxy
 }

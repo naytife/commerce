@@ -20,7 +20,7 @@ export const load: PageLoad = async (event) => {
   
   try {
     // Load product data from our static files
-    const response = await event.fetch('/data/inventory.json');
+    const response = await event.fetch('/data/products.json');
     const inventory = await response.json();
     
     // Find the product by productId in the edges structure

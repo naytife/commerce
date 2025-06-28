@@ -149,8 +149,14 @@ type ComplexityRoot struct {
 	}
 
 	PaymentMethodConfig struct {
-		PublishableKey func(childComplexity int) int
-		TestMode       func(childComplexity int) int
+		ClientID             func(childComplexity int) int
+		PublicKey            func(childComplexity int) int
+		PublicKeyFlutterwave func(childComplexity int) int
+		PublishableKey       func(childComplexity int) int
+		SandboxMode          func(childComplexity int) int
+		TestMode             func(childComplexity int) int
+		TestModeFlutterwave  func(childComplexity int) int
+		TestModePaystack     func(childComplexity int) int
 	}
 
 	PaymentMethodInfo struct {
@@ -744,6 +750,27 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
+	case "PaymentMethodConfig.clientId":
+		if e.complexity.PaymentMethodConfig.ClientID == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.ClientID(childComplexity), true
+
+	case "PaymentMethodConfig.publicKey":
+		if e.complexity.PaymentMethodConfig.PublicKey == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.PublicKey(childComplexity), true
+
+	case "PaymentMethodConfig.publicKeyFlutterwave":
+		if e.complexity.PaymentMethodConfig.PublicKeyFlutterwave == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.PublicKeyFlutterwave(childComplexity), true
+
 	case "PaymentMethodConfig.publishableKey":
 		if e.complexity.PaymentMethodConfig.PublishableKey == nil {
 			break
@@ -751,12 +778,33 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PaymentMethodConfig.PublishableKey(childComplexity), true
 
+	case "PaymentMethodConfig.sandboxMode":
+		if e.complexity.PaymentMethodConfig.SandboxMode == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.SandboxMode(childComplexity), true
+
 	case "PaymentMethodConfig.testMode":
 		if e.complexity.PaymentMethodConfig.TestMode == nil {
 			break
 		}
 
 		return e.complexity.PaymentMethodConfig.TestMode(childComplexity), true
+
+	case "PaymentMethodConfig.testModeFlutterwave":
+		if e.complexity.PaymentMethodConfig.TestModeFlutterwave == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.TestModeFlutterwave(childComplexity), true
+
+	case "PaymentMethodConfig.testModePaystack":
+		if e.complexity.PaymentMethodConfig.TestModePaystack == nil {
+			break
+		}
+
+		return e.complexity.PaymentMethodConfig.TestModePaystack(childComplexity), true
 
 	case "PaymentMethodInfo.config":
 		if e.complexity.PaymentMethodInfo.Config == nil {
@@ -1722,8 +1770,18 @@ type PaymentMethodInfo {
 }
 
 type PaymentMethodConfig {
+  # Stripe
   publishableKey: String
   testMode: Boolean
+  # PayPal
+  clientId: String
+  sandboxMode: Boolean
+  # Paystack
+  publicKey: String
+  testModePaystack: Boolean
+  # Flutterwave
+  publicKeyFlutterwave: String
+  testModeFlutterwave: Boolean
 }
 `, BuiltIn: false},
 }
@@ -5223,6 +5281,252 @@ func (ec *executionContext) fieldContext_PaymentMethodConfig_testMode(_ context.
 	return fc, nil
 }
 
+func (ec *executionContext) _PaymentMethodConfig_clientId(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_clientId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ClientID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_clientId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_sandboxMode(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_sandboxMode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SandboxMode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_sandboxMode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_publicKey(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_publicKey(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublicKey, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_publicKey(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_testModePaystack(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_testModePaystack(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TestModePaystack, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_testModePaystack(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_publicKeyFlutterwave(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_publicKeyFlutterwave(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublicKeyFlutterwave, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_publicKeyFlutterwave(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentMethodConfig_testModeFlutterwave(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodConfig) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaymentMethodConfig_testModeFlutterwave(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TestModeFlutterwave, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PaymentMethodConfig_testModeFlutterwave(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentMethodConfig",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PaymentMethodInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.PaymentMethodInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PaymentMethodInfo_id(ctx, field)
 	if err != nil {
@@ -5442,6 +5746,18 @@ func (ec *executionContext) fieldContext_PaymentMethodInfo_config(_ context.Cont
 				return ec.fieldContext_PaymentMethodConfig_publishableKey(ctx, field)
 			case "testMode":
 				return ec.fieldContext_PaymentMethodConfig_testMode(ctx, field)
+			case "clientId":
+				return ec.fieldContext_PaymentMethodConfig_clientId(ctx, field)
+			case "sandboxMode":
+				return ec.fieldContext_PaymentMethodConfig_sandboxMode(ctx, field)
+			case "publicKey":
+				return ec.fieldContext_PaymentMethodConfig_publicKey(ctx, field)
+			case "testModePaystack":
+				return ec.fieldContext_PaymentMethodConfig_testModePaystack(ctx, field)
+			case "publicKeyFlutterwave":
+				return ec.fieldContext_PaymentMethodConfig_publicKeyFlutterwave(ctx, field)
+			case "testModeFlutterwave":
+				return ec.fieldContext_PaymentMethodConfig_testModeFlutterwave(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PaymentMethodConfig", field.Name)
 		},
@@ -12039,6 +12355,18 @@ func (ec *executionContext) _PaymentMethodConfig(ctx context.Context, sel ast.Se
 			out.Values[i] = ec._PaymentMethodConfig_publishableKey(ctx, field, obj)
 		case "testMode":
 			out.Values[i] = ec._PaymentMethodConfig_testMode(ctx, field, obj)
+		case "clientId":
+			out.Values[i] = ec._PaymentMethodConfig_clientId(ctx, field, obj)
+		case "sandboxMode":
+			out.Values[i] = ec._PaymentMethodConfig_sandboxMode(ctx, field, obj)
+		case "publicKey":
+			out.Values[i] = ec._PaymentMethodConfig_publicKey(ctx, field, obj)
+		case "testModePaystack":
+			out.Values[i] = ec._PaymentMethodConfig_testModePaystack(ctx, field, obj)
+		case "publicKeyFlutterwave":
+			out.Values[i] = ec._PaymentMethodConfig_publicKeyFlutterwave(ctx, field, obj)
+		case "testModeFlutterwave":
+			out.Values[i] = ec._PaymentMethodConfig_testModeFlutterwave(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

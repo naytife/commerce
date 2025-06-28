@@ -51,6 +51,16 @@ type PaymentMethodInfo {
 }
 
 type PaymentMethodConfig {
+  # Stripe
   publishableKey: String
   testMode: Boolean
+  # PayPal
+  clientId: String
+  sandboxMode: Boolean
+  # Paystack
+  publicKey: String
+  testModePaystack: Boolean
+  # Flutterwave
+  publicKeyFlutterwave: String
+  testModeFlutterwave: Boolean
 }

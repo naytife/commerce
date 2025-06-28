@@ -167,8 +167,14 @@ type PageInfo struct {
 }
 
 type PaymentMethodConfig struct {
-	PublishableKey *string `json:"publishable_key,omitempty"`
-	TestMode       *bool   `json:"test_mode,omitempty"`
+	PublishableKey       *string `json:"publishable_key,omitempty"`
+	TestMode             *bool   `json:"test_mode,omitempty"`
+	ClientID             *string `json:"client_id,omitempty"`
+	SandboxMode          *bool   `json:"sandbox_mode,omitempty"`
+	PublicKey            *string `json:"public_key,omitempty"`
+	TestModePaystack     *bool   `json:"test_mode_paystack,omitempty"`
+	PublicKeyFlutterwave *string `json:"public_key_flutterwave,omitempty"`
+	TestModeFlutterwave  *bool   `json:"test_mode_flutterwave,omitempty"`
 }
 
 type PaymentMethodInfo struct {

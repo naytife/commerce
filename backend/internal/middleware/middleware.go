@@ -15,7 +15,6 @@ func ShopIDMiddlewareFiber(repo db.Repository) fiber.Handler {
 		var subdomain string
 		ctx := c.UserContext()
 
-		// Check for cloud-build specific header first
 		if cloudBuildSubdomain := c.Get("X-Shop-Subdomain"); cloudBuildSubdomain != "" {
 			subdomain = cloudBuildSubdomain
 		} else if shopIDParam := c.Query("shop_id"); shopIDParam != "" {

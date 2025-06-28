@@ -62,16 +62,38 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 
 		// Extract safe config for frontend (no secrets)
 		safeConfig := map[string]interface{}{}
-		if publishableKey, ok := config["publishable_key"].(string); ok {
-			safeConfig["publishable_key"] = publishableKey
-		}
-		if testMode, ok := config["test_mode"].(bool); ok {
-			safeConfig["test_mode"] = testMode
+		switch string(pm.MethodType) {
+		case "stripe":
+			if v, ok := config["publishable_key"].(string); ok {
+				safeConfig["publishable_key"] = v
+			}
+			if v, ok := config["test_mode"].(bool); ok {
+				safeConfig["test_mode"] = v
+			}
+		case "paypal":
+			if v, ok := config["client_id"].(string); ok {
+				safeConfig["client_id"] = v
+			}
+			if v, ok := config["sandbox_mode"].(bool); ok {
+				safeConfig["sandbox_mode"] = v
+			}
+		case "paystack":
+			if v, ok := config["public_key"].(string); ok {
+				safeConfig["public_key"] = v
+			}
+			if v, ok := config["test_mode_paystack"].(bool); ok {
+				safeConfig["test_mode_paystack"] = v
+			}
+		case "flutterwave":
+			if v, ok := config["public_key_flutterwave"].(string); ok {
+				safeConfig["public_key_flutterwave"] = v
+			}
+			if v, ok := config["test_mode_flutterwave"].(bool); ok {
+				safeConfig["test_mode_flutterwave"] = v
+			}
 		}
 
-		// Map payment method type to human-readable name
 		methodName := strings.Title(string(pm.MethodType))
-
 		response[i] = map[string]interface{}{
 			"id":       string(pm.MethodType),
 			"name":     methodName,
@@ -80,7 +102,6 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 			"config":   safeConfig,
 		}
 	}
-
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Payment methods retrieved successfully")
 }
 
