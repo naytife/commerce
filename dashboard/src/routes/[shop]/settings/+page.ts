@@ -1,4 +1,4 @@
-import { api } from '$lib/api'
+import { api, fetchShopIdFromSubdomain } from '$lib/api'
 import type { PageLoad } from './$types'
 import type { Session as AuthSession } from '@auth/sveltekit'
 
@@ -27,6 +27,9 @@ export const load: PageLoad = async ({ parent, fetch, params }) => {
     }    
     return fetch(input, options)
   }
+
+  // Prefetch the shop ID using the shop param
+  await fetchShopIdFromSubdomain(params.shop, customFetch)
 
   const { queryClient } = await parent()
 

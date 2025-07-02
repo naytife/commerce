@@ -1061,6 +1061,34 @@ data:
         "mutators": [
           { "handler": "noop" }
         ]
+      },
+      {
+        "id": "api:shop-analytics",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "http://127.0.0.1:8080/v1/shops/<*>/analytics/<**>",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          { "handler": "oauth2_introspection" }
+        ],
+        "authorizer": { "handler": "allow" },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User-Id": "{{ print .Subject }}",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type"
+              }
+            }
+          }
+        ]
       }
     ]
 ---

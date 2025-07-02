@@ -9,24 +9,39 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { getContext } from 'svelte';
 	import { api } from '$lib/api';
-	import type { Order, Shop } from '$lib/types';
+	import type { Order, Shop, PaginatedResponse } from '$lib/types';
+	import type { QueryObserverResult } from '@tanstack/svelte-query';
 	import { format } from 'date-fns';
 	import { toast } from 'svelte-sonner';
 	import ListFilter from 'lucide-svelte/icons/list-filter';
-	import { page } from '$app/stores';
+	import { page as pageStore } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+	import { get, writable } from 'svelte/store';
 
 	const authFetch = getContext<typeof fetch>('authFetch');
 	const queryClient = useQueryClient();
 
 	// Access route parameters through the page store
-	$: shopParam = $page.params.shop;
+	const shopParam = get(pageStore).params.shop;
 
-	const orders = createQuery<Order[], Error>({
-		queryKey: [`shop-${shopParam}-orders`],
-		queryFn: () => api(authFetch).getOrders(),
+	// Pagination state as Svelte stores
+	const currentPage = writable(1);
+	const limit = writable(10);
+	let total = 0;
+	let totalPages = 1;
+
+	// Orders query with pagination (reactive)
+	let ordersQuery;
+	$: ordersQuery = createQuery<PaginatedResponse<Order>, Error>({
+	    queryKey: [`shop-${shopParam}-orders`, $currentPage, $limit],
+	    queryFn: () => api(authFetch).getOrders({ page: $currentPage, limit: $limit })
 	});
+
+	$: ordersData = $ordersQuery?.data?.data ?? [];
+	$: pagination = $ordersQuery?.data?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
+	$: total = pagination.total;
+	$: totalPages = pagination.total_pages;
 
 	// Query shop to get currency code and define a currency formatter
 	const shopQuery = createQuery<Shop, Error>({
@@ -40,14 +55,21 @@
 	let statusFilter: Record<string, boolean> = { pending: true, processing: true, completed: true, cancelled: true, refunded: true };
 	let searchQuery = '';
 	
-	$: filteredOrders = $orders.data?.filter(order => {
-		const matchesStatus = statusFilter[order.status.toLowerCase()];
-		const matchesSearch = !searchQuery || 
-			order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			order.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			order.order_id.toString().includes(searchQuery);
-		return matchesStatus && matchesSearch;
-	}) ?? [];
+	// Filtering and search (client-side on current page)
+	$: filteredOrders = ordersData.filter((order: Order) => {
+	    const matchesStatus = statusFilter[order.status.toLowerCase()];
+	    const matchesSearch = !searchQuery || 
+	        order.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+	        order.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+	        order.order_id.toString().includes(searchQuery);
+	    return matchesStatus && matchesSearch;
+	});
+
+	function goToPage(newPage: number) {
+	    if (newPage >= 1 && newPage <= totalPages) {
+	        currentPage.set(newPage);
+	    }
+	}
 
 	async function handleDeleteOrder(orderId: number) {
 		try {
@@ -120,23 +142,40 @@
 		}
 	}
 
+	function getStatusBgClass(status: string) {
+		switch (status.toLowerCase()) {
+			case 'pending':
+				return 'bg-warning text-white';
+			case 'processing':
+				return 'bg-info text-white';
+			case 'completed':
+				return 'bg-success text-white';
+			case 'cancelled':
+				return 'bg-destructive text-white';
+			case 'refunded':
+				return 'bg-secondary text-white';
+			default:
+				return 'bg-muted text-foreground';
+		}
+	}
+
 	// Calculate order statistics
 	$: orderStats = {
 		total: filteredOrders.length,
-		pending: filteredOrders.filter(o => o.status.toLowerCase() === 'pending').length,
-		processing: filteredOrders.filter(o => o.status.toLowerCase() === 'processing').length,
-		completed: filteredOrders.filter(o => o.status.toLowerCase() === 'completed').length,
+		pending: filteredOrders.filter((o: Order) => o.status.toLowerCase() === 'pending').length,
+		processing: filteredOrders.filter((o: Order) => o.status.toLowerCase() === 'processing').length,
+		completed: filteredOrders.filter((o: Order) => o.status.toLowerCase() === 'completed').length,
 		totalRevenue: filteredOrders
-			.filter(o => o.status.toLowerCase() === 'completed')
-			.reduce((sum, order) => sum + order.total_amount, 0),
+			.filter((o: Order) => o.status.toLowerCase() === 'completed')
+			.reduce((sum: number, order: Order) => sum + order.amount, 0),
 		averageOrder: filteredOrders.length > 0 
-			? filteredOrders.reduce((sum, order) => sum + order.total_amount, 0) / filteredOrders.length 
+			? filteredOrders.reduce((sum: number, order: Order) => sum + order.amount, 0) / filteredOrders.length 
 			: 0
 	};
 
 	onMount(async () => {
 		await queryClient.prefetchQuery({
-			queryKey: [`shop-${$page.params.shop}-orders`],
+			queryKey: [`shop-${shopParam}-orders`],
 			queryFn: () => api(authFetch).getOrders(),
 		});
 	});
@@ -152,10 +191,6 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<Button variant="outline" class="glass border-border/50">
-				<Download class="w-4 h-4 mr-2" />
-				Export
-			</Button>
 			<Button class="btn-gradient shadow-brand">
 				<Plus class="w-4 h-4 mr-2" />
 				Create Order
@@ -204,7 +239,7 @@
 
 	<!-- Orders Management -->
 	<div class="card-elevated">
-		{#if $orders.status === 'pending'}
+		{#if $ordersQuery?.isLoading}
 			<!-- Enhanced Loading State -->
 			<div class="space-y-6">
 				<div class="flex flex-col lg:flex-row gap-4">
@@ -236,7 +271,7 @@
 					{/each}
 				</div>
 			</div>
-		{:else if $orders.status === 'error'}
+		{:else if $ordersQuery?.isError}
 			<!-- Enhanced Error State -->
 			<div class="flex flex-col items-center justify-center py-20">
 				<div class="w-16 h-16 bg-gradient-to-br from-destructive to-red-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
@@ -244,7 +279,7 @@
 				</div>
 				<h3 class="text-xl font-semibold mb-2 text-foreground">Failed to load orders</h3>
 				<p class="text-muted-foreground mb-6 text-center max-w-md">
-					{$orders.error.message || 'Unable to fetch order data. Please try again.'}
+					{$ordersQuery.error.message || 'Unable to fetch order data. Please try again.'}
 				</p>
 				<Button 
 					on:click={() => queryClient.invalidateQueries({ queryKey: [`shop-${shopParam}-orders`] })} 
@@ -254,7 +289,7 @@
 					Try Again
 				</Button>
 			</div>
-		{:else if !$orders.data || $orders.data.length === 0}
+		{:else if ordersData.length === 0}
 			<!-- Enhanced Empty State -->
 			<div class="flex flex-col items-center justify-center py-20">
 				<div class="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mb-8 shadow-brand">
@@ -330,10 +365,7 @@
 								</DropdownMenu.CheckboxItem>
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
-						<Button variant="outline" class="glass border-border/50 h-12">
-							<Download class="w-4 h-4 mr-2" />
-							Export
-						</Button>
+						
 					</div>
 				</div>
 
@@ -387,7 +419,7 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell>
-										<Badge class={getStatusClass(order.status)}>
+										<Badge class={getStatusBgClass(order.status)}>
 											{order.status}
 										</Badge>
 									</Table.Cell>
@@ -412,7 +444,7 @@
 											<DropdownMenu.Content align="end" class="w-48">
 												<DropdownMenu.Label>Actions</DropdownMenu.Label>
 												<DropdownMenu.Item 
-													href="/{$page.params.shop}/orders/{order.order_id}"
+													href={`/${shopParam}/orders/${order.order_id}`}
 													class="flex items-center gap-2"
 												>
 													<Eye class="w-4 h-4" />
@@ -476,16 +508,17 @@
 				</div>
 
 				<!-- Pagination & Summary -->
-				{#if filteredOrders.length > 0}
+				{#if total > 0}
 					<div class="flex items-center justify-between pt-4 border-t border-border/50">
 						<div class="text-sm text-muted-foreground">
-							Showing <strong>{filteredOrders.length}</strong> of <strong>{$orders.data.length}</strong> orders
+							Showing <strong>{($currentPage - 1) * $limit + 1}</strong> to <strong>{Math.min($currentPage * $limit, total)}</strong> of <strong>{total}</strong> orders
 						</div>
 						<div class="flex items-center gap-2">
-							<Button variant="outline" size="sm" class="glass border-border/50" disabled>
+							<Button variant="outline" size="sm" class="glass border-border/50" on:click={() => goToPage($currentPage - 1)} disabled={$currentPage === 1}>
 								Previous
 							</Button>
-							<Button variant="outline" size="sm" class="glass border-border/50" disabled>
+							<span>Page {$currentPage} of {totalPages}</span>
+							<Button variant="outline" size="sm" class="glass border-border/50" on:click={() => goToPage($currentPage + 1)} disabled={$currentPage === totalPages}>
 								Next
 							</Button>
 						</div>
@@ -494,4 +527,4 @@
 			</div>
 		{/if}
 	</div>
-</div> 
+</div>

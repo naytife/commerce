@@ -461,3 +461,44 @@ CREATE POLICY shop_policy ON shop_data_updates
 FOR ALL
 USING (shop_id = current_setting('commerce.current_shop_id')::int)
 WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for shops
+ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shops
+FOR ALL
+USING (owner_id = current_setting('commerce.current_owner_id')::uuid)
+WITH CHECK (owner_id = current_setting('commerce.current_owner_id')::uuid);
+
+-- SET RLS for shop_customers
+ALTER TABLE shop_customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shop_customers
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for product_types
+ALTER TABLE product_types ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON product_types
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- SET RLS for shop_payment_methods
+ALTER TABLE shop_payment_methods ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shop_policy ON shop_payment_methods
+FOR ALL
+USING (shop_id = current_setting('commerce.current_shop_id')::int)
+WITH CHECK (shop_id = current_setting('commerce.current_shop_id')::int);
+
+-- MATERIALIZED VIEW: daily_sales
+CREATE MATERIALIZED VIEW IF NOT EXISTS daily_sales AS
+SELECT
+  shop_id,
+  DATE(created_at) AS day,
+  COUNT(*) AS total_orders,
+  SUM(amount) AS revenue
+FROM orders
+WHERE status = 'completed'
+GROUP BY shop_id, day;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_sales_shop_day ON daily_sales(shop_id, day);

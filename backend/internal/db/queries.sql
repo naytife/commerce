@@ -1,0 +1,4 @@
+-- +goose Up
+-- +goose StatementBegin
+-- import "queries/analytics.sql"
+-- +goose StatementEnd 

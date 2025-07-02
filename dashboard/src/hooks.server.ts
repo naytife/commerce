@@ -4,7 +4,7 @@ import { sequence } from '@sveltejs/kit/hooks';
 import type { RequestEvent } from '@sveltejs/kit';
 
 async function authorizationHandle({ event, resolve }: { event: RequestEvent, resolve: any }) {
-  const publicRoutes = ['/', '/login', '/signin'];
+  const publicRoutes = ['/', '/login', '/signin', '/register'];
   const isPublic = publicRoutes.includes(event.url.pathname);
 
   if (!isPublic) {
@@ -17,17 +17,17 @@ async function authorizationHandle({ event, resolve }: { event: RequestEvent, re
     
     // Check for missing session or refresh error
     if (!session || session.error === 'RefreshTokenError') {
-      throw redirect(303, '/login');
+      throw redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname + event.url.search)}`);
     }
     
     // Check for token error (when JWT has error field)
     if (session.token && session.token.error === 'RefreshTokenError') {
-      throw redirect(303, '/login');
+      throw redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname + event.url.search)}`);
     }
     
     // Check for expired access token
     if (session.access_token_expires && Date.now() > Number(session.access_token_expires) * 1000) {
-      throw redirect(303, '/login');
+      throw redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname + event.url.search)}`);
     }
   }
 

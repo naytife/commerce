@@ -36,7 +36,14 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 
 	// Parse query parameters
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
 
 	// Get orders from database
 	orders, err := h.Repository.ListOrders(c.Context(), db.ListOrdersParams{
@@ -46,6 +53,12 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		return api.SystemErrorResponse(c, err, "Failed to fetch orders")
+	}
+
+	// Get total count for pagination
+	total, err := h.Repository.CountOrders(c.Context(), shopID)
+	if err != nil {
+		return api.SystemErrorResponse(c, err, "Failed to count orders")
 	}
 
 	// Map database models to API models
@@ -101,7 +114,20 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 		})
 	}
 
-	return api.SuccessResponse(c, fiber.StatusOK, result, "Orders fetched successfully")
+	totalPages := (int(total) + limit - 1) / limit
+	response := fiber.Map{
+		"data": result,
+		"pagination": fiber.Map{
+			"page":         page,
+			"limit":        limit,
+			"total":        total,
+			"total_pages":  totalPages,
+			"has_next":     page < totalPages,
+			"has_previous": page > 1,
+		},
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
 // GetOrder fetches a single order

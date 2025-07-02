@@ -7,6 +7,7 @@
 	import type { Shop } from '$lib/types';
 	import { api } from '$lib/api';
 	import { getContext } from 'svelte';
+	import { deepEqual, deepClone } from '$lib/utils/deepEqual';
 	
 	export let shop: Partial<Shop>;
 	
@@ -26,6 +27,11 @@
 		facebook_link: false,
 		whatsapp_link: false
 	};
+	
+	let initialShop = deepClone(shop);
+	let hasChanges = false;
+	
+	$: hasChanges = !deepEqual(shop, initialShop);
 	
 	// Handle form submission
 	async function handleFormSubmit(event: Event) {
@@ -75,6 +81,7 @@
 			
 			// Refetch shop data to update the UI
 			await refetchShopData();
+			initialShop = deepClone(shop); // Reset initial state after update
 			toast.success('Social media settings updated successfully');
 		} catch (error) {
 			console.error('Error updating social media settings:', error);
@@ -150,7 +157,7 @@
 				{/if}
 			</div>
 			
-			<Button type="submit">Update Social Media Settings</Button>
+			<Button type="submit" disabled={!hasChanges}>Update Social Media Settings</Button>
 		</form>
 	</Card.Content>
-</Card.Root> 
+</Card.Root>

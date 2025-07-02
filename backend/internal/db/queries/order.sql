@@ -21,7 +21,7 @@ WHERE order_id = $1 AND shop_id = $2;
 -- name: ListOrders :many
 SELECT * FROM orders
 WHERE shop_id = $1
-ORDER BY order_id
+ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: UpdateOrder :exec
@@ -77,4 +77,7 @@ WHERE order_item_id = $1 AND shop_id = $2;
 
 -- name: DeleteOrderItemsByOrder :exec
 DELETE FROM order_items
-WHERE order_id = $1 AND shop_id = $2; 
+WHERE order_id = $1 AND shop_id = $2;
+
+-- name: CountOrders :one
+SELECT COUNT(*) FROM orders WHERE shop_id = $1;

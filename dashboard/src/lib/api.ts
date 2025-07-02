@@ -22,11 +22,16 @@ import type {
   PaymentMethod,
   PaymentMethodConfig,
   PredefinedProductType,
-  ProductTypeWithTemplateResponse
+  ProductTypeWithTemplateResponse,
+  // Analytics types
+  SalesSummary,
+  OrdersOverTime,
+  TopProduct,
+  CustomerSummary,
+  LowStockProduct
 } from './types'
 import { toast } from 'svelte-sonner'
 import { writable } from 'svelte/store'
-import { publishState } from './stores/publishState'
 import { createAuthenticatedFetch } from './auth-fetch'
 
 // Create a store to hold the shop ID
@@ -153,6 +158,7 @@ export const checkSubdomainAvailability = async (
     throw error;
   }
 };
+
 
 export const api = (customFetch = fetch) => {
   // Create authenticated fetch wrapper
@@ -403,14 +409,6 @@ export const api = (customFetch = fetch) => {
         const responseData = await response.json();
         if (response.ok) {
           toast.success('Product created successfully');
-          
-          // Track the change for publish state
-          publishState.recordChange({
-            type: 'product_create',
-            entity: `product:${productData.title}`,
-            description: `Product "${productData.title}" created`
-          });
-          
         } else {
           toast.error(responseData.message || 'Failed to create product');
         }
@@ -435,14 +433,6 @@ export const api = (customFetch = fetch) => {
         const responseData = await response.json();
         if (response.ok) {
           toast.success('Product updated successfully');
-          
-          // Track the change for publish state
-          publishState.recordChange({
-            type: 'product_update',
-            entity: `product:${productId}`,
-            description: `Product updated`
-          });
-          
         } else {
           toast.error('Failed to update product');
         }
@@ -575,14 +565,6 @@ export const api = (customFetch = fetch) => {
         
         if (response.ok) {
           toast.success('Shop settings updated successfully');
-          
-          // Track the change for publish state
-          publishState.recordChange({
-            type: 'shop_update',
-            entity: 'shop',
-            description: 'Store settings updated'
-          });
-          
           return responseData.data;
         } else {
           toast.error(`Failed to update shop settings: ${responseData.message || 'Unknown error'}`);
@@ -618,14 +600,6 @@ export const api = (customFetch = fetch) => {
         
         if (response.ok) {
           toast.success('Shop images updated successfully');
-          
-          // Track the change for publish state
-          publishState.recordChange({
-            type: 'image_update',
-            entity: 'shop',
-            description: 'Store images updated'
-          });
-          
           return responseData.data;
         } else {
           toast.error(`Failed to update shop images: ${responseData.message || 'Unknown error'}`);
@@ -637,12 +611,16 @@ export const api = (customFetch = fetch) => {
       }
     },
     // Order related functions
-    getOrders: async () => {
-      const response = await authenticatedFetch(
-        `${getShopUrl()}/orders`,
-      );
-      const data = await response.json() as ApiResponse<Order[]>;
-      return data.data;
+    getOrders: async (params: { page?: number; limit?: number; start_date?: string; end_date?: string } = {}) => {
+      const query = new URLSearchParams();
+      if (params.page !== undefined) query.append('page', params.page.toString());
+      if (params.limit !== undefined) query.append('limit', params.limit.toString());
+      if (params.start_date !== undefined) query.append('start_date', params.start_date);
+      if (params.end_date !== undefined) query.append('end_date', params.end_date);
+      const url = `${getShopUrl()}/orders${query.toString() ? '?' + query.toString() : ''}`;
+      const response = await authenticatedFetch(url);
+      const data = await response.json() as PaginatedResponse<Order>;
+      return data;
     },
     getOrderById: async (orderId: number): Promise<Order> => {
       const response = await authenticatedFetch(
@@ -815,11 +793,18 @@ export const api = (customFetch = fetch) => {
       return data.data;
     },
 
-    getLowStockVariants: async (threshold?: number): Promise<LowStockVariant[]> => {
-      const params = threshold ? `?threshold=${threshold}` : '';
-      const response = await customFetch(`${getShopUrl()}/inventory/low-stock${params}`);
-      const data = await response.json() as ApiResponse<LowStockVariant[]>;
-      return data.data;
+    getLowStockVariants: async (params: Record<string, any> = {}): Promise<LowStockProduct[]> => {
+      const query = params && Object.keys(params).length
+        ? '?' + new URLSearchParams(params).toString()
+        : '';
+      const response = await authenticatedFetch(`${getShopUrl()}/analytics/low-stock${query}`);
+      const data = await response.json();
+      if (response.ok) {
+        return data.data || [];
+      } else {
+        toast.error(data.message || 'Failed to fetch low stock variants');
+        throw new Error(data.message || 'Failed to fetch low stock variants');
+      }
     },
 
     updateVariantStock: async (variantId: number, stockData: StockUpdatePayload): Promise<InventoryItem> => {
@@ -999,57 +984,6 @@ export const api = (customFetch = fetch) => {
       }
     },
 
-    // Publish API
-    publishStore: async (templateName: string = 'template_1') => {
-      try {
-        const response = await authenticatedFetch(`${getShopUrl()}/publish`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            template_name: templateName,
-            changes: [], // Will be set by PublishButton component
-          }),
-        });
-        
-        const data = await response.json() as ApiResponse<any>;
-        
-        if (response.ok) {
-          toast.success('Store publish initiated successfully');
-          return data.data;
-        } else {
-          toast.error(data.message || 'Failed to publish store');
-          throw new Error(data.message || 'Failed to publish store');
-        }
-      } catch (error) {
-        toast.error('An error occurred while publishing the store');
-        throw error;
-      }
-    },
-
-    getPublishStatus: async (jobId: string) => {
-      try {
-        const response = await authenticatedFetch(`${getShopUrl()}/publish/status?job_id=${jobId}`);
-        const data = await response.json() as ApiResponse<any>;
-        return data.data;
-      } catch (error) {
-        console.error('Error fetching publish status:', error);
-        throw error;
-      }
-    },
-
-    getPublishHistory: async (limit: number = 10, offset: number = 0) => {
-      try {
-        const response = await authenticatedFetch(`${getShopUrl()}/publish/history?limit=${limit}&offset=${offset}`);
-        const data = await response.json() as ApiResponse<any[]>;
-        return data.data || [];
-      } catch (error) {
-        console.error('Error fetching publish history:', error);
-        return [];
-      }
-    },
-
     // Template Management API
     getTemplates: async () => {
       try {
@@ -1204,6 +1138,66 @@ export const api = (customFetch = fetch) => {
         console.error('Error fetching deployment status:', error);
         return null;
       }
-    }
+    },
+
+    // Analytics methods
+    getSalesSummary: async (params: { period: string; start_date?: string; end_date?: string }): Promise<SalesSummary> => {
+      const queryParams = new URLSearchParams();
+      queryParams.append('period', params.period);
+      if (params.period === 'custom') {
+        if (params.start_date) queryParams.append('start_date', params.start_date);
+        if (params.end_date) queryParams.append('end_date', params.end_date);
+      }
+      const response = await authenticatedFetch(`${getShopUrl()}/analytics/sales-summary?${queryParams.toString()}`);
+      const data = await response.json();
+      if (response.ok) {
+        return data.data;
+      } else {
+        toast.error(data.message || 'Failed to fetch sales summary');
+        throw new Error(data.message || 'Failed to fetch sales summary');
+      }
+    },
+    getOrdersOverTime: async (params: Record<string, any> = {}): Promise<OrdersOverTime> => {
+      const query = params && Object.keys(params).length
+        ? '?' + new URLSearchParams(params).toString()
+        : '';
+      const response = await authenticatedFetch(`${getShopUrl()}/analytics/orders-over-time${query}`);
+      const data = await response.json();
+      if (response.ok) {
+        return data.data;
+      } else {
+        toast.error(data.message || 'Failed to fetch orders over time');
+        throw new Error(data.message || 'Failed to fetch orders over time');
+      }
+    },
+    getTopProducts: async (params: Record<string, any> = {}): Promise<TopProduct[]> => {
+      const query = params && Object.keys(params).length
+        ? '?' + new URLSearchParams(params).toString()
+        : '';
+      const response = await authenticatedFetch(`${getShopUrl()}/analytics/top-products${query}`);
+      const data = await response.json();
+      if (response.ok) {
+        return data.data || [];
+      } else {
+        toast.error(data.message || 'Failed to fetch top products');
+        throw new Error(data.message || 'Failed to fetch top products');
+      }
+    },
+    getCustomerSummary: async (params: { period: string; start_date?: string; end_date?: string }): Promise<CustomerSummary> => {
+      const queryParams = new URLSearchParams();
+      queryParams.append('period', params.period);
+      if (params.period === 'custom') {
+        if (params.start_date) queryParams.append('start_date', params.start_date);
+        if (params.end_date) queryParams.append('end_date', params.end_date);
+      }
+      const response = await authenticatedFetch(`${getShopUrl()}/analytics/customers-summary?${queryParams.toString()}`);
+      const data = await response.json();
+      if (response.ok) {
+        return data.data;
+      } else {
+        toast.error(data.message || 'Failed to fetch customer summary');
+        throw new Error(data.message || 'Failed to fetch customer summary');
+      }
+    },
   }
 }

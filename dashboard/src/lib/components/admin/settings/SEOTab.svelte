@@ -8,11 +8,17 @@
 	import type { Shop } from '$lib/types';
 	import { api } from '$lib/api';
 	import { getContext } from 'svelte';
+	import { deepEqual, deepClone } from '$lib/utils/deepEqual';
 	
 	export let shop: Partial<Shop>;
 	
 	const authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> = getContext('authFetch');
 	const refetchShopData: () => Promise<void> = getContext('refetchShopData');
+	
+	let initialShop = deepClone(shop);
+	let hasChanges = false;
+	
+	$: hasChanges = !deepEqual(shop, initialShop);
 	
 	// Handle form submission
 	async function handleFormSubmit(event: Event) {
@@ -31,6 +37,7 @@
 			
 			// Refetch shop data to update the UI
 			await refetchShopData();
+			initialShop = deepClone(shop); // Reset initial state after update
 		} catch (error) {
 			console.error('Error updating SEO settings:', error);
 			toast.error('Failed to update SEO settings');
@@ -82,7 +89,7 @@
 				<p class="text-muted-foreground text-sm">Keywords to help with search engine indexing.</p>
 			</div>
 			
-			<Button type="submit">Update SEO Settings</Button>
+			<Button type="submit" disabled={!hasChanges}>Update SEO Settings</Button>
 		</form>
 	</Card.Content>
-</Card.Root> 
+</Card.Root>

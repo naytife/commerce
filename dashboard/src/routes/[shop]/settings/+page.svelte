@@ -15,7 +15,6 @@
 	import DomainTab from '$lib/components/admin/settings/DomainTab.svelte';
 	import PaymentsTab from '$lib/components/admin/settings/PaymentsTab.svelte';
 	import ImagesTab from '$lib/components/admin/settings/ImagesTab.svelte';
-	import PublishButton from '$lib/components/PublishButton.svelte';
 	import { 
 		Settings, 
 		Image, 
@@ -84,7 +83,6 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<PublishButton />
 			<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-brand">
 				<Store class="w-6 h-6 text-white" />
 			</div>

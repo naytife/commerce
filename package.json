@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@internationalized/date": "^3.8.2"
+  }
+}

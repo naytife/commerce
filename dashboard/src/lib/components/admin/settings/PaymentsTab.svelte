@@ -8,6 +8,7 @@
 	import type { PaymentMethod, PaymentMethodType, PaymentMethodConfig } from '$lib/types';
 	import { api } from '$lib/api';
 	import { getContext, onMount } from 'svelte';
+	import { deepEqual, deepClone } from '$lib/utils/deepEqual';
 	
 	const authFetch: (input: RequestInfo | URL, init?: RequestInit | undefined) => Promise<Response> = getContext('authFetch');
 
@@ -168,19 +169,24 @@
 	async function loadPaymentMethods() {
 		try {
 			loading = true;
-			const apiPaymentMethods = await api(authFetch).getPaymentMethods();
-			
+			const apiResponse = await api(authFetch).getPaymentMethods();
+			const apiPaymentMethods = (apiResponse || []).map(pm => ({
+				method_type: pm.id, // map 'id' to 'method_type'
+				is_enabled: pm.enabled, // map 'enabled' to 'is_enabled'
+				config: pm.config || {},
+			}));
+
 			// Create UI payment methods array with all supported payment types
 			paymentMethods = Object.keys(paymentMethodConfigs).map(methodType => {
 				const config = paymentMethodConfigs[methodType as PaymentMethodType];
 				const existingMethod = apiPaymentMethods.find(pm => pm.method_type === methodType);
-				
+
 				// Clone the settings and populate with existing values
 				const settings = config.settings.map(setting => ({
 					...setting,
 					value: existingMethod?.config?.[setting.id] ?? setting.value
 				}));
-				
+
 				return {
 					...config,
 					enabled: existingMethod?.is_enabled ?? false,
@@ -228,6 +234,20 @@
 		}
 	}
 
+	let initialPaymentMethods: UIPaymentMethod[] = [];
+	let hasChanges = false;
+
+	function resetInitialPaymentMethods() {
+		initialPaymentMethods = deepClone(paymentMethods);
+	}
+
+	$: hasChanges = !deepEqual(paymentMethods, initialPaymentMethods);
+
+	onMount(() => {
+		loadPaymentMethods();
+		resetInitialPaymentMethods();
+	});
+
 	async function savePaymentMethodSettings(method: UIPaymentMethod) {
 		// Validate required fields
 		const missingSettings = method.settings
@@ -255,6 +275,7 @@
 			await api(authFetch).updatePaymentMethod(method.id, paymentMethodConfig);
 			
 			toast.success(`${method.name} settings saved successfully`);
+			resetInitialPaymentMethods();
 		} catch (error) {
 			console.error('Error updating payment settings:', error);
 			toast.error(`Failed to update ${method.name} settings`);
@@ -357,6 +378,7 @@
 								<Button 
 									type="submit"
 									class="mt-2"
+									disabled={!hasChanges}
 								>
 									Save {method.name} Settings
 								</Button>
@@ -367,4 +389,4 @@
 			</div>
 		{/if}
 	</Card.Content>
-</Card.Root> 
+</Card.Root>

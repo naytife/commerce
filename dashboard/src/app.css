@@ -458,3 +458,16 @@
 .animate-float-down {
   animation: floatDown 4s ease-in-out infinite;
 }
+
+/* Calendar: Make 'today' cell visually distinct from 'selected' cell */
+[data-today]:not([data-selected]) {
+  background: var(--muted) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary);
+}
+
+.dark [data-today]:not([data-selected]) {
+  background: var(--muted) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary);
+}

@@ -4,7 +4,6 @@ import "time"
 
 // CheckoutRequest represents a checkout initiation request
 type CheckoutRequest struct {
-	Items           []CartItem       `json:"items" validate:"required,min=1"`
 	CustomerInfo    CustomerInfo     `json:"customer_info" validate:"required"`
 	ShippingAddress ShippingAddress  `json:"shipping_address" validate:"required"`
 	BillingAddress  *ShippingAddress `json:"billing_address,omitempty"`
@@ -29,7 +28,6 @@ type CheckoutResponse struct {
 	CustomerInfo    CustomerInfo        `json:"customer_info"`
 	ShippingAddress ShippingAddress     `json:"shipping_address"`
 	BillingAddress  *ShippingAddress    `json:"billing_address,omitempty"`
-	Items           []CartItem          `json:"items"`
 	SessionID       *string             `json:"session_id,omitempty"`
 	ExpiresAt       time.Time           `json:"expires_at"`
 }

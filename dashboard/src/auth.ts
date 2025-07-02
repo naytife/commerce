@@ -1,13 +1,33 @@
 import { SvelteKitAuth } from "@auth/sveltekit";
 import OryHydra from "@auth/core/providers/ory-hydra";
 
+// Custom OryHydra provider to allow dynamic params (e.g., prompt)
+function CustomOryHydra(options: any) {
+  const base = OryHydra(options);
+
+  return {
+    ...base,
+    authorization: {
+      url: `${options.issuer}/oauth2/auth`,
+      params: async (context: any) => {
+        console.log("Custom params called:", context?.params);
+
+        return {
+          scope: "openid offline_access hydra.openid introspect",
+          app_type: "dashboard",
+          ...(context?.params || {}),
+        };
+      },
+    },
+  };
+}
+
 export const { handle, signIn, signOut } = SvelteKitAuth({
   providers: [
     OryHydra({
       id: "hydra",
       clientId: "4b41cd38-43ed-4e3a-9a88-bd384af21732",
       clientSecret: "fbOoeUd9fEiw6LM~TWhg70zhTo",
-      // Fixed: Remove trailing slash to prevent double slash in well-known URL
       issuer: "http://127.0.0.1:8080",
       authorization: {
         url: "http://127.0.0.1:8080/oauth2/auth",
@@ -23,38 +43,26 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
   ],
   callbacks: {
     async jwt({ token, account, user }) {
-      // On initial sign in, account will contain the OAuth tokens
       if (account) {
-        // Store the OAuth tokens in the JWT token
         token.access_token = account.access_token;
         token.refresh_token = account.refresh_token;
-        // Set access token expiry based on the actual expires_in from OAuth provider
         token.access_token_expires = Math.floor(Date.now() / 1000) + (account.expires_in || 3600);
         token.provider = account.provider;
         token.provider_account_id = account.providerAccountId;
-        // Clear any stale data
         delete token.error;
         return token;
       }
-      
-      // Skip refresh check if we already have an error
       if (token.error) {
         return token;
       }
-      
-      // Check if access token needs refresh (5 minutes before expiry)
       if (token.access_token_expires && Date.now() > (Number(token.access_token_expires) - 300) * 1000) {
         const refreshedToken = await refreshAccessToken(token);
         return refreshedToken;
       }
-      
       return token;
     },
-    
     async session({ session, token }) {
-      // Send properties to the client
       if (token) {
-        // Set the access token in the session (custom property)
         (session as any).access_token = token.access_token;
         session.user = {
           id: (token.sub as string) || "",
@@ -63,17 +71,13 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
           image: (token.picture as string) || undefined,
           emailVerified: null,
         };
-        // Optionally set other custom properties on the session
         (session as any).provider = token.provider;
         (session as any).provider_account_id = token.provider_account_id;
         (session as any).access_token_expires = token.access_token_expires;
       }
-      
       return session;
     },
-
     async signIn({ user, account, profile }) {
-      // Return true to allow the sign in
       return true;
     }
   },
@@ -81,7 +85,7 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  debug: false, // Disable debug in production
+  debug: false,
   trustHost: true,
 });
 

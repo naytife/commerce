@@ -52,18 +52,6 @@ func (h *Handler) InitiateCheckout(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
-	// Calculate totals
-	subtotal := 0.0
-	for _, item := range req.Items {
-		// Verify product variation exists and get current price
-		// For now, we'll use the price from the request
-		subtotal += item.Price * float64(item.Quantity)
-	}
-
-	// Calculate tax and total
-	tax := subtotal * req.TaxRate
-	total := subtotal + req.ShippingCost + tax - req.Discount
-
 	// Get available payment methods for the shop
 	paymentMethods, err := h.Repository.GetShopPaymentMethods(c.Context(), shopID)
 	if err != nil {
@@ -102,16 +90,10 @@ func (h *Handler) InitiateCheckout(c *fiber.Ctx) error {
 		ShopID:          shopID,
 		ShopName:        shop.Title,
 		CurrencyCode:    shop.CurrencyCode,
-		Subtotal:        subtotal,
-		Tax:             tax,
-		Shipping:        req.ShippingCost,
-		Discount:        req.Discount,
-		Total:           total,
 		PaymentMethods:  enabledMethods,
 		CustomerInfo:    req.CustomerInfo,
 		ShippingAddress: req.ShippingAddress,
 		BillingAddress:  req.BillingAddress,
-		Items:           req.Items,
 		ExpiresAt:       time.Now().Add(30 * time.Minute), // 30 minutes checkout session
 	}
 

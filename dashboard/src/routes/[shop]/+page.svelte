@@ -12,24 +12,32 @@
 		Edit,
 		Trash2,
 		Calendar,
-		Clock,
 		ArrowUpRight,
 		BarChart3,
 		Package
 	} from 'lucide-svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { Badge } from '$lib/components/ui/badge';
-	import PublishButton from '$lib/components/PublishButton.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+	import { createQuery, useQueryClient, type CreateQueryResult } from '@tanstack/svelte-query';
 	import { getContext } from 'svelte';
 	import { api } from '$lib/api';
-	import type { Product } from '$lib/types';
+	import type { Product, SalesSummary, CustomerSummary, OrdersOverTime } from '$lib/types';
 	import { page } from '$app/stores';
 	import { getCurrencySymbol, formatCurrencyWithLocale } from '$lib/utils/currency';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as CalendarUI from '$lib/components/ui/calendar';
+	import { Popover } from '$lib/components/ui/popover';
+	import { addDays, startOfToday, startOfWeek, startOfMonth, endOfToday, endOfWeek, endOfMonth, format as formatDate, isSameDay } from 'date-fns';
+	import { CalendarDate } from '@internationalized/date';
+	import { persistentWritable } from '$lib/stores/persistent';
+	import { Chart, registerables } from 'chart.js';
+	Chart.register(...registerables);
+	import { Line } from 'svelte-chartjs';
+	import { onMount } from 'svelte';
 
 	const client = useQueryClient()
 	const authFetch = getContext('authFetch')
@@ -37,7 +45,7 @@
 	// Get shop data for currency
 	const shopQuery = createQuery({
 		queryKey: [`shop-${$page.params.shop}`],
-		queryFn: () => api(authFetch as any).getShop($page.params.shop),
+		queryFn: () => api(authFetch as any).getShop(),
 	});
 
 	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
@@ -53,24 +61,242 @@
 	queryFn: () => api(authFetch as any).getProducts(limit),
 	})
 
-	// Mock data for dashboard stats (replace with real API calls)
-	const dashboardStats = {
-		totalRevenue: 24580,
-		revenueChange: '+12.5%',
-		totalOrders: 1234,
-		ordersChange: '+8.2%',
-		totalCustomers: 567,
-		customersChange: '+3.1%',
-		conversionRate: '3.4%',
-		conversionChange: '+0.8%'
-	};
-
-	const recentOrders = [
-		{ id: '#3210', customer: 'John Doe', status: 'completed', amount: 156.00, date: '2 hours ago' },
-		{ id: '#3209', customer: 'Jane Smith', status: 'processing', amount: 89.50, date: '4 hours ago' },
-		{ id: '#3208', customer: 'Mike Johnson', status: 'pending', amount: 234.75, date: '6 hours ago' },
-		{ id: '#3207', customer: 'Sarah Wilson', status: 'completed', amount: 67.25, date: '8 hours ago' },
+	// Time range state
+	const TIME_RANGES = [
+		{ key: 'today', label: 'Today' },
+		{ key: 'week', label: 'This Week' },
+		{ key: 'month', label: 'This Month' },
+		{ key: 'custom', label: 'Custom Range...' },
 	];
+
+	// Conversion helpers
+	function toCalendarDate(date: Date): CalendarDate {
+		return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+	}
+	function toJSDate(cd: CalendarDate): Date {
+		return new Date(cd.year, cd.month - 1, cd.day);
+	}
+
+	function getDefaultRange() {
+		const today = new Date();
+		return {
+			key: 'month',
+			label: 'Last 30 days',
+			start: toCalendarDate(addDays(today, -29)),
+			end: toCalendarDate(today),
+		};
+	}
+
+	function timeRangeReviver(obj: any) {
+		if (obj && obj.start && obj.end) {
+			return {
+				...obj,
+				start: new CalendarDate(obj.start.year, obj.start.month, obj.start.day),
+				end: new CalendarDate(obj.end.year, obj.end.month, obj.end.day),
+			};
+		}
+		return obj;
+	}
+
+	export const timeRange = persistentWritable('dashboard-time-range', getDefaultRange(), timeRangeReviver);
+	let showCustomDialog = false;
+	let customStart = getDefaultRange().start;
+	let customEnd = getDefaultRange().end;
+
+	$: buttonLabel = getButtonLabel($timeRange);
+
+	function setRange(key: string) {
+		const today = new Date();
+		if (key === 'today') {
+			timeRange.set({
+				key,
+				label: 'Today',
+				start: null,
+				end: null,
+			});
+		} else if (key === 'week') {
+			timeRange.set({
+				key,
+				label: 'This Week',
+				start:null,
+				end:null,
+			});
+		} else if (key === 'month') {
+			timeRange.set({
+				key,
+				label: 'This Month',
+				start:null,
+				end:null,
+			});
+		} else if (key === 'custom') {
+			showCustomDialog = true;
+			const defaultStart = toCalendarDate(addDays(today, -29));
+			const defaultEnd = toCalendarDate(today);
+			customStart = $timeRange.start
+				? new CalendarDate($timeRange.start.year, $timeRange.start.month, $timeRange.start.day)
+				: defaultStart;
+			customEnd = $timeRange.end
+				? new CalendarDate($timeRange.end.year, $timeRange.end.month, $timeRange.end.day)
+				: defaultEnd;
+		}
+	}
+
+	function applyCustomRange() {
+		timeRange.set({
+			key: 'custom',
+			label: `${customStart.toString()} - ${customEnd.toString()}`,
+			start: customStart,
+			end: customEnd,
+		});
+		showCustomDialog = false;
+	}
+
+	function getButtonLabel(timeRange: { key: string; label: string; start: CalendarDate; end: CalendarDate }) {
+		if (timeRange.key === 'custom') {
+			const start = toJSDate(timeRange.start);
+			const end = toJSDate(timeRange.end);
+			return `${formatDate(start, 'MMM d, yyyy')} - ${formatDate(end, 'MMM d, yyyy')}`;
+		}
+		if (timeRange.key === 'today') {
+			return 'Today';
+		}
+		if (timeRange.key === 'week') {
+			return 'This Week';
+		}
+		if (timeRange.key === 'month') {
+			return 'This Month';
+		}
+		return timeRange.label;
+	}
+
+	// Update queries to use $timeRange
+	let salesSummary: CreateQueryResult<SalesSummary, Error>;
+	$: salesSummary = createQuery<SalesSummary, Error>({
+		queryKey: [`shop-${$page.params.shop}-sales-summary`, $timeRange.key, $timeRange.start, $timeRange.end],
+		queryFn: () => {
+			const period = $timeRange.key;
+			if (period === 'custom') {
+				return api(authFetch as any).getSalesSummary({
+					period,
+					start_date: toJSDate($timeRange.start).toISOString().slice(0, 10),
+					end_date: toJSDate($timeRange.end).toISOString().slice(0, 10),
+				});
+			} else {
+				return api(authFetch as any).getSalesSummary({ period });
+			}
+		},
+	});
+
+	let customerSummary:CreateQueryResult<CustomerSummary, Error>;
+	$: customerSummary = createQuery<CustomerSummary, Error>({
+		queryKey: [`shop-${$page.params.shop}-customer-summary`, $timeRange.key, $timeRange.start, $timeRange.end],
+		queryFn: () => {
+			const period = $timeRange.key;
+			if (period === 'custom') {
+				return api(authFetch as any).getCustomerSummary({
+					period,
+					start_date: toJSDate($timeRange.start).toISOString().slice(0, 10),
+					end_date: toJSDate($timeRange.end).toISOString().slice(0, 10),
+				});
+			} else {
+				return api(authFetch as any).getCustomerSummary({ period });
+			}
+		},
+	});
+
+	const recentOrders = createQuery({
+		queryKey: [`shop-${$page.params.shop}-recent-orders`],
+		queryFn: () => api(authFetch as any).getOrders({ limit: 4}),
+	});
+
+	// --- Orders Over Time Chart State ---
+	let primaryColor = '141, 70%, 37%'; // fallback to default
+
+	// Interval state for chart
+	const INTERVALS = [
+		{ key: 'day', label: 'Day' },
+		{ key: 'week', label: 'Week' },
+		{ key: 'month', label: 'Month' }
+	];
+	let interval = 'day';
+
+	onMount(() => {
+		const style = getComputedStyle(document.documentElement);
+		const cssPrimary = style.getPropertyValue('--primary').trim();
+		if (cssPrimary) {
+			primaryColor = cssPrimary;
+		}
+	});
+
+	function getOrdersChartConfig(data: OrdersOverTime | null) {
+		if (!data || !data.labels?.length || !data.orders?.length) return null;
+		return {
+			data: {
+				labels: data.labels,
+				datasets: [
+					{
+						label: 'Orders',
+						data: data.orders,
+						fill: false,
+						borderColor: `hsl(${primaryColor})`,
+						backgroundColor: `hsla(${primaryColor}, 0.2)`,
+						tension: 0.1
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				plugins: {
+					legend: { display: true },
+					title: { display: false }
+				},
+				scales: {
+					x: { title: { display: true, text: 'Date' } },
+					y: {
+						title: { display: true, text: 'Orders' },
+						beginAtZero: true,
+						ticks: {
+							callback: function(this: any, value: string | number, index: number, ticks: any[]) {
+								if (typeof value === 'number' && Number.isInteger(value)) return value;
+								return null;
+							},
+							stepSize: 1,
+							precision: 0
+						}
+					}
+				}
+			}
+		};
+	}
+
+	// Orders Over Time Query
+	let ordersOverTime: CreateQueryResult<OrdersOverTime, Error>;
+	$: ordersOverTime = createQuery<OrdersOverTime, Error>({
+		queryKey: [
+			`shop-${$page.params.shop}-orders-over-time`,
+			$timeRange.key,
+			$timeRange.start,
+			$timeRange.end,
+			interval
+		],
+		queryFn: () => {
+			const period = $timeRange.key;
+			if (period === 'custom') {
+				return api(authFetch as any).getOrdersOverTime({
+					period,
+					interval,
+					start_date: toJSDate($timeRange.start).toISOString().slice(0, 10),
+					end_date: toJSDate($timeRange.end).toISOString().slice(0, 10),
+				});
+			} else {
+				return api(authFetch as any).getOrdersOverTime({ period, interval });
+			}
+		},
+	});
+
+	$: ordersChartConfig = ($ordersOverTime.status === 'success' && $ordersOverTime.data && Array.isArray($ordersOverTime.data.labels) && $ordersOverTime.data.labels.length > 0 && Array.isArray($ordersOverTime.data.orders) && $ordersOverTime.data.orders.length > 0)
+		? getOrdersChartConfig($ordersOverTime.data)
+		: null;
 </script>
 
 <div class="space-y-8">
@@ -83,17 +309,50 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<Button variant="outline" class="glass border-border/50">
-				<Calendar class="w-4 h-4 mr-2" />
-				Last 30 days
-			</Button>
-			<PublishButton />
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild let:builder>
+					<Button builders={[builder]} variant="outline" class="glass border-border/50 min-w-[160px] justify-between">
+						<Calendar class="w-4 h-4 mr-2" />
+						{buttonLabel}
+					</Button>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" class="glass border-border/50 shadow-glass rounded-xl">
+					{#each TIME_RANGES as range}
+						<DropdownMenu.Item on:click={() => setRange(range.key)} class={$timeRange.key === range.key ? 'selected' : ''}>{range.label}</DropdownMenu.Item>
+					{/each}
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
 			<Button href="/{$page.params.shop}/product-types/create" class="btn-gradient shadow-brand">
 				<CirclePlus class="w-4 h-4 mr-2" />
 				Add Product
 			</Button>
 		</div>
 	</div>
+
+	<Dialog.Root bind:open={showCustomDialog}>
+		<Dialog.Content class="max-w-full w-[95vw] sm:max-w-2xl">
+			<Dialog.Header>
+				<Dialog.Title>Custom Date Range</Dialog.Title>
+				<Dialog.Description>Select a start and end date for your custom range.</Dialog.Description>
+			</Dialog.Header>
+			<div class="flex flex-col gap-4 mt-4">
+				<div class="flex flex-col sm:flex-row gap-4">
+					<div class="flex-1">
+						<label class="block text-sm mb-1">Start Date</label>
+						<CalendarUI.Calendar bind:value={customStart} />
+					</div>
+					<div class="flex-1">
+						<label class="block text-sm mb-1">End Date</label>
+						<CalendarUI.Calendar bind:value={customEnd} />
+					</div>
+				</div>
+				<div class="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+					<Button variant="outline" on:click={() => (showCustomDialog = false)}>Cancel</Button>
+					<Button on:click={applyCustomRange} disabled={!customStart || !customEnd || customEnd < customStart}>Apply</Button>
+				</div>
+			</div>
+		</Dialog.Content>
+	</Dialog.Root>
 
 	<!-- Stats Cards -->
 	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -103,13 +362,27 @@
 				<div class="w-12 h-12 bg-gradient-to-br from-success to-emerald-500 rounded-2xl flex items-center justify-center shadow-brand">
 					<DollarSign class="w-6 h-6 text-white" />
 				</div>
-				<Badge variant="secondary" class="text-success bg-success/10 border-success/20">
-					{dashboardStats.revenueChange}
+				<Badge variant="secondary" class={($salesSummary.data?.sales_change_pct ?? 0) < 0 ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-success bg-success/10 border-success/20'}>
+					{#if $salesSummary.isLoading}
+						...
+					{:else if $salesSummary.isError}
+						!
+					{:else}
+						{($salesSummary.data?.sales_change_pct ?? 0) > 0 ? '+' : ''}{($salesSummary.data?.sales_change_pct ?? 0).toFixed(0)}%
+					{/if}
 				</Badge>
 			</div>
 			<div class="space-y-1">
 				<p class="text-sm text-muted-foreground">Total Revenue</p>
-				<p class="text-2xl font-bold text-foreground">{formatCurrencyWithLocale(dashboardStats.totalRevenue, currencyCode)}</p>
+				<p class="text-2xl font-bold text-foreground">
+					{#if $salesSummary.isLoading}
+						...
+					{:else if $salesSummary.isError}
+						Error
+					{:else}
+						{formatCurrencyWithLocale($salesSummary.data?.total_sales || 0, currencyCode)}
+					{/if}
+				</p>
 			</div>
 		</div>
 
@@ -119,13 +392,27 @@
 				<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-brand">
 					<ShoppingCart class="w-6 h-6 text-white" />
 				</div>
-				<Badge variant="secondary" class="text-primary bg-primary/10 border-primary/20">
-					{dashboardStats.ordersChange}
+				<Badge variant="secondary" class={($salesSummary.data?.orders_change_pct ?? 0) < 0 ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-primary bg-primary/10 border-primary/20'}>
+					{#if $salesSummary.isLoading}
+						...
+					{:else if $salesSummary.isError}
+						!
+					{:else}
+						{($salesSummary.data?.orders_change_pct ?? 0) > 0 ? '+' : ''}{($salesSummary.data?.orders_change_pct ?? 0).toFixed(0)}%
+					{/if}
 				</Badge>
 			</div>
 			<div class="space-y-1">
 				<p class="text-sm text-muted-foreground">Total Orders</p>
-				<p class="text-2xl font-bold text-foreground">{dashboardStats.totalOrders.toLocaleString()}</p>
+				<p class="text-2xl font-bold text-foreground">
+					{#if $salesSummary.isLoading}
+						...
+					{:else if $salesSummary.isError}
+						Error
+					{:else}
+						{($salesSummary.data?.total_orders || 0).toLocaleString()}
+					{/if}
+				</p>
 			</div>
 		</div>
 
@@ -135,13 +422,27 @@
 				<div class="w-12 h-12 bg-gradient-to-br from-accent to-secondary rounded-2xl flex items-center justify-center shadow-brand">
 					<Users class="w-6 h-6 text-white" />
 				</div>
-				<Badge variant="secondary" class="text-accent bg-accent/10 border-accent/20">
-					{dashboardStats.customersChange}
+				<Badge variant="secondary" class={($salesSummary.data?.customers_change_pct ?? 0) < 0 ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-accent bg-accent/10 border-accent/20'}>
+					{#if $salesSummary.isLoading}
+						...
+					{:else if $salesSummary.isError}
+						!
+					{:else}
+						{($salesSummary.data?.customers_change_pct ?? 0) > 0 ? '+' : ''}{($salesSummary.data?.customers_change_pct ?? 0).toFixed(0)}%
+					{/if}
 				</Badge>
 			</div>
 			<div class="space-y-1">
 				<p class="text-sm text-muted-foreground">Total Customers</p>
-				<p class="text-2xl font-bold text-foreground">{dashboardStats.totalCustomers.toLocaleString()}</p>
+				<p class="text-2xl font-bold text-foreground">
+					{#if $customerSummary.isLoading}
+						...
+					{:else if $customerSummary.isError}
+						Error
+					{:else}
+						{($customerSummary.data?.new_customers || 0) + ($customerSummary.data?.returning_customers || 0)}
+					{/if}
+				</p>
 			</div>
 		</div>
 
@@ -152,20 +453,55 @@
 					<TrendingUp class="w-6 h-6 text-white" />
 				</div>
 				<Badge variant="secondary" class="text-secondary bg-secondary/10 border-secondary/20">
-					{dashboardStats.conversionChange}
+					--
 				</Badge>
 			</div>
 			<div class="space-y-1">
 				<p class="text-sm text-muted-foreground">Conversion Rate</p>
-				<p class="text-2xl font-bold text-foreground">{dashboardStats.conversionRate}</p>
+				<p class="text-2xl font-bold text-foreground">--</p>
 			</div>
 		</div>
 	</div>
 
 	<!-- Main Content Grid -->
 	<div class="grid gap-8 lg:grid-cols-3">
-		<!-- Recent Products -->
-		<div class="lg:col-span-2">
+		<!-- Left Column: Chart + Recent Products -->
+		<div class="space-y-8 lg:col-span-2">
+			<!-- Orders Over Time Chart -->
+			<div class="card-elevated mb-0">
+				<div class="flex items-center justify-between mb-6">
+					<div>
+						<h2 class="text-xl font-semibold text-foreground">Orders Over Time</h2>
+						<p class="text-sm text-muted-foreground">Visualize order trends for the selected period</p>
+					</div>
+					<!-- Interval Button Group -->
+					<div class="flex gap-2">
+						{#each INTERVALS as i}
+							<Button
+								on:click={() => interval = i.key}
+								variant={interval === i.key ? 'default' : 'outline'}
+								size="sm"
+								class="min-w-[64px]"
+							>
+								{i.label}
+							</Button>
+						{/each}
+					</div>
+				</div>
+				<div class="rounded-lg">
+					{#if $ordersOverTime.status === 'pending'}
+						<div class="flex justify-center items-center min-h-[200px] text-muted-foreground">Loading chart...</div>
+					{:else if $ordersOverTime.status === 'error'}
+						<div class="text-red-600 text-center py-8">{$ordersOverTime.error.message}</div>
+					{:else if ordersChartConfig}
+						<Line data={ordersChartConfig.data} options={ordersChartConfig.options} height={120} />
+					{:else}
+						<div class="text-center text-muted-foreground py-8">No order data available for chart.</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Recent Products -->
 			<div class="card-elevated">
 				<div class="flex items-center justify-between mb-6">
 					<div>
@@ -332,7 +668,7 @@
 			</div>
 		</div>
 
-		<!-- Recent Orders -->
+		<!-- Right Column: Recent Orders + Quick Actions -->
 		<div class="space-y-6">
 			<!-- Recent Orders Card -->
 			<div class="card-elevated">
@@ -352,28 +688,52 @@
 				</div>
 
 				<div class="space-y-4">
-					{#each recentOrders as order}
-						<div class="flex items-center justify-between p-4 bg-surface-elevated rounded-xl border border-border/50 hover:bg-surface-muted/50 transition-colors">
-							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-									<ShoppingCart class="w-5 h-5 text-white" />
+					{#if $recentOrders.isLoading}
+						{#each Array(4) as _}
+							<div class="flex items-center justify-between p-4 bg-surface-elevated rounded-xl border border-border/50 animate-pulse">
+								<div class="flex items-center gap-3">
+									<div class="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+										<ShoppingCart class="w-5 h-5 text-white" />
+									</div>
+									<div>
+										<div class="h-4 w-20 bg-muted rounded mb-1"></div>
+										<div class="h-3 w-16 bg-muted rounded"></div>
+									</div>
 								</div>
-								<div>
-									<p class="font-medium text-foreground">{order.id}</p>
-									<p class="text-sm text-muted-foreground">{order.customer}</p>
+								<div class="text-right">
+									<div class="h-6 w-16 bg-muted rounded mb-1"></div>
+									<div class="h-4 w-12 bg-muted rounded"></div>
 								</div>
 							</div>
-							<div class="text-right">
-								<Badge 
-									variant="secondary" 
-									class={order.status === 'completed' ? 'status-active' : order.status === 'processing' ? 'status-warning' : 'status-inactive'}
-								>
-									{order.status}
-								</Badge>
-								<p class="text-sm font-medium text-foreground mt-1">{formatCurrencyWithLocale(order.amount, currencyCode)}</p>
+						{/each}
+					{:else if $recentOrders.isError}
+						<div class="text-center text-muted-foreground py-8">Error loading recent orders.</div>
+					{:else if !$recentOrders.data?.data || $recentOrders.data.data.length === 0}
+						<div class="text-center text-muted-foreground py-8">No recent orders.</div>
+					{:else}
+						{#each $recentOrders.data?.data ?? [] as order}
+							<div class="flex items-center justify-between p-4 bg-surface-elevated rounded-xl border border-border/50 hover:bg-surface-muted/50 transition-colors">
+								<div class="flex items-center gap-3">
+									<div class="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+										<ShoppingCart class="w-5 h-5 text-white" />
+									</div>
+									<div>
+										<p class="font-medium text-foreground">#{order.order_id}</p>
+										<p class="text-sm text-muted-foreground truncate max-w-[140px]">{order.customer_name || order.customer_email}</p>
+									</div>
+								</div>
+								<div class="text-right">
+									<Badge 
+										variant="secondary" 
+										class={order.status === 'completed' ? 'status-active' : order.status === 'processing' ? 'status-warning' : 'status-inactive'}
+									>
+										{order.status}
+									</Badge>
+									<p class="text-sm font-medium text-foreground mt-1">{formatCurrencyWithLocale(order.amount, currencyCode)}</p>
+								</div>
 							</div>
-						</div>
-					{/each}
+						{/each}
+					{/if}
 				</div>
 			</div>
 

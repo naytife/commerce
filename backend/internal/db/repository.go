@@ -138,6 +138,7 @@ type Repository interface {
 	UpdateOrderItem(ctx context.Context, arg UpdateOrderItemParams) error
 	DeleteOrderItem(ctx context.Context, arg DeleteOrderItemParams) error
 	DeleteOrderItemsByOrder(ctx context.Context, arg DeleteOrderItemsByOrderParams) error
+	CountOrders(ctx context.Context, shopID int64) (int64, error)
 	// PAYMENT STATUS MANAGEMENT
 	UpdateOrderPaymentStatus(ctx context.Context, arg UpdateOrderPaymentStatusParams) (Order, error)
 	GetOrderByTransactionID(ctx context.Context, arg GetOrderByTransactionIDParams) (Order, error)
@@ -168,6 +169,12 @@ type Repository interface {
 	// DEPLOYMENT URL TRACKING
 	CreateDeploymentURL(ctx context.Context, arg CreateDeploymentURLParams) (ShopDeploymentUrl, error)
 	GetDeploymentURLs(ctx context.Context, deploymentID int64) ([]ShopDeploymentUrl, error)
+	GetSalesSummary(ctx context.Context, arg GetSalesSummaryParams) (GetSalesSummaryRow, error)
+	GetOrdersOverTime(ctx context.Context, arg GetOrdersOverTimeParams) ([]GetOrdersOverTimeRow, error)
+	GetTopProducts(ctx context.Context, arg GetTopProductsParams) ([]GetTopProductsRow, error)
+	GetCustomerSummaryNewReturning(ctx context.Context, arg GetCustomerSummaryNewReturningParams) (GetCustomerSummaryNewReturningRow, error)
+	GetCustomerSummaryTop(ctx context.Context, arg GetCustomerSummaryTopParams) ([]GetCustomerSummaryTopRow, error)
+	GetLowStockProducts(ctx context.Context, arg GetLowStockProductsParams) ([]GetLowStockProductsRow, error)
 }
 
 func NewRepository(db *pgxpool.Pool) Repository {
@@ -270,4 +277,28 @@ func (r *repoSvc) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		return err
 	})
 	return category, err
+}
+
+func (r *repoSvc) GetSalesSummary(ctx context.Context, arg GetSalesSummaryParams) (GetSalesSummaryRow, error) {
+	return r.Queries.GetSalesSummary(ctx, arg)
+}
+
+func (r *repoSvc) GetOrdersOverTime(ctx context.Context, arg GetOrdersOverTimeParams) ([]GetOrdersOverTimeRow, error) {
+	return r.Queries.GetOrdersOverTime(ctx, arg)
+}
+
+func (r *repoSvc) GetTopProducts(ctx context.Context, arg GetTopProductsParams) ([]GetTopProductsRow, error) {
+	return r.Queries.GetTopProducts(ctx, arg)
+}
+
+func (r *repoSvc) GetCustomerSummaryNewReturning(ctx context.Context, arg GetCustomerSummaryNewReturningParams) (GetCustomerSummaryNewReturningRow, error) {
+	return r.Queries.GetCustomerSummaryNewReturning(ctx, arg)
+}
+
+func (r *repoSvc) GetCustomerSummaryTop(ctx context.Context, arg GetCustomerSummaryTopParams) ([]GetCustomerSummaryTopRow, error) {
+	return r.Queries.GetCustomerSummaryTop(ctx, arg)
+}
+
+func (r *repoSvc) GetLowStockProducts(ctx context.Context, arg GetLowStockProductsParams) ([]GetLowStockProductsRow, error) {
+	return r.Queries.GetLowStockProducts(ctx, arg)
 }

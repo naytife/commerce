@@ -416,10 +416,10 @@ export type ProductType = {
   export type PaymentMethodType = 'stripe' | 'paypal' | 'paystack' | 'flutterwave';
 
   export interface PaymentMethod {
-    payment_method_id?: number;
+    id: String;
     shop_id?: number;
     method_type: PaymentMethodType;
-    is_enabled: boolean;
+    enabled: boolean;
     config?: Record<string, any>;
     created_at?: string;
     updated_at?: string;
@@ -433,4 +433,48 @@ export type ProductType = {
 
   export interface PaymentMethodsRequest {
     payment_methods: PaymentMethodConfig[];
+  }
+
+  // Analytics Types
+  export interface SalesSummary {
+    total_sales: number;
+    total_orders: number;
+    average_order_value: number;
+    sales_change_pct: number;
+    orders_change_pct: number;
+    customers_change_pct: number;
+  }
+
+  export interface OrdersOverTime {
+    labels: string[];
+    orders: number[];
+  }
+
+  export interface TopProduct {
+    product_variation_id: number;
+    product_name: string;
+    units_sold: number;
+    revenue: number;
+  }
+
+  export interface TopCustomer {
+    customer_id: string | null;
+    name: string;
+    orders: number;
+    total_spent: number;
+    is_registered: boolean;
+  }
+
+  export interface CustomerSummary {
+    new_customers: number;
+    returning_customers: number;
+    top_customers: TopCustomer[];
+  }
+
+  export interface LowStockProduct {
+    product_variation_id: number;
+    product_name: string;
+    sku: string;
+    description: string;
+    stock: number;
   }

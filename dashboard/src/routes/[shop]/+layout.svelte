@@ -161,8 +161,8 @@
 		{ href: 'product-types', icon: Boxes, label: 'Products' },
 		{ href: 'customers', icon: UsersRound, label: 'Customers' },
 		{ href: 'inventory', icon: Package, label: 'Inventory' },
-		{ href: 'categories', icon: Workflow, label: 'Categories' },
-		{ href: 'templates', icon: Palette, label: 'Templates' }
+		// { href: 'categories', icon: Workflow, label: 'Categories' },
+		// { href: 'templates', icon: Palette, label: 'Templates' }
 	];
 </script>
 

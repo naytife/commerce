@@ -122,7 +122,7 @@ func handleLogin(c *fiber.Ctx) error {
 		log.Printf("Failed to get login request: %v", err)
 		return c.Status(http.StatusInternalServerError).SendString("Failed to get login request")
 	}
-	// Extract shop_id from request_url
+	// Extract shop_id and prompt from request_url
 	parsedURL, err := url.Parse(loginRequest.RequestUrl)
 	if err != nil {
 		log.Printf("Invalid request_url: %v", err)
@@ -131,6 +131,9 @@ func handleLogin(c *fiber.Ctx) error {
 	query := parsedURL.Query()
 	shopID := query.Get("shop_id")
 	log.Printf("shop_id extracted from request_url: %s", shopID)
+
+	prompt := query.Get("prompt")
+	log.Printf("prompt extracted from request_url: %s", prompt)
 
 	appType := query.Get("app_type")
 	log.Printf("app_type extracted from request_url: %s", appType)
@@ -142,8 +145,6 @@ func handleLogin(c *fiber.Ctx) error {
 	if appType == "storefront" && shopID == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing shop_id for storefront app")
 	}
-
-	// app_type was already extracted above
 
 	// Only set shop_id cookie if appType is "storefront"
 	if appType == "storefront" {
@@ -194,6 +195,10 @@ func handleLogin(c *fiber.Ctx) error {
 	// Append shop_id to the auth URL
 	authURL := oauthProvider.OAuth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	authURL += "&shop_id=" + url.QueryEscape(shopID)
+	if prompt != "" {
+		authURL += "&prompt=" + url.QueryEscape(prompt)
+	}
+
 	log.Printf("Redirecting to auth URL: %s", authURL)
 
 	return c.Redirect(authURL)

@@ -1,12 +1,20 @@
 <script>
   import { SignIn } from "@auth/sveltekit/components";
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
+  import { get } from 'svelte/store';
   
   let mounted = false;
   let isLoading = false;
-  
+  let redirectTo = '/account';
+
   onMount(() => {
     mounted = true;
+    // Get redirectTo from query param if present
+    const url = get(page).url;
+    const param = url.searchParams.get('redirectTo');
+    if (param) redirectTo = param;
+    console.log('Redirecting to:', redirectTo);
   });
   
   function handleSignIn() {
@@ -65,7 +73,8 @@
       <div class="space-y-6">
         
         <!-- Google Sign-in using your original SignIn component -->
-        <SignIn provider="hydra" options={{ redirectTo: "http://localhost:5173/account" }}>
+        {#if mounted}
+        <SignIn provider="hydra" options={{ redirectTo }}>
           <button 
             slot="submitButton" 
             on:click={handleSignIn}
@@ -89,6 +98,7 @@
             {/if}
           </button>
         </SignIn>
+        {/if}
 
         <!-- Divider -->
         <div class="relative flex items-center my-8">
