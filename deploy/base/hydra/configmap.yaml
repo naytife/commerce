@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hydra-config
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  hydra.yml: |
+    # Hydra configuration for k3s development
+    serve:
+      public:
+        port: 4444
+        host: 0.0.0.0
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - "*"
+      admin:
+        port: 4445
+        host: 0.0.0.0
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - "*"
+    
+    urls:
+      self:
+        issuer: http://127.0.0.1:8080/
+      login: http://127.0.0.1:8080/login
+      consent: http://127.0.0.1:8080/consent
+      logout: http://127.0.0.1:8080/logout
+      error: http://127.0.0.1:8080/error
+      post_logout_redirect: http://127.0.0.1:8080/
+    
+    oidc:
+      subject_identifiers:
+        supported_types:
+          - public
+      dynamic_client_registration:
+        enabled: false
+    
+    oauth2:
+      session:
+        encrypt_at_rest: false
+      pkce:
+        enforced: false
+        enforced_for_public_clients: false
+    
+    log:
+      level: info
+      format: json
+    
+    secrets:
+      cookie:
+        - HydraCookieSecret2024!
+      system:
+        - HydraSystemSecret2024!
+    
+    ttl:
+      access_token: 1h
+      refresh_token: 720h
+      id_token: 1h
+      auth_code: 10m

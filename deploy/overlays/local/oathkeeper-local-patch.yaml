@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-config
+  namespace: naytife-auth
+data:
+  config.yaml: |
+    log:
+      level: info
+      format: json
+      leak_sensitive_values: true
+    
+    serve:
+      proxy:
+        port: 8080
+        host: 0.0.0.0
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - "*"
+      api:
+        port: 4456
+        host: 0.0.0.0
+    
+    access_rules:
+      matching_strategy: glob
+      repositories:
+        - file:///etc/rules/access-rules.json
+    
+    errors:
+      fallback:
+        - json
+      handlers:
+        json:
+          enabled: true
+          config:
+            verbose: true
+        redirect:
+          enabled: true
+          config:
+            to: http://127.0.0.1:3000/auth/login
+            when:
+              - error:
+                  - unauthorized
+                  - forbidden
+                request:
+                  header:
+                    accept:
+                      - text/html
+    
+    authenticators:
+      anonymous:
+        enabled: true
+        config:
+          subject: guest
+      
+      noop:
+        enabled: true
+      
+      oauth2_introspection:
+        enabled: true
+        config:
+          introspection_url: http://hydra-admin.naytife-auth.svc.cluster.local:4445/admin/oauth2/introspect
+          scope_strategy: exact
+          trusted_issuers:
+            - http://127.0.0.1:8080/
+          pre_authorization:
+            enabled: true
+            client_id: 761506cc-511f-411c-bf31-752efd8063b3
+            client_secret: z.WE65SP5o0oXDYJwLdyoqYUuN
+            scope:
+              - introspect
+            token_url: http://hydra-public.naytife-auth.svc.cluster.local:4444/oauth2/token
+          token_from:
+            header: Authorization
+          retry:
+            max_delay: 300ms
+            give_up_after: 2s
+          cache:
+            enabled: true
+            ttl: 60s
+      
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - http://hydra-public.naytife-auth.svc.cluster.local:4444/.well-known/jwks.json
+          allowed_algorithms:
+            - RS256
+          trusted_issuers:
+            - http://127.0.0.1:8080/
+    
+    authorizers:
+      allow:
+        enabled: true
+      
+      deny:
+        enabled: true
+    
+    mutators:
+      noop:
+        enabled: true
+      
+      header:
+        enabled: true
+        config:
+          headers:
+            X-User-Id: "{{ print .Subject }}"
+            X-User-Email: "{{ print .Extra.email }}"
+            X-User-Name: "{{ print .Extra.name }}" 

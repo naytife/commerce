@@ -68,12 +68,7 @@ echo -e "\n${BLUE}🚀 Step 5: Deploying All Services${NC}"
 echo "-------------------------------"
 "$SCRIPT_DIR/deploy-all.sh"
 
-# Step 6: Setup port forwarding
-echo -e "\n${BLUE}🔗 Step 6: Setting up Port Forwarding${NC}"
-echo "------------------------------------"
-"$SCRIPT_DIR/setup-port-forwards.sh"
-
-# Step 7: Final status check
+# Step 6: Final status check
 echo -e "\n${BLUE}📊 Step 7: Final Status Check${NC}"
 echo "----------------------------"
 sleep 5

@@ -1,0 +1,34 @@
+# Migration files (copied from backend, should be synced via script)
+base/backend/migrations/
+
+# Secrets and private keys
+*.key
+*.pem
+*.p12
+*.pfx
+private/
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+*_OLD*
+*_NEW*
+temp-secrets/
+
+# Build outputs
+kustomize-output-*.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db 

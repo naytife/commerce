@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend-migrate
+  namespace: naytife
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for PostgreSQL to be ready..."
+          until pg_isready -h local-postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "PostgreSQL not ready, waiting 2 seconds..."
+            sleep 2
+          done
+          echo "✅ PostgreSQL is ready!"
+      
+      - name: migration-pre-check
+        command:
+        - sh
+        - -c
+        - |
+          echo "🔍 Running pre-migration checks..."
+          
+          # Check if database exists and is accessible
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h local-postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "SELECT version();" || exit 1
+          
+          # Check if schema exists
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h local-postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
+          
+          echo "✅ Pre-migration checks passed"

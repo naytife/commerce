@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hydra-migrate
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/component: migrate
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  template:
+    metadata:
+      labels:
+        app: hydra-migrate
+        app.kubernetes.io/name: hydra
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+      containers:
+      - name: hydra-migrate
+        image: oryd/hydra:v2.2.0
+        command:
+        - hydra
+        - migrate
+        - sql
+        - -e
+        - --yes
+        - --config
+        - /etc/config/hydra.yml
+        env:
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              name: hydra-secret
+              key: dsn
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: hydra-config

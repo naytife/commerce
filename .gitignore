@@ -72,4 +72,12 @@ Thumbs.db
 # Other local files
 *.local
 *.test.local
- 
+
+# SOPS encryption keys (NEVER commit these!)
+deploy/tools/sops/*.key
+*.key
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production

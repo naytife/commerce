@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ingress-staging.yaml
+
+images:
+  - name: naytife/backend
+    newTag: staging
+  - name: naytife/auth-handler
+    newTag: staging
+  - name: template-registry
+    newTag: staging
+  - name: docker.io/library/store-deployer
+    newTag: staging
+
+replicas:
+  - name: backend
+    count: 2
+  - name: store-deployer
+    count: 2
+  - name: postgres
+    count: 1
+  - name: redis
+    count: 1
+
+labels:
+  - pairs:
+      environment: staging
+      deployment-method: kustomize
+
+patches:
+  - path: backend-staging-patch.yaml
+  - path: auth-handler-staging-patch.yaml
+  - path: postgres-staging-patch.yaml
+  - path: redis-staging-patch.yaml
+
+namePrefix: staging-
+
+configMapGenerator:
+  - name: staging-config
+    literals:
+      - LOG_LEVEL=info
+      - APP_ENV=staging
+      - DATABASE_HOST=postgres.naytife-staging.svc.cluster.local
+      - REDIS_HOST=redis.naytife-staging.svc.cluster.local

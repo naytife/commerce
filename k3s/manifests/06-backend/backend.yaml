@@ -12,9 +12,6 @@ data:
   DATABASE_URL: cG9zdGdyZXM6Ly9wb3N0Z3JlczpuYXl0aWZlLXBvc3RncmVzLTIwMjRAcG9zdGdyZXMubmF5dGlmZS5zdmMuY2x1c3Rlci5sb2NhbDo1NDMyL25heXRpZmVkYj9zc2xtb2RlPWRpc2FibGU=
   # naytife-redis-2024
   REDIS_PASSWORD: bmF5dGlmZS1yZWRpcy0yMDI0
-  # Add your Stripe keys here (base64 encoded)
-  # STRIPE_SECRET_KEY: <base64-encoded-stripe-secret>
-  # STRIPE_PUBLISHABLE_KEY: <base64-encoded-stripe-publishable>
 ---
 apiVersion: v1
 kind: ConfigMap

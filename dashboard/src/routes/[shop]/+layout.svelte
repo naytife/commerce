@@ -235,7 +235,7 @@
 			<Tooltip.Root>
 				<Tooltip.Trigger asChild let:builder>
 					<a
-						href="/{$page.params.shop}/settings"
+						href="/{$page.params.shop}/settings/store/general"
 						class="nav-item group/nav overflow-hidden"
 						class:nav-item-active={isActive(`/${$page.params.shop}/settings`)}
 						class:nav-item-inactive={!isActive(`/${$page.params.shop}/settings`)}

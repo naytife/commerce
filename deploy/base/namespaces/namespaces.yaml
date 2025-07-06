@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: naytife
+  labels:
+    name: naytife
+    app.kubernetes.io/name: naytife
+    app.kubernetes.io/part-of: naytife-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: naytife-auth
+  labels:
+    name: naytife-auth
+    app.kubernetes.io/name: naytife-auth
+    app.kubernetes.io/part-of: naytife-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: naytife-build
+  labels:
+    name: naytife-build
+    app.kubernetes.io/name: naytife-build
+    app.kubernetes.io/part-of: naytife-platform

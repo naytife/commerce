@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - oathkeeper-nodeport-local.yaml
+
+patches:
+  - path: backend-local-patch.yaml
+  - path: backend-migrate-local-patch.yaml
+  - path: auth-handler-local-patch.yaml
+  - path: oathkeeper-local-patch.yaml
+  - path: template-registry-local-patch.yaml
+  - path: store-deployer-local-patch.yaml
+  - path: hydra-migrate-local-patch.yaml
+
+images:
+  - name: naytife/backend
+    newTag: latest
+  - name: naytife/auth-handler
+    newTag: latest
+  - name: template-registry
+    newTag: latest
+  - name: docker.io/library/store-deployer
+    newTag: latest
+
+replicas:
+  - name: backend
+    count: 1
+  - name: store-deployer
+    count: 1
+
+labels:
+  - pairs:
+      environment: local
+      deployment-method: kustomize
+
+namePrefix: local-
+
+configMapGenerator:
+  - name: local-config
+    literals:
+      - LOG_LEVEL=debug
+      - APP_ENV=local
+      - DATABASE_HOST=postgres.naytife-local.svc.cluster.local
+      - REDIS_HOST=redis.naytife-local.svc.cluster.local

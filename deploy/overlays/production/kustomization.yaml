@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - persistent-volumes-production.yaml
+  - ingress-production.yaml
+  - network-policy.yaml
+
+images:
+  - name: naytife/backend
+    newTag: v1.0.0
+  - name: naytife/auth-handler
+    newTag: v1.0.0
+  - name: template-registry
+    newTag: v1.0.0
+  - name: docker.io/library/store-deployer
+    newTag: v1.0.0
+
+replicas:
+  - name: backend
+    count: 3
+  - name: store-deployer
+    count: 3
+  - name: postgres
+    count: 1
+  - name: redis
+    count: 1
+
+labels:
+  - pairs:
+      environment: production
+      deployment-method: kustomize
+
+patches:
+  - path: backend-production-patch.yaml
+  - path: auth-handler-production-patch.yaml
+  - path: postgres-production-patch.yaml
+  - path: redis-production-patch.yaml
+  - path: template-registry-production-patch.yaml
+  - path: store-deployer-production-patch.yaml
+
+namePrefix: prod-
+
+configMapGenerator:
+  - name: production-config
+    literals:
+      - LOG_LEVEL=warn
+      - APP_ENV=production
+      - DATABASE_HOST=postgres.naytife-production.svc.cluster.local
+      - REDIS_HOST=redis.naytife-production.svc.cluster.local

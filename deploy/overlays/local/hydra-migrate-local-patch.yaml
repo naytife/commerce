@@ -1,0 +1,18 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hydra-migrate
+  namespace: naytife-auth
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h local-postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done

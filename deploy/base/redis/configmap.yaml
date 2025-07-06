@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  redis.conf: |
+    # Redis configuration for Naytife
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Enable AOF persistence
+    appendonly yes
+    appendfsync everysec
+    
+    # Memory management
+    maxmemory-policy allkeys-lru
+    
+    # Security
+    protected-mode no
+    
+    # Logging
+    loglevel notice

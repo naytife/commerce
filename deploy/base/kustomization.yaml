@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- namespaces
+- postgres
+- redis
+- hydra
+- oathkeeper
+- auth-handler
+- backend
+- template-registry
+- store-deployer
+
+labels:
+- pairs:
+    app.kubernetes.io/instance: naytife-platform
+    app.kubernetes.io/managed-by: kustomize

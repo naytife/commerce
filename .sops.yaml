@@ -1,0 +1,12 @@
+creation_rules:
+  # Local environment secrets
+  - path_regex: deploy/secrets/local/.*\.yaml$
+    age: age1z2g7cvuq2yus0n4y0aq5t5ww82w06zafrw3ldfka4tzhkl4fafkstj4pk6
+    
+  # Staging environment secrets  
+  - path_regex: deploy/secrets/staging/.*\.yaml$
+    age: age13ynzgj8jc2ddqj8jdq84crs6ev4yf2sa3srj00dg4y6cfk2c5p8s5rdlu8
+    
+  # Production environment secrets
+  - path_regex: deploy/secrets/production/.*\.yaml$
+    age: age1lygw3utcj5eguktcjt583e2gpcgu4m7shv2mj2cyn93z2nggpv9sua67hu

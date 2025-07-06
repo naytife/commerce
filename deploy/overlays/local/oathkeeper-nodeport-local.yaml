@@ -1,0 +1,15 @@
+# Add NodePort service for local development access
+apiVersion: v1
+kind: Service
+metadata:
+  name: oathkeeper-nodeport
+  namespace: naytife-auth
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080
+    name: proxy
+  selector:
+    app: oathkeeper

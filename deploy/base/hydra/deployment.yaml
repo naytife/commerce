@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: hydra
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hydra
+  template:
+    metadata:
+      labels:
+        app: hydra
+        app.kubernetes.io/name: hydra
+        app.kubernetes.io/part-of: naytife-platform
+    spec:
+      containers:
+      - name: hydra
+        image: oryd/hydra:v2.2.0
+        command:
+        - hydra
+        - serve
+        - all
+        - --dev
+        - --config
+        - /etc/config/hydra.yml
+        ports:
+        - containerPort: 4444
+          name: public
+        - containerPort: 4445
+          name: admin
+        env:
+        - name: DSN
+          valueFrom:
+            secretKeyRef:
+              name: hydra-secret
+              key: dsn
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health/alive
+            port: 4445
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 4445
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: config-volume
+        configMap:
+          name: hydra-config

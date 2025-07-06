@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: naytife
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h local-postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+      - name: wait-for-redis
+        image: redis:7-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until redis-cli -h local-redis.naytife.svc.cluster.local -p 6379 -a naytife-redis-2024 ping; do
+            echo "Waiting for redis..."
+            sleep 2
+          done
+      containers:
+      - name: backend
+        imagePullPolicy: Never
+        env:
+        - name: APP_ENV
+          value: "local"
+        - name: LOG_LEVEL
+          value: "debug"

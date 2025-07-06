@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: template-registry
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: template-registry
+    app.kubernetes.io/part-of: naytife-platform
+    app.kubernetes.io/component: template-system
+spec:
+  selector:
+    app: template-registry
+  ports:
+    - name: http
+      port: 9001
+      targetPort: 9001
+  type: ClusterIP

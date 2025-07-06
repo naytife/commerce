@@ -118,43 +118,6 @@
 				</Button>
 			</div>
 		</div>
-
-		<!-- Quick Stats -->
-		{#if $shops.data && $shops.data.length > 0}
-			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-				<div class="card-elevated text-center">
-					<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
-						<Store class="w-6 h-6 text-white" />
-					</div>
-					<div class="text-2xl font-bold text-foreground mb-1">{$shops.data.length}</div>
-					<div class="text-sm text-muted-foreground">Active Stores</div>
-				</div>
-				
-				<div class="card-elevated text-center">
-					<div class="w-12 h-12 bg-gradient-to-br from-accent to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
-						<TrendingUp class="w-6 h-6 text-white" />
-					</div>
-					<div class="text-2xl font-bold text-foreground mb-1">₦24.5K</div>
-					<div class="text-sm text-muted-foreground">Total Revenue</div>
-				</div>
-				
-				<div class="card-elevated text-center">
-					<div class="w-12 h-12 bg-gradient-to-br from-secondary to-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
-						<ShoppingCart class="w-6 h-6 text-white" />
-					</div>
-					<div class="text-2xl font-bold text-foreground mb-1">1,234</div>
-					<div class="text-sm text-muted-foreground">Total Orders</div>
-				</div>
-				
-				<div class="card-elevated text-center">
-					<div class="w-12 h-12 bg-gradient-to-br from-success to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
-						<Users class="w-6 h-6 text-white" />
-					</div>
-					<div class="text-2xl font-bold text-foreground mb-1">567</div>
-					<div class="text-sm text-muted-foreground">Customers</div>
-				</div>
-			</div>
-		{/if}
 	</div>
 
 	{#if $shops.status === 'pending'}

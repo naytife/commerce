@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-handler-config
+  namespace: naytife-auth
+  labels:
+    app.kubernetes.io/name: auth-handler
+    app.kubernetes.io/part-of: naytife-platform
+data:
+  PORT: "3000"
+  HYDRA_ADMIN_URL: "http://hydra-admin.naytife-auth.svc.cluster.local:4445"
+  FRONTEND_URL: "http://127.0.0.1:3000"
+  BACKEND_URL: "http://backend.naytife.svc.cluster.local:8000"
+  LOGIN_HANDLER_REDIRECT_URI: "http://127.0.0.1:8080/callback"
