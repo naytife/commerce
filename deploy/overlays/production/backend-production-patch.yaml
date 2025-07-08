@@ -13,6 +13,22 @@ spec:
           value: "production"
         - name: LOG_LEVEL
           value: "warn"
+        - name: API_URL
+          value: "https://api.naytife.com"
+        - name: REDIS_ADDR
+          value: "prod-redis.naytife-production.svc.cluster.local:6379"
+        - name: REDIS_URL
+          value: "redis://:naytife-redis-2024@prod-redis.naytife-production.svc.cluster.local:6379"
+        - name: HYDRA_ADMIN_URL
+          value: "http://prod-hydra-admin.naytife-auth.svc.cluster.local:4445"
+        - name: HYDRA_PUBLIC_URL
+          value: "http://prod-hydra-public.naytife-auth.svc.cluster.local:4444"
+        - name: AUTH_HANDLER_URL
+          value: "http://prod-auth-handler.naytife-auth.svc.cluster.local:3000"
+        - name: TEMPLATE_REGISTRY_URL
+          value: "http://prod-template-registry.naytife-production.svc.cluster.local:9001"
+        - name: STORE_DEPLOYER_URL
+          value: "http://prod-store-deployer.naytife-production.svc.cluster.local:9003"
         resources:
           requests:
             memory: "1Gi"

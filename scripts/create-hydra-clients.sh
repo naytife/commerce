@@ -20,7 +20,7 @@ echo "========================================"
 
 # Wait for Hydra to be ready
 echo -e "${YELLOW}⏳ Waiting for Hydra admin to be ready...${NC}"
-while ! kubectl exec -n naytife-auth deploy/hydra -- hydra list oauth2-clients --endpoint http://localhost:4445 >/dev/null 2>&1; do
+while ! kubectl exec -n naytife-auth deploy/local-hydra -- hydra list oauth2-clients --endpoint http://localhost:4445 >/dev/null 2>&1; do
     echo "   Waiting for Hydra admin..."
     sleep 2
 done
@@ -40,9 +40,9 @@ create_client_with_id() {
     echo -e "${YELLOW}📝 Creating client: ${client_name} (ID: ${client_id})${NC}"
     
     # Check if client already exists and delete it
-    if kubectl exec -n naytife-auth deploy/hydra -- hydra get oauth2-client --endpoint http://localhost:4445 "$client_id" >/dev/null 2>&1; then
+    if kubectl exec -n naytife-auth deploy/local-hydra -- hydra get oauth2-client --endpoint http://localhost:4445 "$client_id" >/dev/null 2>&1; then
         echo -e "${YELLOW}   Client already exists, deleting...${NC}"
-        kubectl exec -n naytife-auth deploy/hydra -- hydra delete oauth2-client --endpoint http://localhost:4445 "$client_id" >/dev/null 2>&1
+        kubectl exec -n naytife-auth deploy/local-hydra -- hydra delete oauth2-client --endpoint http://localhost:4445 "$client_id" >/dev/null 2>&1
     fi
     
     # Create JSON payload
@@ -86,7 +86,7 @@ create_client_with_id() {
     fi
     
     kubectl run temp-curl --rm -i --image=curlimages/curl:latest --restart=Never -- \
-        curl -s -X POST http://hydra-admin.naytife-auth:4445/admin/clients \
+        curl -s -X POST http://local-hydra-admin.naytife-auth:4445/admin/clients \
         -H "Content-Type: application/json" \
         -d "$json_payload" > /tmp/create_result.json 2>/dev/null
     

@@ -10,6 +10,7 @@ patches:
   - path: backend-migrate-local-patch.yaml
   - path: auth-handler-local-patch.yaml
   - path: oathkeeper-local-patch.yaml
+  - path: oathkeeper-access-rules-local-patch.yaml
   - path: template-registry-local-patch.yaml
   - path: store-deployer-local-patch.yaml
   - path: hydra-migrate-local-patch.yaml

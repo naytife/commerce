@@ -1,0 +1,26 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: naytife-local-overrides
+
+build:
+  local:
+    push: false
+    useDockerCLI: true
+    useBuildkit: true
+  
+  tagPolicy:
+    gitCommit: {}
+
+manifests:
+  kustomize:
+    paths:
+      - deploy/overlays/local
+    flags:
+      apply: ["--force"]
+      delete: ["--ignore-not-found=true"]
+
+test:
+  - image: naytife/backend
+    structureTests:
+      - ./tests/backend-structure.yaml

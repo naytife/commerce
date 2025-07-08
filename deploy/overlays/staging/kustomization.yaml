@@ -35,6 +35,8 @@ patches:
   - path: auth-handler-staging-patch.yaml
   - path: postgres-staging-patch.yaml
   - path: redis-staging-patch.yaml
+  - path: oathkeeper-config-staging.yaml
+  - path: oathkeeper-access-rules-staging.yaml
 
 namePrefix: staging-
 

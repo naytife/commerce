@@ -35,3 +35,19 @@ spec:
           value: "local"
         - name: LOG_LEVEL
           value: "debug"
+        - name: API_URL
+          value: "http://127.0.0.1:8080"
+        - name: REDIS_ADDR
+          value: "local-redis.naytife.svc.cluster.local:6379"
+        - name: REDIS_URL
+          value: "redis://:naytife-redis-2024@local-redis.naytife.svc.cluster.local:6379"
+        - name: HYDRA_ADMIN_URL
+          value: "http://local-hydra-admin.naytife-auth.svc.cluster.local:4445"
+        - name: HYDRA_PUBLIC_URL
+          value: "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+        - name: AUTH_HANDLER_URL
+          value: "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+        - name: TEMPLATE_REGISTRY_URL
+          value: "http://local-template-registry.naytife.svc.cluster.local:9001"
+        - name: STORE_DEPLOYER_URL
+          value: "http://local-store-deployer.naytife.svc.cluster.local:9003"

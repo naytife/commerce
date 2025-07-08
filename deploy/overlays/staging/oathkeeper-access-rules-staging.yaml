@@ -1,0 +1,214 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-access-rules
+  namespace: naytife-auth
+data:
+  access-rules.json: |
+    [
+      {
+        "id":"api:rest-api-docs",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/docs",
+          "methods": ["GET"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"}, 
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id":"api:rest-api-docs-all",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/docs/<**>",
+          "methods": ["GET"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"}, 
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:user-register",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/register",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:user-login",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/login",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:user-refresh",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/refresh",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:user-logout",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/logout",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "oauth2_introspection"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "header"}]
+      },
+      {
+        "id": "api:user-profile",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/profile",
+          "methods": ["GET", "PUT"]
+        },
+        "authenticators": [{"handler": "oauth2_introspection"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "header"}]
+      },
+      {
+        "id": "api:cors",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/<**>",
+          "methods": ["OPTIONS"]
+        },
+        "authenticators": [{"handler": "noop"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{
+          "handler": "header",
+          "config": {
+            "headers": {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+              "Access-Control-Allow-Headers": "Authorization, Content-Type"
+            }
+          }
+        }]
+      },
+      {
+        "id": "api:customer-register",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/auth/register-customer",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:customerinfo-public",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/customerinfo<**>",
+          "methods": ["GET"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:webhooks-public",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/v1/webhooks/<**>",
+          "methods": ["POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "api:health-endpoints",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://backend.naytife:8000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/<{health,ready}>",
+          "methods": ["GET"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "oauth:auth-endpoint",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://hydra-public.naytife-auth:4444"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/oauth2/auth",
+          "methods": ["GET"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      },
+      {
+        "id": "oauth:login-endpoint",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://auth-handler.naytife-auth:3000"
+        },
+        "match": {
+          "url": "https://api-staging.naytife.com/login",
+          "methods": ["GET", "POST"]
+        },
+        "authenticators": [{"handler": "anonymous"}],
+        "authorizer": {"handler": "allow"},
+        "mutators": [{"handler": "noop"}]
+      }
+    ]

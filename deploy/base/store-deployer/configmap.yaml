@@ -7,6 +7,4 @@ metadata:
     app.kubernetes.io/name: store-deployer
     app.kubernetes.io/part-of: naytife-platform
 data:
-  BACKEND_URL: "http://backend:8000"
-  TEMPLATE_REGISTRY_URL: "http://template-registry:9001"
   PORT: "9003"

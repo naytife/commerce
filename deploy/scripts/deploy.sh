@@ -240,7 +240,8 @@ done
 
 # Set up SOPS environment if needed
 if [ "$NO_SECRETS" = false ]; then
-    if [ -z "$SOPS_AGE_KEY_FILE" ]; then
+    # Initialize SOPS_AGE_KEY_FILE if not already set
+    if [ -z "${SOPS_AGE_KEY_FILE:-}" ]; then
         if [ -f "$HOME/.config/sops/age/keys.txt" ]; then
             export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
             print_info "Using SOPS age key file: $SOPS_AGE_KEY_FILE"

@@ -1,0 +1,146 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: naytife-platform
+
+build:
+  artifacts:
+    - image: naytife/backend
+      context: backend
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: "**/*.go"
+            dest: /app
+            strip: ""
+          - src: "docs/**"
+            dest: /app/docs
+            strip: ""
+          - src: "internal/**"
+            dest: /app/internal
+            strip: ""
+          - src: "cmd/**"
+            dest: /app/cmd
+            strip: ""
+          - src: "config/**"
+            dest: /app/config
+            strip: ""
+    
+    - image: naytife/auth-handler
+      context: auth/authentication-handler
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: "**/*.go"
+            dest: /app
+            strip: ""
+          - src: "go.mod"
+            dest: /app/go.mod
+          - src: "go.sum"
+            dest: /app/go.sum
+    
+    - image: docker.io/library/store-deployer
+      context: services/store-deployer
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: "**/*.go"
+            dest: /app
+            strip: ""
+          - src: "go.mod"
+            dest: /app/go.mod
+          - src: "go.sum"
+            dest: /app/go.sum
+    
+    - image: template-registry
+      context: services/template-registry
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: "**/*.go"
+            dest: /app
+            strip: ""
+          - src: "go.mod"
+            dest: /app/go.mod
+          - src: "go.sum"
+            dest: /app/go.sum
+
+manifests:
+  kustomize:
+    paths:
+      - deploy/overlays/local
+
+portForward:
+  - resourceType: service
+    resourceName: local-backend
+    namespace: naytife-local
+    port: 8000
+    localPort: 8000
+  
+  - resourceType: service
+    resourceName: local-auth-handler
+    namespace: naytife-local
+    port: 3000
+    localPort: 3000
+  
+  - resourceType: service
+    resourceName: local-oathkeeper-api
+    namespace: naytife-local
+    port: 4456
+    localPort: 4456
+  
+  - resourceType: service
+    resourceName: local-hydra-admin
+    namespace: naytife-local
+    port: 4445
+    localPort: 4445
+  
+  - resourceType: service
+    resourceName: local-postgres
+    namespace: naytife-local
+    port: 5432
+    localPort: 5432
+
+profiles:
+  - name: local
+    build:
+      local:
+        push: false
+        useDockerCLI: true
+        useBuildkit: true
+    
+  - name: debug
+    build:
+      artifacts:
+        - image: naytife/backend
+          docker:
+            buildArgs:
+              BUILD_MODE: debug
+              CGO_ENABLED: "1"
+    patches:
+      - op: replace
+        path: /build/artifacts/0/sync
+        value:
+          manual:
+            - src: "**/*.go"
+              dest: /app
+              strip: ""
+            - src: "docs/**"
+              dest: /app/docs
+              strip: ""
+
+  - name: fast
+    build:
+      local:
+        push: false
+        useDockerCLI: true
+        useBuildkit: true
+        concurrency: 4
+    deploy:
+      kubectl:
+        flags:
+          apply: ["--force"]

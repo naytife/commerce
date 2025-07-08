@@ -13,6 +13,22 @@ spec:
           value: "staging"
         - name: LOG_LEVEL
           value: "info"
+        - name: API_URL
+          value: "https://api-staging.naytife.com"
+        - name: REDIS_ADDR
+          value: "staging-redis.naytife-staging.svc.cluster.local:6379"
+        - name: REDIS_URL
+          value: "redis://:naytife-redis-2024@staging-redis.naytife-staging.svc.cluster.local:6379"
+        - name: HYDRA_ADMIN_URL
+          value: "http://staging-hydra-admin.naytife-auth.svc.cluster.local:4445"
+        - name: HYDRA_PUBLIC_URL
+          value: "http://staging-hydra-public.naytife-auth.svc.cluster.local:4444"
+        - name: AUTH_HANDLER_URL
+          value: "http://staging-auth-handler.naytife-auth.svc.cluster.local:3000"
+        - name: TEMPLATE_REGISTRY_URL
+          value: "http://staging-template-registry.naytife-staging.svc.cluster.local:9001"
+        - name: STORE_DEPLOYER_URL
+          value: "http://staging-store-deployer.naytife-staging.svc.cluster.local:9003"
         resources:
           requests:
             memory: "512Mi"

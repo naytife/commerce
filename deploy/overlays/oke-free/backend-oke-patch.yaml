@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: backend
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi" 
+            cpu: "1000m"
+        env:
+        # OCI-specific environment variables
+        - name: DB_HOST
+          value: "postgres.naytife-oke-free.svc.cluster.local"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "naytife"
+        - name: REDIS_HOST
+          value: "redis.naytife-oke-free.svc.cluster.local"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: ENVIRONMENT
+          value: "oke-free"
+        - name: LOG_LEVEL
+          value: "info"
+      # Ensure pods run on ARM nodes
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      # Add tolerations if needed for ARM nodes
+      tolerations:
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"

@@ -9,11 +9,6 @@ spec:
       containers:
       - name: auth-handler
         imagePullPolicy: Never
-        env:
-        - name: BACKEND_URL
-          value: "http://local-backend.naytife.svc.cluster.local:8000"
-        - name: HYDRA_ADMIN_URL
-          value: "http://local-hydra-admin.naytife-auth.svc.cluster.local:4445"
         # Remove health checks for local development since /health endpoint doesn't exist
         livenessProbe: null
         readinessProbe: null

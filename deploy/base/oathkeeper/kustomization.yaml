@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - configmap.yaml
+  - access-rules.yaml
   - deployment.yaml
   - service.yaml
 

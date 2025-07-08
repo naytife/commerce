@@ -203,6 +203,64 @@ else
 fi
 
 echo ""
+print_header "Skaffold Development Environment Validation"
+
+if [ "$ENVIRONMENT" = "local" ]; then
+    # Check if Skaffold is installed
+    run_test "Skaffold is installed" "command -v skaffold >/dev/null 2>&1"
+    
+    if command -v skaffold >/dev/null 2>&1; then
+        # Check Skaffold configuration
+        run_test "Skaffold configuration is valid" "skaffold diagnose >/dev/null 2>&1"
+        
+        # Check if main skaffold.yaml exists
+        run_test "Main skaffold.yaml exists" "[ -f 'skaffold.yaml' ]"
+        
+        # Check Skaffold tools directory
+        run_test "Skaffold tools directory exists" "[ -d 'deploy/tools' ]"
+        run_test "Local Skaffold config exists" "[ -f 'deploy/tools/skaffold-local.yaml' ]"
+        run_test "Dev Skaffold config exists" "[ -f 'deploy/tools/skaffold-dev.yaml' ]"
+        
+        # Check deployment scripts
+        run_test "Skaffold deployment script exists" "[ -f 'deploy/scripts/deploy-skaffold.sh' ]"
+        run_test "Skaffold deployment script is executable" "[ -x 'deploy/scripts/deploy-skaffold.sh' ]"
+        run_test "Skaffold utilities script exists" "[ -f 'deploy/scripts/skaffold-utils.sh' ]"
+        run_test "Skaffold utilities script is executable" "[ -x 'deploy/scripts/skaffold-utils.sh' ]"
+        
+        # Test Skaffold build (dry run)
+        if command -v docker >/dev/null 2>&1 && docker ps >/dev/null 2>&1; then
+            run_test "Skaffold can build images (dry run)" "skaffold build --dry-run --profile=local >/dev/null 2>&1"
+        else
+            print_warning "Docker not available - skipping Skaffold build test"
+        fi
+    fi
+    
+    # Check Docker for local development
+    run_test "Docker daemon is running" "docker ps >/dev/null 2>&1"
+    
+    if docker ps >/dev/null 2>&1; then
+        # Check if images can be built
+        print_info "Testing Docker build syntax for all services..."
+        
+        if [ -f "backend/Dockerfile" ]; then
+            run_test "Backend Dockerfile syntax is valid" "docker build --dry-run -f backend/Dockerfile backend >/dev/null 2>&1"
+        fi
+        
+        if [ -f "auth/authentication-handler/Dockerfile" ]; then
+            run_test "Auth handler Dockerfile syntax is valid" "docker build --dry-run -f auth/authentication-handler/Dockerfile auth/authentication-handler >/dev/null 2>&1"
+        fi
+        
+        if [ -f "services/store-deployer/Dockerfile" ]; then
+            run_test "Store deployer Dockerfile syntax is valid" "docker build --dry-run -f services/store-deployer/Dockerfile services/store-deployer >/dev/null 2>&1"
+        fi
+        
+        if [ -f "services/template-registry/Dockerfile" ]; then
+            run_test "Template registry Dockerfile syntax is valid" "docker build --dry-run -f services/template-registry/Dockerfile services/template-registry >/dev/null 2>&1"
+        fi
+    fi
+fi
+
+echo ""
 print_header "Validation Summary"
 
 if [ "$PASSED_TESTS" -eq "$TOTAL_TESTS" ]; then

@@ -8,7 +8,7 @@ data:
     log:
       level: info
       format: json
-      leak_sensitive_values: true
+      leak_sensitive_values: false
     
     serve:
       proxy:
@@ -17,7 +17,8 @@ data:
         cors:
           enabled: true
           allowed_origins:
-            - "*"
+            - "https://dashboard-staging.naytife.com"
+            - "https://*.naytife.com"
           allowed_methods:
             - POST
             - GET
@@ -42,11 +43,11 @@ data:
         json:
           enabled: true
           config:
-            verbose: true
+            verbose: false
         redirect:
           enabled: true
           config:
-            to: http://127.0.0.1:3000/auth/login
+            to: https://auth-staging.naytife.com/auth/login
             when:
               - error:
                   - unauthorized
@@ -68,17 +69,17 @@ data:
       oauth2_introspection:
         enabled: true
         config:
-          introspection_url: http://local-hydra-admin.naytife-auth.svc.cluster.local:4445/admin/oauth2/introspect
+          introspection_url: http://hydra-admin.naytife-auth.svc.cluster.local:4445/admin/oauth2/introspect
           scope_strategy: exact
           trusted_issuers:
-            - http://127.0.0.1:8080/
+            - https://api-staging.naytife.com/
           pre_authorization:
             enabled: true
-            client_id: 761506cc-511f-411c-bf31-752efd8063b3
-            client_secret: z.WE65SP5o0oXDYJwLdyoqYUuN
+            client_id: ${OAUTH2_CLIENT_ID}
+            client_secret: ${OAUTH2_CLIENT_SECRET}
             scope:
               - introspect
-            token_url: http://local-hydra-public.naytife-auth.svc.cluster.local:4444/oauth2/token
+            token_url: http://hydra-public.naytife-auth.svc.cluster.local:4444/oauth2/token
           token_from:
             header: Authorization
           retry:
@@ -92,11 +93,11 @@ data:
         enabled: true
         config:
           jwks_urls:
-            - http://local-hydra-public.naytife-auth.svc.cluster.local:4444/.well-known/jwks.json
+            - http://hydra-public.naytife-auth.svc.cluster.local:4444/.well-known/jwks.json
           allowed_algorithms:
             - RS256
           trusted_issuers:
-            - http://127.0.0.1:8080/
+            - https://api-staging.naytife.com/
     
     authorizers:
       allow:
