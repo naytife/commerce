@@ -7,6 +7,9 @@
 *.test
 *.out
 
+# Node.js dependencies
+node_modules/
+
 # Air config file
 .air.toml
 .air.yml
