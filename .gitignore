@@ -9,6 +9,14 @@
 
 # Node.js dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Air config file
 .air.toml
@@ -84,3 +92,12 @@ deploy/tools/sops/*.key
 .env
 .env.local
 .env.production
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+.output/
+.vercel/
+.netlify/
