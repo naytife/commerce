@@ -337,25 +337,6 @@
 
 			<!-- Action buttons with enhanced styling -->
 			<div class="flex items-center gap-2 ml-auto">
-				<!-- Notifications -->
-				<Tooltip.Root>
-					<Tooltip.Trigger asChild let:builder>
-						<Button 
-							builders={[builder]} 
-							variant="outline" 
-							size="icon" 
-							class="glass border-border/50 hover:bg-surface-elevated hover:scale-105 transition-all duration-300 shadow-glass rounded-2xl relative"
-						>
-							<Bell class="h-5 w-5" />
-							<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-accent to-secondary rounded-full animate-pulse"></div>
-							<span class="sr-only">Notifications</span>
-						</Button>
-					</Tooltip.Trigger>
-					<Tooltip.Content side="bottom" class="glass border-border/50 shadow-glass">
-						Notifications
-					</Tooltip.Content>
-				</Tooltip.Root>
-
 				<!-- Theme toggle -->
 				<Tooltip.Root>
 					<Tooltip.Trigger asChild let:builder>
@@ -394,7 +375,6 @@
 								<div class="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center">
 									<User class="w-4 h-4 text-primary-foreground" />
 								</div>
-								<div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-success to-emerald-500 rounded-full border-2 border-background animate-pulse"></div>
 							</div>
 						</Button>
 					</DropdownMenu.Trigger>
@@ -413,12 +393,6 @@
 							<div class="flex items-center gap-3">
 								<Home class="w-4 h-4 text-muted-foreground" />
 								All Stores
-							</div>
-						</DropdownMenu.Item>
-						<DropdownMenu.Item class="nav-item rounded-xl hover:bg-surface-elevated transition-all duration-200 px-3 py-2 cursor-pointer">
-							<div class="flex items-center gap-3">
-								<Settings class="w-4 h-4 text-muted-foreground" />
-								Store Settings
 							</div>
 						</DropdownMenu.Item>
 						<DropdownMenu.Item class="nav-item rounded-xl hover:bg-surface-elevated transition-all duration-200 px-3 py-2 cursor-pointer">

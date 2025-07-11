@@ -254,21 +254,22 @@
 							</DropdownMenu.Root>
 						</div>
 
-						<!-- Store Stats -->
+						<!-- Store Info -->
 						<div class="grid grid-cols-2 gap-4 mb-6">
 							<div class="text-center p-3 bg-surface-elevated rounded-xl">
-								<div class="text-sm text-muted-foreground mb-1">Revenue</div>
-								<div class="font-semibold text-foreground">₦2,458</div>
+								<div class="text-sm text-muted-foreground mb-1">Template</div>
+								<div class="font-semibold text-foreground">{store.current_template}</div>
 							</div>
 							<div class="text-center p-3 bg-surface-elevated rounded-xl">
-								<div class="text-sm text-muted-foreground mb-1">Orders</div>
-								<div class="font-semibold text-foreground">127</div>
+								<div class="text-sm text-muted-foreground mb-1">Currency</div>
+								<div class="font-semibold text-foreground">{store.currency_code}</div>
 							</div>
 						</div>
 
 						<!-- Store Description -->
 						<p class="text-sm text-muted-foreground mb-6 line-clamp-2">
-							{store.about || 'A modern e-commerce store built with Naytife Commerce platform.'}
+							Store URL: {store.subdomain}.naytife.com
+							{store.custom_domain ? ` • Custom: ${store.custom_domain}` : ''}
 						</p>
 
 						<!-- Action Buttons -->

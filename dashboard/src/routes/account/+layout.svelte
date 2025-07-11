@@ -1,19 +1,11 @@
 <script lang="ts">
     import {
-		Home,
-		LineChart,
-		Package,
 		PanelLeft,
 		Search,
 		Settings,
-		ShoppingCart,
-		Workflow,
-		UsersRound,
-		Boxes,
 		Sun,
 		Moon,
 		Sparkles,
-		Bell,
 		User
 	} from 'lucide-svelte';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
@@ -144,25 +136,6 @@
 
 			<!-- Action buttons with enhanced styling -->
 			<div class="flex items-center gap-2">
-				<!-- Notifications -->
-				<Tooltip.Root>
-					<Tooltip.Trigger asChild let:builder>
-						<Button 
-							builders={[builder]} 
-							variant="outline" 
-							size="icon" 
-							class="glass border-border/50 hover:bg-surface-elevated hover:scale-105 transition-all duration-300 shadow-glass rounded-2xl relative"
-						>
-							<Bell class="h-5 w-5" />
-							<div class="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-accent to-secondary rounded-full animate-pulse"></div>
-							<span class="sr-only">Notifications</span>
-						</Button>
-					</Tooltip.Trigger>
-					<Tooltip.Content side="bottom" class="glass border-border/50 shadow-glass">
-						Notifications
-					</Tooltip.Content>
-				</Tooltip.Root>
-
 				<!-- Theme toggle with enhanced animation -->
 				<Tooltip.Root>
 					<Tooltip.Trigger asChild let:builder>
@@ -201,7 +174,6 @@
 								<div class="w-8 h-8 bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 rounded-2xl flex items-center justify-center">
 									<User class="w-4 h-4 text-foreground" />
 								</div>
-								<div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-success to-emerald-500 rounded-full border-2 border-background animate-pulse"></div>
 							</div>
 						</Button>
 					</DropdownMenu.Trigger>

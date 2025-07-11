@@ -30,6 +30,7 @@ export type Shop = {
     whatsapp_link: string
     whatsapp_phone_number: string
     updated_at?: string
+    current_template?: string
     images?: {
         banner_url?: string
         banner_url_dark?: string
