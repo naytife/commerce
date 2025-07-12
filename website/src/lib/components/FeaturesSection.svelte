@@ -1,5 +1,6 @@
- <script lang="ts">
-  import { Store, BarChart3, CreditCard, Globe, Shield, Zap, CheckCircle, ArrowRight } from 'lucide-svelte';
+<script lang="ts">
+  import { Store, BarChart3, CreditCard, Globe, Shield, Zap } from 'lucide-svelte';
+  import { CheckCircle, ArrowRight } from 'lucide-svelte';
   // Features array is now local
   const features = [
     {
@@ -53,7 +54,7 @@
   <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
     {#each features as feature}
       <div class="card-interactive group">
-        <div class="w-12 h-12 bg-linear-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-brand group-hover:scale-110 transition-transform">
+        <div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 shadow-brand group-hover:scale-110 transition-transform">
           <svelte:component this={feature.icon} class="w-6 h-6 text-white" />
         </div>
         <h3 class="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
@@ -63,7 +64,7 @@
         <ul class="space-y-2 mb-4">
           {#each feature.benefits as benefit}
             <li class="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle class="w-3 h-3 text-success shrink-0" />
+              <CheckCircle class="w-3 h-3 text-success flex-shrink-0" />
               <span>{benefit}</span>
             </li>
           {/each}

@@ -1,4 +1,4 @@
-<section class="relative z-10 py-20 bg-linear-to-br from-surface-elevated via-background to-surface">
+<section class="relative z-10 py-20 bg-gradient-to-br from-surface-elevated via-background to-surface">
   <div class="container mx-auto px-6">
     <div class="text-center mb-16">
       <h2 class="text-3xl md:text-4xl font-bold mb-4 text-foreground">

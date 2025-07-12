@@ -5,7 +5,7 @@
 
 <div class="fixed bottom-6 left-6 right-6 z-50 md:hidden">
   <Button 
-    href="/login" 
+    href="https://dashboard.naytife.com/register" 
     class="w-full btn-gradient text-lg py-4 rounded-2xl shadow-xl group"
   >
     Start FREE Forever

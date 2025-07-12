@@ -9,7 +9,7 @@
   <div class="container mx-auto px-6 text-center">
     <div class="max-w-4xl mx-auto">
       <div class="flex flex-col items-center gap-4 mb-8">
-        <div class="inline-flex items-center gap-2 bg-linear-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-full px-6 py-3">
+        <div class="inline-flex items-center gap-2 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-full px-6 py-3">
           <Users class="w-4 h-4 text-primary" />
           <span class="text-sm font-medium text-foreground">
             Join 150+ businesses who started this week
@@ -45,11 +45,11 @@
       </div>
       <div class="flex flex-col items-center gap-6">
         <Button 
-          href="/login" 
+          href="https://dashboard.naytife.com/register" 
           size="lg" 
           class="btn-gradient text-xl px-16 py-6 rounded-2xl shadow-brand group relative overflow-hidden"
         >
-          <div class="absolute inset-0 bg-linear-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <span class="relative flex items-center">
             Start Your FREE Store Now
             <ArrowRight class="w-6 h-6 ml-3 group-hover:translate-x-1 transition-transform" />

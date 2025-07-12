@@ -12,10 +12,12 @@
 </svelte:head>
 
 <script lang="ts">
-  import { mode, toggleMode } from '$lib/mode-watcher';
+  import { mode, toggleMode } from 'mode-watcher';
   import Hero from '$lib/components/Hero.svelte';
   import StickyHeaderCTA from '$lib/components/StickyHeaderCTA.svelte';
   import AmbientBackground from '$lib/components/AmbientBackground.svelte';
+  
+  // Get the current mode value
   import NavigationHeader from '$lib/components/NavigationHeader.svelte';
   import PricingSection from '$lib/components/PricingSection.svelte';
   import FeaturesSection from '$lib/components/FeaturesSection.svelte';
@@ -56,17 +58,17 @@
 </script>
 
 <div class="min-h-screen bg-linear-to-br from-background via-surface-elevated to-surface-muted relative overflow-hidden">
-  <StickyHeaderCTA {showStickyHeader} mode={$mode ?? 'light'} {toggleMode} />
-  <AmbientBackground />
-  <NavigationHeader mode={$mode ?? 'light'} {toggleMode} />
-  <Hero />
-  <PricingSection />
-  <FeaturesSection />
-  <TestimonialsSection />
-  <TrustStatsSection />
-  <FAQSection />
-  <FinalCTASection {visitorsThisWeek} {revenueToday} />
-  <FooterSection />
-  <FloatingCTAMobile />
-  <ExitIntentModal {showExitIntent} close={closeExitIntent} />
+  <StickyHeaderCTA {showStickyHeader} mode={mode.current} {toggleMode} />
+	<AmbientBackground />
+	<NavigationHeader mode={mode.current} {toggleMode} />
+	<Hero />
+	<PricingSection />
+	<FeaturesSection />
+	<TestimonialsSection />
+	<TrustStatsSection />
+	<FAQSection />
+	<FinalCTASection {visitorsThisWeek} {revenueToday} />
+	<FooterSection mode={mode.current} />
+	<FloatingCTAMobile />
+	<ExitIntentModal {showExitIntent} close={closeExitIntent} />
 </div>
