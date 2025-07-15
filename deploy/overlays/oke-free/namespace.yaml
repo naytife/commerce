@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: naytife-oke-free
-  labels:
-    name: naytife-oke-free
-    environment: oke-free
-    cloud-provider: oci
