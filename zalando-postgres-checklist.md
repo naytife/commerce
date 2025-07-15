@@ -87,7 +87,7 @@ This checklist guides you to deploy a **production-grade PostgreSQL cluster** us
 
 ## 🔄 9. Postgres Upgrades
 
-- [ ] Use version like `"15"` or `"16"`
+- [ ] Use version like `"16"`
 - [ ] Change version in CRD for rolling upgrade
 - [ ] Test major upgrades in staging/dev
 - [ ] Use `VACUUM FULL` post-upgrade if needed
