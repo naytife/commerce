@@ -82,7 +82,7 @@ case $COMMAND in
         SERVICE=${2:-""}
         if [ -n "$SERVICE" ]; then
             echo -e "${BLUE}📋 Tailing logs for service: $SERVICE${NC}"
-            kubectl logs -f -n naytife-local deployment/local-$SERVICE
+            kubectl logs -f -n naytife-local deployment/$SERVICE
         else
             echo -e "${BLUE}📋 Tailing logs for all services...${NC}"
             echo -e "${YELLOW}Available services: backend, auth-handler, store-deployer, template-registry${NC}"

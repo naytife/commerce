@@ -12,7 +12,9 @@ spec:
         - sh
         - -c
         - |
-          until pg_isready -h local-postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
-            echo "Waiting for postgres..."
+          echo "Waiting for CNPG cluster to be ready..."
+          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
+            echo "CNPG cluster not ready, waiting 2 seconds..."
             sleep 2
           done
+          echo "✅ CNPG cluster is ready!"

@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
 - namespaces
-- postgres
 - redis
 - hydra
 - oathkeeper

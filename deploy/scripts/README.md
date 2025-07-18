@@ -47,6 +47,75 @@ Clean up deployed resources from any environment.
 - Dry-run capability
 - Graceful pod termination
 
+### CloudNativePG (CNPG) Scripts
+
+#### `cnpg-migration.sh`
+Migrate from traditional PostgreSQL deployment to CloudNativePG.
+
+```bash
+# Migrate local environment
+./cnpg-migration.sh local
+
+# Preview migration (dry-run)
+./cnpg-migration.sh staging --dry-run
+
+# Force migration (skip checks)
+./cnpg-migration.sh production --force
+```
+
+**Features:**
+- Automated backup creation
+- Zero-downtime migration
+- Data validation
+- Rollback support
+- Environment-specific configurations
+
+#### `cnpg-recovery.sh`
+Point-in-time recovery and backup restoration for CNPG clusters.
+
+```bash
+# Point-in-time recovery
+./cnpg-recovery.sh local pitr --target-time=2024-07-15T10:30:00Z
+
+# Restore from backup
+./cnpg-recovery.sh staging backup --backup-name=backup-20240715-123456
+
+# Clone cluster
+./cnpg-recovery.sh production clone --source-cluster=naytife-postgres
+
+# List available backups
+./cnpg-recovery.sh list-backups production
+```
+
+**Features:**
+- Point-in-time recovery
+- Backup restoration
+- Cluster cloning
+- Automated validation
+- Recovery cluster management
+
+#### `test-cnpg-integration.sh`
+Comprehensive CNPG cluster testing and validation.
+
+```bash
+# Test CNPG cluster
+./test-cnpg-integration.sh local
+
+# Detailed test output
+./test-cnpg-integration.sh staging --verbose
+
+# Test specific cluster
+./test-cnpg-integration.sh production --cluster=custom-postgres
+```
+
+**Features:**
+- Cluster health validation
+- Database connectivity testing
+- Pooler functionality verification
+- High availability testing
+- Performance validation
+- Integration testing
+
 ### Development and Debugging Scripts
 
 #### `status.sh`

@@ -3,6 +3,12 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../base/cnpg-operator
+  - ../../base/cnpg-storage
+  - ../../base/cnpg-cluster
+  - ../../base/cnpg-pooler
+  - ../../base/cnpg-backup
+  - ../../base/cnpg-monitoring
   - ingress-staging.yaml
 
 images:
@@ -37,6 +43,7 @@ patches:
   - path: redis-staging-patch.yaml
   - path: oathkeeper-config-staging.yaml
   - path: oathkeeper-access-rules-staging.yaml
+  - path: cnpg-cluster-staging-patch.yaml
 
 namePrefix: staging-
 

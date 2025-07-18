@@ -884,3 +884,90 @@ These separate documentation files are now **redundant** and can be removed as a
 - `dashboard/README.md` - Admin dashboard development
 - `k3s/README.md` - Kubernetes deployment specifics
 - `website/README.md` - Marketing website development
+
+## 🗄️ Database Architecture
+
+### Current Setup
+- **PostgreSQL**: Traditional deployment with basic replication
+- **Row-Level Security (RLS)**: Multi-tenant data isolation
+- **Connection Pooling**: Basic connection management
+- **Backup Strategy**: Manual backup procedures
+
+### 🚀 CloudNativePG (CNPG) Implementation
+
+The platform now supports **CloudNativePG** for production-grade PostgreSQL management:
+
+#### Key Features
+- **High Availability**: Automatic failover and recovery
+- **Automated Backups**: Point-in-time recovery capabilities
+- **Connection Pooling**: PgBouncer integration for optimal performance
+- **Monitoring**: Prometheus metrics and alerting
+- **Storage Management**: Persistent volume management with expansion
+
+#### Quick Start
+```bash
+# Install CNPG operator
+kubectl apply -k deploy/base/cnpg-operator
+
+# Deploy CNPG cluster for local development
+kubectl apply -k deploy/overlays/local
+
+# Verify installation
+./deploy/scripts/test-cnpg-integration.sh local --verbose
+
+# Development helper
+./deploy/scripts/cnpg-dev.sh status local
+```
+
+#### Migration from Traditional PostgreSQL
+```bash
+# Migrate existing deployment to CNPG
+./deploy/scripts/cnpg-migration.sh local
+
+# The migration script will:
+# 1. Create backup of existing data
+# 2. Deploy CNPG cluster
+# 3. Migrate data automatically
+# 4. Validate the migration
+```
+
+#### CNPG Management Commands
+```bash
+# Check cluster status
+./deploy/scripts/cnpg-dev.sh status local
+
+# Connect to database
+./deploy/scripts/cnpg-dev.sh connect local
+
+# Create manual backup
+./deploy/scripts/cnpg-dev.sh backup local
+
+# View cluster logs
+./deploy/scripts/cnpg-dev.sh logs local
+
+# Run comprehensive tests
+./deploy/scripts/cnpg-dev.sh test local --verbose
+```
+
+#### Recovery and Backup
+```bash
+# Point-in-time recovery
+./deploy/scripts/cnpg-recovery.sh local pitr --target-time=2024-07-15T10:30:00Z
+
+# Restore from backup
+./deploy/scripts/cnpg-recovery.sh local backup --backup-name=backup-20240715
+
+# Clone cluster for development
+./deploy/scripts/cnpg-recovery.sh local clone --source-cluster=naytife-postgres
+```
+
+#### Production Benefits
+- **99.9% Availability**: Multi-replica setup with automatic failover
+- **Disaster Recovery**: Automated backups with configurable retention
+- **Performance**: Connection pooling and optimized configurations
+- **Monitoring**: Built-in Prometheus metrics and alerting rules
+- **Scaling**: Horizontal and vertical scaling capabilities
+
+For detailed implementation, see:
+- 📋 [CNPG Implementation Plan](CNPG_IMPLEMENTATION_PLAN.md)
+- 🚀 [Quick Start Guide](CNPG_QUICK_START.md)

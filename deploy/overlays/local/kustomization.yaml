@@ -3,6 +3,12 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../base/cnpg-operator
+  - ../../base/cnpg-storage
+  - ../../base/cnpg-cluster
+  - ../../base/cnpg-pooler
+  - ../../base/cnpg-backup
+  # - ../../base/cnpg-monitoring  # Requires Prometheus CRDs
   - oathkeeper-nodeport-local.yaml
 
 patches:
@@ -12,8 +18,11 @@ patches:
   - path: oathkeeper-local-patch.yaml
   - path: oathkeeper-access-rules-local-patch.yaml
   - path: template-registry-local-patch.yaml
-  - path: store-deployer-local-patch.yaml
+  - path: hydra-local-patch.yaml
   - path: hydra-migrate-local-patch.yaml
+  - path: store-deployer-local-patch.yaml
+  - path: cnpg-cluster-local-patch.yaml
+  - path: cnpg-pooler-local-patch.yaml
 
 images:
   - name: naytife/backend
@@ -36,7 +45,7 @@ labels:
       environment: local
       deployment-method: kustomize
 
-namePrefix: local-
+# namePrefix: local-
 
 configMapGenerator:
   - name: local-config

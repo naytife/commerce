@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cnpg-cluster-metrics
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: cnpg-cluster-metrics
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-monitoring
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  selector:
+    matchLabels:
+      postgresql: naytife-postgres
+      role: primary
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cnpg-pooler-metrics
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: cnpg-pooler-metrics
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-monitoring
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  selector:
+    matchLabels:
+      cnpg.io/poolerName: naytife-postgres-pooler
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics

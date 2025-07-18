@@ -1,0 +1,39 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: naytife-postgres-pooler
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: naytife-postgres-pooler
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-pooler
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  cluster:
+    name: naytife-postgres
+  
+  instances: 2
+  type: rw
+  
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "100"
+      default_pool_size: "20"
+      max_db_connections: "25"
+      max_user_connections: "25"
+      server_reset_query: "DISCARD ALL"
+      server_check_query: "SELECT 1"
+      server_check_delay: "10"
+      max_prepared_statements: "100"
+      
+  # monitoring:
+  #   enabled: true
+    
+  # resources:
+  #   requests:
+  #     memory: "64Mi"
+  #     cpu: "50m"
+  #   limits:
+  #     memory: "128Mi"
+  #     cpu: "100m"

@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hydra
+  namespace: naytife-auth
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for CNPG cluster to be ready..."
+          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
+            echo "CNPG cluster not ready, waiting 2 seconds..."
+            sleep 2
+          done
+          echo "✅ CNPG cluster is ready!"

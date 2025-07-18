@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Sync migration files from backend to deploy directory
-# This ensures the migration files in deploy/ are always up-to-date
+# Migration files are now packaged in a dedicated Docker image
+# This script is kept for backward compatibility and documentation purposes
 
 set -e
 
@@ -9,15 +9,20 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+echo -e "${BLUE}ℹ️  Migration files are now packaged in the backend-migrations Docker image${NC}"
+echo -e "${BLUE}ℹ️  Source of truth: backend/internal/db/migrations/${NC}"
+echo -e "${BLUE}ℹ️  Built automatically via: backend/migrations.Dockerfile${NC}"
+echo ""
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 BACKEND_MIGRATIONS="$PROJECT_ROOT/../backend/internal/db/migrations"
-DEPLOY_MIGRATIONS="$SCRIPT_DIR/../base/backend/migrations"
 
-echo -e "${YELLOW}🔄 Syncing migration files...${NC}"
+echo -e "${YELLOW}� Current migration files in source:${NC}"
 
 # Check if source directory exists
 if [ ! -d "$BACKEND_MIGRATIONS" ]; then
@@ -25,29 +30,13 @@ if [ ! -d "$BACKEND_MIGRATIONS" ]; then
     exit 1
 fi
 
-# Create deploy migrations directory if it doesn't exist
-mkdir -p "$DEPLOY_MIGRATIONS"
+# Show current migration files
+ls -la "$BACKEND_MIGRATIONS/"
 
-# Copy migration files
-echo "📁 Copying migration files from backend to deploy..."
-cp "$BACKEND_MIGRATIONS"/*.sql "$DEPLOY_MIGRATIONS/" 2>/dev/null || true
-cp "$BACKEND_MIGRATIONS"/atlas.sum "$DEPLOY_MIGRATIONS/" 2>/dev/null || true
-
-# Check if we have migration files
-if [ ! -f "$DEPLOY_MIGRATIONS/atlas.sum" ]; then
-    echo -e "${RED}❌ No migration files found in $BACKEND_MIGRATIONS${NC}"
-    exit 1
-fi
-
-echo "📋 Migration files synced:"
-ls -la "$DEPLOY_MIGRATIONS/"
-
-# Validate the kustomization
-echo "🔍 Validating Kustomize configuration..."
-if kustomize build "$SCRIPT_DIR/../base/backend" > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Kustomize validation passed${NC}"
-else
-    echo -e "${RED}❌ Kustomize validation failed${NC}"
+echo ""
+echo -e "${GREEN}✅ Migration files will be automatically included in the next image build${NC}"
+echo -e "${BLUE}💡 To build the migration image locally: docker build -f backend/migrations.Dockerfile backend/${NC}"
+echo -e "${BLUE}💡 To deploy: Use skaffold or your CI/CD pipeline${NC}"
     exit 1
 fi
 

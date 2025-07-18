@@ -10,7 +10,7 @@ data:
         "id":"api:rest-api-docs",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/docs",
@@ -24,7 +24,7 @@ data:
         "id":"api:rest-api-docs-all",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/docs/<**>",
@@ -38,7 +38,7 @@ data:
         "id": "api:user-register",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/register",
@@ -52,7 +52,7 @@ data:
         "id": "api:user-login",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/login",
@@ -66,7 +66,7 @@ data:
         "id": "api:user-refresh",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/refresh",
@@ -80,7 +80,7 @@ data:
         "id": "api:user-logout",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/logout",
@@ -94,7 +94,7 @@ data:
         "id": "api:user-profile",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/profile",
@@ -108,7 +108,7 @@ data:
         "id": "api:cors",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/<**>",
@@ -131,7 +131,7 @@ data:
         "id": "api:customer-register",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/auth/register-customer",
@@ -145,7 +145,7 @@ data:
         "id": "api:customerinfo-public",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/customerinfo<**>",
@@ -159,7 +159,7 @@ data:
         "id": "api:webhooks-public",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/webhooks/<**>",
@@ -173,7 +173,7 @@ data:
         "id": "api:health-endpoints",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/<{health,ready}>",
@@ -187,7 +187,7 @@ data:
         "id": "api:shop-order",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/<*>/orders",
@@ -204,7 +204,7 @@ data:
         "id": "api:shop-orders",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/<*>/orders/<**>",
@@ -228,7 +228,7 @@ data:
         "id": "oauth:auth-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/oauth2/auth",
@@ -242,7 +242,7 @@ data:
         "id": "oauth:token-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/oauth2/token",
@@ -256,7 +256,7 @@ data:
         "id": "oauth:userinfo-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/userinfo",
@@ -270,7 +270,7 @@ data:
         "id": "oidc:well-known",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/.well-known/openid-configuration",
@@ -284,7 +284,7 @@ data:
         "id": "oauth:login-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+          "url": "http://auth-handler.naytife-auth.svc.cluster.local:3000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/login",
@@ -298,7 +298,7 @@ data:
         "id": "oauth:consent-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+          "url": "http://auth-handler.naytife-auth.svc.cluster.local:3000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/consent",
@@ -312,7 +312,7 @@ data:
         "id": "oauth:callback-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+          "url": "http://auth-handler.naytife-auth.svc.cluster.local:3000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/callback",
@@ -326,7 +326,7 @@ data:
         "id": "oauth:logout-endpoint-auth",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+          "url": "http://auth-handler.naytife-auth.svc.cluster.local:3000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/logout",
@@ -340,7 +340,7 @@ data:
         "id": "oauth:error-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-auth-handler.naytife-auth.svc.cluster.local:3000"
+          "url": "http://auth-handler.naytife-auth.svc.cluster.local:3000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/error",
@@ -354,7 +354,7 @@ data:
         "id": "oauth:fallbacks-error-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/oauth2/fallbacks/error",
@@ -368,7 +368,7 @@ data:
         "id": "oauth:logout-endpoint",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-hydra-public.naytife-auth.svc.cluster.local:4444"
+          "url": "http://hydra-public.naytife-auth.svc.cluster.local:4444"
         },
         "match": {
           "url": "http://127.0.0.1:8080/oauth2/sessions/logout",
@@ -382,7 +382,7 @@ data:
         "id": "api:shops-post-get",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops",
@@ -406,7 +406,7 @@ data:
         "id": "api:shop-crud",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/<*>",
@@ -430,7 +430,7 @@ data:
         "id": "api:admin-shop-apis",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/<*>/<{customers,inventory,payment-methods,products,product-types,attributes,deploy,redeploy,deployment-status,update-data,images}><**>",
@@ -454,7 +454,7 @@ data:
         "id": "api:admin-protected-endpoints",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/<{me,userinfo,cart,checkout,images,predefined-product-types,subdomains}><**>",
@@ -478,7 +478,7 @@ data:
         "id": "api:public-graph-playground",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://<*>.localhost:8080/graph",
@@ -492,7 +492,7 @@ data:
         "id": "api:public-graph-query",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://<*>.localhost:8080/query",
@@ -509,7 +509,7 @@ data:
         "id": "build:service",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-store-deployer.naytife.svc.cluster.local:9003"
+          "url": "http://store-deployer.naytife.svc.cluster.local:9003"
         },
         "match": {
           "url": "http://127.0.0.1:8080/build<**>",
@@ -523,7 +523,7 @@ data:
         "id": "backend:templates",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/templates<**>",
@@ -549,7 +549,7 @@ data:
         "id": "backend:deployment",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/{shop_id}/deploy<**>",
@@ -575,7 +575,7 @@ data:
         "id": "backend:deployment-status",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/{shop_id}/deployment-status<**>",
@@ -601,7 +601,7 @@ data:
         "id": "backend:services-health",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/health/services",
@@ -615,7 +615,7 @@ data:
         "id": "api:payments",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/payments<**>",
@@ -629,7 +629,7 @@ data:
         "id": "api:shop-analytics",
         "upstream": {
           "preserve_host": true,
-          "url": "http://local-backend.naytife.svc.cluster.local:8000"
+          "url": "http://backend.naytife.svc.cluster.local:8000"
         },
         "match": {
           "url": "http://127.0.0.1:8080/v1/shops/<*>/analytics/<**>",

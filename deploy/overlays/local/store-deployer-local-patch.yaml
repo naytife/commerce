@@ -15,6 +15,6 @@ spec:
         - name: LOG_LEVEL
           value: "debug"
         - name: BACKEND_URL
-          value: "http://local-backend.naytife.svc.cluster.local:8000"
+          value: "http://backend.naytife.svc.cluster.local:8000"
         - name: TEMPLATE_REGISTRY_URL
-          value: "http://local-template-registry.naytife.svc.cluster.local:9001"
+          value: "http://template-registry.naytife.svc.cluster.local:9001"

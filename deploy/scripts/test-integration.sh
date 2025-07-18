@@ -255,6 +255,45 @@ test_service_connectivity() {
     fi
 }
 
+# Function to test CNPG cluster
+test_cnpg_cluster() {
+    local namespace=$1
+    
+    print_header "Testing CNPG Cluster"
+    
+    # Check if CNPG cluster exists
+    if ! kubectl get cluster naytife-postgres -n "$namespace" >/dev/null 2>&1; then
+        print_warning "CNPG cluster not found, skipping CNPG tests"
+        return
+    fi
+    
+    # Test cluster is ready
+    run_test "CNPG cluster is ready" "kubectl get cluster naytife-postgres -n '$namespace' -o jsonpath='{.status.readyInstances}' | grep -v '^0$'"
+    
+    # Test cluster is healthy
+    run_test "CNPG cluster is healthy" "kubectl get cluster naytife-postgres -n '$namespace' -o jsonpath='{.status.phase}' | grep -E '(Cluster in healthy state|healthy)'"
+    
+    # Test primary pod exists and is ready
+    run_test "CNPG primary pod is ready" "kubectl get pods -n '$namespace' -l postgresql=naytife-postgres,role=primary -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' | grep -q True"
+    
+    # Test services exist
+    run_test "CNPG read-write service exists" "kubectl get service naytife-postgres -n '$namespace'"
+    run_test "CNPG read-only service exists" "kubectl get service naytife-postgres-ro -n '$namespace'"
+    
+    # Test pooler if it exists
+    if kubectl get pooler naytife-postgres-pooler -n "$namespace" >/dev/null 2>&1; then
+        run_test "CNPG pooler is ready" "kubectl get pooler naytife-postgres-pooler -n '$namespace' -o jsonpath='{.status.phase}' | grep -E '(Ready|ready)'"
+        run_test "CNPG pooler service exists" "kubectl get service naytife-postgres-pooler -n '$namespace'"
+    fi
+    
+    # Test database connectivity
+    local primary_pod=$(kubectl get pods -n "$namespace" -l postgresql=naytife-postgres,role=primary -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+    if [ -n "$primary_pod" ]; then
+        run_test "CNPG database is accessible" "kubectl exec -n '$namespace' '$primary_pod' -- psql -U naytife -d naytifedb -c 'SELECT 1;'"
+        run_test "CNPG schemas exist" "kubectl exec -n '$namespace' '$primary_pod' -- psql -U naytife -d naytifedb -c 'SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('\''hydra'\'', '\''naytife_schema'\'');' | grep -E '(hydra|naytife_schema)'"
+    fi
+}
+
 # Function to test database connectivity
 test_database_connectivity() {
     local namespace=$1
@@ -262,11 +301,19 @@ test_database_connectivity() {
     
     print_header "Testing Database Connectivity"
     
-    # Test postgres
-    run_test "Postgres pod is running" "kubectl get pods -n '$namespace' -l app=postgres --field-selector=status.phase=Running --no-headers | wc -l | grep -v '^0$'"
-    
-    # Test postgres connectivity from within cluster
-    run_test "Postgres is accessible" "kubectl exec -n '$namespace' deployment/${prefix}postgres -- pg_isready -h localhost -p 5432"
+    # Check if CNPG cluster exists first
+    if kubectl get cluster naytife-postgres -n "$namespace" >/dev/null 2>&1; then
+        test_cnpg_cluster "$namespace"
+    else
+        # Fall back to traditional postgres testing
+        print_info "CNPG cluster not found, testing traditional PostgreSQL deployment"
+        
+        # Test postgres
+        run_test "Postgres pod is running" "kubectl get pods -n '$namespace' -l app=postgres --field-selector=status.phase=Running --no-headers | wc -l | grep -v '^0$'"
+        
+        # Test postgres connectivity from within cluster
+        run_test "Postgres is accessible" "kubectl exec -n '$namespace' deployment/${prefix}postgres -- pg_isready -h localhost -p 5432"
+    fi
     
     # Test redis
     run_test "Redis pod is running" "kubectl get pods -n '$namespace' -l app=redis --field-selector=status.phase=Running --no-headers | wc -l | grep -v '^0$'"

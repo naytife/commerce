@@ -27,6 +27,19 @@ build:
             dest: /app/config
             strip: ""
     
+    - image: naytife/backend-migrations
+      context: backend
+      docker:
+        dockerfile: migrations.Dockerfile
+      sync:
+        manual:
+          - src: "internal/db/migrations/**"
+            dest: /migrations
+            strip: "internal/db/migrations"
+          - src: "atlas.hcl"
+            dest: /atlas.hcl
+            strip: ""
+    
     - image: naytife/auth-handler
       context: auth/authentication-handler
       docker:

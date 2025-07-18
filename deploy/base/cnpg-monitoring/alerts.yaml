@@ -1,0 +1,58 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cnpg-alerts
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: cnpg-alerts
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-monitoring
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  groups:
+  - name: cnpg.rules
+    rules:
+    - alert: PostgreSQLInstanceDown
+      expr: pg_up == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "PostgreSQL instance is down"
+        description: "PostgreSQL instance {{ $labels.instance }} is down"
+        
+    - alert: PostgreSQLReplicationLag
+      expr: pg_stat_replication_lag > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PostgreSQL replication lag is high"
+        description: "Replication lag is {{ $value }}s on {{ $labels.instance }}"
+        
+    - alert: PostgreSQLConnectionsHigh
+      expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PostgreSQL connections are high"
+        description: "Connection usage is {{ $value }}% on {{ $labels.instance }}"
+        
+    - alert: CNPGClusterNotReady
+      expr: cnpg_cluster_status != 1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "CNPG cluster is not ready"
+        description: "CNPG cluster {{ $labels.cluster }} is not in ready state"
+        
+    - alert: CNPGPoolerDown
+      expr: cnpg_pooler_status != 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "CNPG pooler is down"
+        description: "CNPG pooler {{ $labels.pooler }} is not available"

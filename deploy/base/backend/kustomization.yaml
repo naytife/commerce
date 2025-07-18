@@ -7,20 +7,6 @@ resources:
   - service.yaml
   - migration.yaml
 
-configMapGenerator:
-  - name: backend-migrations
-    namespace: naytife
-    files:
-      - migrations/20250702021039_init.sql
-      - migrations/20250702030000_create_daily_sales_mv.sql
-      - migrations/atlas.sum
-    options:
-      labels:
-        app.kubernetes.io/name: backend-migrate
-        app.kubernetes.io/part-of: naytife-platform
-        app.kubernetes.io/component: migration
-
-
 labels:
   - pairs:
       app.kubernetes.io/managed-by: kustomize
@@ -29,4 +15,6 @@ labels:
 
 images:
   - name: naytife/backend
+    newTag: latest
+  - name: naytife/backend-migrations
     newTag: latest

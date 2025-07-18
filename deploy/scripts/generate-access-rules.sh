@@ -16,7 +16,7 @@ if [[ -z "$ENVIRONMENT" || -z "$BASE_URL" || -z "$BACKEND_URL" || -z "$HYDRA_URL
     echo "Usage: $0 <environment> <base_url> <backend_url> <hydra_url> <auth_handler_url> <store_deployer_url>"
     echo ""
     echo "Example:"
-    echo "  $0 local http://127.0.0.1:8080 http://local-backend.naytife.svc.cluster.local:8000 http://local-hydra-public.naytife-auth.svc.cluster.local:4444 http://local-auth-handler.naytife-auth.svc.cluster.local:3000 http://local-store-deployer.naytife.svc.cluster.local:9003"
+    echo "  $0 local http://127.0.0.1:8080 http://backend.naytife.svc.cluster.local:8000 http://hydra-public.naytife-auth.svc.cluster.local:4444 http://auth-handler.naytife-auth.svc.cluster.local:3000 http://store-deployer.naytife.svc.cluster.local:9003"
     echo "  $0 staging https://api-staging.naytife.com http://backend.naytife.svc.cluster.local:8000 http://hydra-public.naytife-auth.svc.cluster.local:4444 http://auth-handler.naytife-auth.svc.cluster.local:3000 http://store-deployer.naytife.svc.cluster.local:9003"
     echo "  $0 production https://api.naytife.com http://backend.naytife.svc.cluster.local:8000 http://hydra-public.naytife-auth.svc.cluster.local:4444 http://auth-handler.naytife-auth.svc.cluster.local:3000 http://store-deployer.naytife.svc.cluster.local:9003"
     exit 1

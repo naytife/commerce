@@ -12,12 +12,18 @@ spec:
         - sh
         - -c
         - |
-          echo "Waiting for PostgreSQL to be ready..."
-          until pg_isready -h local-postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
-            echo "PostgreSQL not ready, waiting 2 seconds..."
+          echo "Waiting for CNPG cluster to be ready..."
+          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
+            echo "CNPG cluster not ready, waiting 2 seconds..."
             sleep 2
           done
-          echo "✅ PostgreSQL is ready!"
+          echo "✅ CNPG cluster is ready!"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cnpg-cluster-secret
+              key: password
       
       - name: migration-pre-check
         command:
@@ -26,10 +32,17 @@ spec:
         - |
           echo "🔍 Running pre-migration checks..."
           
-          # Check if database exists and is accessible
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h local-postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "SELECT version();" || exit 1
+          # Check database accessibility using direct connection
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "SELECT version();" || exit 1
           
-          # Check if schema exists
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h local-postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
+          # Ensure schemas exist
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS hydra;" || exit 1
           
           echo "✅ Pre-migration checks passed"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cnpg-cluster-secret
+              key: password

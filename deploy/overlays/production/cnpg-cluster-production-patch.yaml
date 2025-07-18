@@ -1,0 +1,50 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: naytife-postgres
+  namespace: naytife-production
+spec:
+  instances: 3  # High availability
+  
+  storage:
+    size: 100Gi
+    storageClass: cnpg-oci-storage
+    
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+      
+  backup:
+    target: prefer-standby
+    barmanObjectStore:
+      destinationPath: "s3://naytife-postgres-backups/production"
+      endpointURL: "https://objectstorage.us-phoenix-1.oraclecloud.com"
+      data:
+        retention: "7d"
+        compression: "gzip"
+      wal:
+        retention: "1d"
+        compression: "gzip"
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-backup-secret
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: cnpg-backup-secret
+          key: SECRET_ACCESS_KEY
+          
+  # Pod anti-affinity for high availability
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: postgresql
+            operator: In
+            values:
+            - naytife-postgres
+        topologyKey: kubernetes.io/hostname

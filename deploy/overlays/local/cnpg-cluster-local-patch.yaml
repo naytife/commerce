@@ -1,0 +1,24 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: naytife-postgres
+  namespace: naytife
+spec:
+  instances: 1  # Single instance for local development
+  
+  storage:
+    size: 10Gi
+    storageClass: cnpg-local-storage
+    
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+      
+  # Disable backup for local development
+  backup:
+    target: prefer-standby
+    # Local backup configuration will be minimal

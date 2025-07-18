@@ -1,0 +1,28 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cnpg-local-storage
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-storage
+    app.kubernetes.io/part-of: naytife-platform
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cnpg-oci-storage
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-storage
+    app.kubernetes.io/part-of: naytife-platform
+provisioner: blockvolume.csi.oraclecloud.com
+parameters:
+  fsType: ext4
+  replicaCount: "3"
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+allowVolumeExpansion: true

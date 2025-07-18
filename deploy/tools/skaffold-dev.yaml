@@ -15,14 +15,14 @@ build:
 
 portForward:
   - resourceType: service
-    resourceName: local-backend
+    resourceName: backend
     namespace: naytife-local
     port: 8000
     localPort: 8000
     address: "0.0.0.0"
   
   - resourceType: service
-    resourceName: local-postgres
+    resourceName: postgres
     namespace: naytife-local
     port: 5432
     localPort: 15432

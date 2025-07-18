@@ -1,0 +1,65 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: naytife-postgres
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: naytife-postgres
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-cluster
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  instances: 3
+  
+  postgresql:
+    parameters:
+      # Performance tuning (removed shared_preload_libraries as it's a fixed parameter)
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      
+      # Logging
+      log_statement: "all"
+      log_min_duration_statement: "1000"
+      log_checkpoints: "on"
+      log_connections: "on"
+      log_disconnections: "on"
+      log_lock_waits: "on"
+
+  bootstrap:
+    initdb:
+      database: naytifedb
+      owner: naytife
+      secret:
+        name: cnpg-cluster-secret
+      postInitTemplateSQL:
+        - CREATE SCHEMA IF NOT EXISTS hydra;
+        - CREATE SCHEMA IF NOT EXISTS naytife_schema;
+        - GRANT ALL PRIVILEGES ON SCHEMA hydra TO naytife;
+        - GRANT ALL PRIVILEGES ON SCHEMA naytife_schema TO naytife;
+
+  storage:
+    size: 50Gi
+    storageClass: cnpg-local-storage
+    
+  # monitoring:
+  #   enabled: true
+    
+  nodeMaintenanceWindow:
+    inProgress: false
+    reusePVC: true
+    
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"

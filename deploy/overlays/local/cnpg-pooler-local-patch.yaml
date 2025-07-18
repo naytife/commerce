@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: naytife-postgres-pooler
+  namespace: naytife
+spec:
+  instances: 1  # Single pooler instance for local
+  
+  pgbouncer:
+    parameters:
+      max_client_conn: "50"
+      default_pool_size: "10"
+      max_db_connections: "15"
+      max_user_connections: "15"
+      max_prepared_statements: "50"

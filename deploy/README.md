@@ -147,6 +147,69 @@ Run the Phase 1 validation script to ensure everything is properly configured:
 ./scripts/validate-phase1.sh
 ```
 
+## 🗄️ Database Migrations
+
+The platform uses a dedicated Docker image approach for database migrations, providing better isolation, performance, and CI/CD integration.
+
+### Migration Image Architecture
+
+- **Source**: Migration files in `backend/internal/db/migrations/`
+- **Image**: Built via `backend/migrations.Dockerfile`  
+- **Deployment**: Kubernetes Job runs the migration image before backend deployment
+- **Base Image**: `arigaio/atlas:0.35.0`
+
+### Migration Workflow
+
+1. **Development**: Add migration files to `backend/internal/db/migrations/`
+2. **Build**: Migration image is built automatically via Skaffold or CI/CD
+3. **Deploy**: Migration job runs before backend pods start
+4. **Validation**: Atlas tracks applied migrations in the database
+
+### Migration Commands
+
+#### Test Migration Image Locally
+```bash
+./scripts/test-migration-image.sh
+```
+
+#### View Migration Status
+```bash
+# Check which migrations are applied
+kubectl logs -n naytife job/backend-migrate
+```
+
+#### Manual Migration (Development)
+```bash
+# Build migration image
+docker build -f backend/migrations.Dockerfile -t naytife/backend-migrations:local backend/
+
+# Run migration against local database
+docker run --rm \
+  -e DATABASE_URL="your-database-url" \
+  naytife/backend-migrations:local \
+  migrate apply --dir /migrations --url "$DATABASE_URL"
+```
+
+#### Migration Troubleshooting
+```bash
+# Check migration job status
+kubectl get jobs -n naytife
+
+# View migration logs
+kubectl logs -n naytife job/backend-migrate
+
+# Delete failed migration job (to retry)
+kubectl delete job backend-migrate -n naytife
+```
+
+### Migration Best Practices
+
+- **Version Control**: All migration files are tracked in Git
+- **Atomic**: Each migration runs in isolation
+- **Forward-Only**: No rollback migrations (create new forward migrations instead)
+- **Testing**: Always test migrations in local/staging before production
+- **Secrets**: Database credentials stored in Kubernetes secrets, not in images
+
 ### Manual Kustomize Operations
 
 #### Build Configuration

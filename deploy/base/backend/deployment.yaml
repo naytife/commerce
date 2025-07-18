@@ -25,7 +25,7 @@ spec:
         - sh
         - -c
         - |
-          until pg_isready -h postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
             echo "Waiting for postgres..."
             sleep 2
           done

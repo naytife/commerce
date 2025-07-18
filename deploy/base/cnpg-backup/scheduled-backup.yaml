@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: naytife-postgres-backup
+  namespace: naytife
+  labels:
+    app.kubernetes.io/name: naytife-postgres-backup
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/component: cnpg-backup
+    app.kubernetes.io/part-of: naytife-platform
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  backupOwnerReference: self
+  cluster:
+    name: naytife-postgres

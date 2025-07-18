@@ -185,9 +185,9 @@ Matches your current overlay configuration:
 
 ### Service Discovery
 Services are accessible within the cluster using:
-- `local-backend.naytife-local.svc.cluster.local:8000`
-- `local-auth-handler.naytife-local.svc.cluster.local:3000`
-- `local-postgres.naytife-local.svc.cluster.local:5432`
+- `backend.naytife-local.svc.cluster.local:8000`
+- `auth-handler.naytife-local.svc.cluster.local:3000`
+- `postgres.naytife-local.svc.cluster.local:5432`
 
 ## Performance Optimization
 

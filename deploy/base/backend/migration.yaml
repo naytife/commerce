@@ -33,7 +33,7 @@ spec:
         - -c
         - |
           echo "Waiting for PostgreSQL to be ready..."
-          until pg_isready -h postgres.naytife.svc.cluster.local -p 5432 -U postgres; do
+          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
             echo "PostgreSQL not ready, waiting 2 seconds..."
             sleep 2
           done
@@ -55,18 +55,18 @@ spec:
           echo "🔍 Running pre-migration checks..."
           
           # Check if database exists and is accessible
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "SELECT version();" || exit 1
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "SELECT version();" || exit 1
           
           # Check if schema exists
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h postgres.naytife.svc.cluster.local -U postgres -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
           
           echo "✅ Pre-migration checks passed"
         env:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: postgres-secret
-              key: postgres-password
+              name: cnpg-cluster-secret
+              key: password
         resources:
           requests:
             memory: "32Mi"
@@ -77,45 +77,36 @@ spec:
       
       containers:
       - name: atlas-migrate
-        image: alpine:latest
+        image: naytife/backend-migrations:latest
+        imagePullPolicy: Never
         command:
         - sh
         - -c
         - |
-          echo "🚀 Installing Atlas and running migrations..."
-          
-          # Install Atlas
-          apk add --no-cache curl
-          curl -sSf https://atlasgo.sh | sh
-          
-          echo "📁 Available migration files:"
-          ls -la /migrations/
+          # Build a clean PostgreSQL URL using direct connection (not pooler)
+          export DB_URL="postgresql://naytife:$POSTGRES_PASSWORD@naytife-postgres-rw.naytife.svc.cluster.local:5432/naytifedb?sslmode=require"
           
           echo "🔍 Checking current migration status..."
           atlas migrate status \
             --dir file:///migrations \
-            --url "$DATABASE_URL" \
-            --revisions-schema atlas_schema_revisions || true
+            --url "$DB_URL" \
+            --revisions-schema atlas_schema_revisions
           
           echo "⚡ Applying migrations..."
           atlas migrate apply \
             --dir file:///migrations \
-            --url "$DATABASE_URL" \
+            --url "$DB_URL" \
             --revisions-schema atlas_schema_revisions \
             --tx-mode none \
             --allow-dirty
           
           echo "✅ Migration completed successfully!"
         env:
-        - name: DATABASE_URL
+        - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: backend-secret
-              key: DATABASE_URL
-        volumeMounts:
-        - name: migrations
-          mountPath: /migrations
-          readOnly: true
+              name: cnpg-cluster-secret
+              key: password
         resources:
           requests:
             memory: "128Mi"
@@ -123,10 +114,4 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "500m"
-      
-      volumes:
-      - name: migrations
-        configMap:
-          name: backend-migrations
-          defaultMode: 0444
  

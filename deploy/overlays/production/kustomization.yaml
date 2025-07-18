@@ -3,6 +3,12 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../base/cnpg-operator
+  - ../../base/cnpg-storage
+  - ../../base/cnpg-cluster
+  - ../../base/cnpg-pooler
+  - ../../base/cnpg-backup
+  - ../../base/cnpg-monitoring
   - persistent-volumes-production.yaml
   - ingress-production.yaml
   - network-policy.yaml
@@ -39,6 +45,7 @@ patches:
   - path: redis-production-patch.yaml
   - path: template-registry-production-patch.yaml
   - path: store-deployer-production-patch.yaml
+  - path: cnpg-cluster-production-patch.yaml
 
 namePrefix: prod-
 

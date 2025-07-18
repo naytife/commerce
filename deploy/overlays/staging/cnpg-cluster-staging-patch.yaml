@@ -1,0 +1,37 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: naytife-postgres
+  namespace: naytife-staging
+spec:
+  instances: 2  # Two instances for staging
+  
+  storage:
+    size: 50Gi
+    storageClass: cnpg-local-storage
+    
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+      
+  backup:
+    target: prefer-standby
+    barmanObjectStore:
+      destinationPath: "s3://naytife-postgres-backups/staging"
+      data:
+        retention: "3d"
+        compression: "gzip"
+      wal:
+        retention: "1d"
+        compression: "gzip"
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-backup-secret
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: cnpg-backup-secret
+          key: SECRET_ACCESS_KEY
