@@ -5,12 +5,12 @@
 	import type { 
 		InventoryItem, 
 		InventoryReport, 
-		LowStockVariant, 
+		LowStockProduct,
 		StockMovement, 
 		StockUpdatePayload,
 		InventorySearchParams,
 		StockMovementSearchParams,
-		PaginatedResponse 
+		StockMovementsResponse
 	} from '$lib/types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -58,7 +58,7 @@
 	$: currencyCode = $shopQuery.data?.currency_code || 'USD';
 
 	let inventoryReport: InventoryReport | null = null;
-	let lowStockVariants: LowStockVariant[] = [];
+	let lowStockVariants: LowStockProduct[] = [];
 	let stockMovements: StockMovement[] = [];
 	let loading = true;
 	let loadingLowStock = false;
@@ -130,8 +130,8 @@
 				...params,
 				...filters
 			});
-			stockMovements = response.data || [];
-			totalPages = response.pagination?.total_pages || 1;
+			stockMovements = response.movements || [];
+			totalPages = Math.ceil(response.total / response.limit) || 1;
 		} catch (error) {
 			console.error('Error loading stock movements:', error);
 			toast.error('Failed to load stock movements');
@@ -180,8 +180,10 @@
 			// Extract movement type from select with proper typing
 			const movementType = (stockUpdateMovementTypeSelect?.value || 'adjustment') as 'adjustment' | 'purchase' | 'damage' | 'transfer';
 			const updatePayload: StockUpdatePayload = {
-				...stockUpdateForm,
-				movement_type: movementType
+				quantity: Number(stockUpdateForm.quantity),
+				movement_type: movementType,
+				reason: stockUpdateForm.reason,
+				cost_price: stockUpdateForm.cost_price ? Number(stockUpdateForm.cost_price) : undefined
 			};
 			
 			await apiWithAuth.updateVariantStock(selectedVariant.variant_id, updatePayload);
@@ -549,39 +551,33 @@
 									<Table.Row class="bg-orange-50 dark:bg-orange-950/20">
 										<Table.Cell class="font-medium">
 											<div>
-												<div class="font-semibold">{variant.product_title}</div>
-												<div class="text-sm text-muted-foreground">{variant.variant_title}</div>
+												<div class="font-semibold">{variant.product_name}</div>
+												<div class="text-sm text-muted-foreground">{variant.description}</div>
 											</div>
 										</Table.Cell>
 										<Table.Cell class="font-mono text-sm">{variant.sku}</Table.Cell>
 										<Table.Cell>
-											<span class="font-semibold text-orange-600">{variant.current_stock}</span>
+											<span class="font-semibold text-orange-600">{variant.stock}</span>
 											<AlertTriangle class="w-4 h-4 text-orange-500 inline ml-1" />
 										</Table.Cell>
-										<Table.Cell>{variant.low_stock_threshold}</Table.Cell>
+										<Table.Cell>-</Table.Cell>
 										<Table.Cell>
-											{#if variant.days_of_stock_remaining}
-												<Badge variant="secondary">
-													{variant.days_of_stock_remaining} days
-												</Badge>
-											{:else}
-												<span class="text-muted-foreground">N/A</span>
-											{/if}
+											<span class="text-muted-foreground">N/A</span>
 										</Table.Cell>
 										<Table.Cell class="text-right">
 											<Button
 												variant="outline"
 												size="sm"
 												on:click={() => openStockUpdateDialog({
-													variant_id: variant.variant_id,
-													product_id: variant.product_id,
-													product_title: variant.product_title,
-													variant_title: variant.variant_title,
+													variant_id: variant.product_variation_id,
+													product_id: 0, // Not available in LowStockProduct
+													product_title: variant.product_name,
+													variant_title: variant.description,
 													sku: variant.sku,
-													current_stock: variant.current_stock,
+													current_stock: variant.stock,
 													reserved_stock: 0,
-													available_stock: variant.current_stock,
-													low_stock_threshold: variant.low_stock_threshold,
+													available_stock: variant.stock,
+													low_stock_threshold: 0, // Not available in LowStockProduct
 													last_updated: new Date().toISOString()
 												})}
 											>
@@ -693,12 +689,12 @@
 											</Badge>
 										</Table.Cell>
 										<Table.Cell>
-											<span class="font-semibold {movement.quantity_change > 0 ? 'text-green-600' : 'text-red-600'}">
-												{movement.quantity_change > 0 ? '+' : ''}{movement.quantity_change}
+											<span class="font-semibold {movement.quantity > 0 ? 'text-green-600' : 'text-red-600'}">
+												{movement.quantity > 0 ? '+' : ''}{movement.quantity}
 											</span>
 										</Table.Cell>
-										<Table.Cell>{movement.previous_quantity}</Table.Cell>
-										<Table.Cell>{movement.new_quantity}</Table.Cell>
+										<Table.Cell>{movement.previous_stock}</Table.Cell>
+										<Table.Cell>{movement.new_stock}</Table.Cell>
 										<Table.Cell>{movement.reason || 'N/A'}</Table.Cell>
 										<Table.Cell>{formatDateTime(movement.created_at)}</Table.Cell>
 									</Table.Row>

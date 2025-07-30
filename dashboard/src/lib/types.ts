@@ -327,7 +327,8 @@ export type ProductType = {
     total_variants: number;
     low_stock_count: number;
     out_of_stock_count: number;
-    total_inventory_value: number;
+    total_stock_value: number;
+    generated_at: string;
     items: InventoryItem[];
   }
 
@@ -349,14 +350,21 @@ export type ProductType = {
     variant_title: string;
     sku: string;
     movement_type: 'adjustment' | 'sale' | 'purchase' | 'return' | 'damage' | 'transfer';
-    quantity_change: number;
-    previous_quantity: number;
-    new_quantity: number;
+    quantity: number;
+    previous_stock: number;
+    new_stock: number;
     reason?: string;
     reference_type?: string;
     reference_id?: number;
     user_id?: string;
     created_at: string;
+  }
+
+  export interface StockMovementsResponse {
+    movements: StockMovement[];
+    total: number;
+    page: number;
+    limit: number;
   }
 
   export interface StockUpdatePayload {

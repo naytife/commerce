@@ -14,6 +14,7 @@ import type {
   InventoryReport,
   LowStockVariant,
   StockMovement,
+  StockMovementsResponse,
   StockUpdatePayload,
   StockMovementCreatePayload,
   InventorySearchParams,
@@ -832,7 +833,7 @@ export const api = (customFetch = fetch) => {
       }
     },
 
-    getStockMovements: async (params?: StockMovementSearchParams): Promise<PaginatedResponse<StockMovement>> => {
+    getStockMovements: async (params?: StockMovementSearchParams): Promise<StockMovementsResponse> => {
       const queryParams = new URLSearchParams();
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
@@ -844,7 +845,7 @@ export const api = (customFetch = fetch) => {
       
       const url = `${getShopUrl()}/inventory/movements${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await customFetch(url);
-      const data = await response.json() as ApiResponse<PaginatedResponse<StockMovement>>;
+      const data = await response.json() as ApiResponse<StockMovementsResponse>;
       return data.data;
     },
 
