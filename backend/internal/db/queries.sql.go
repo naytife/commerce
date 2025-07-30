@@ -362,12 +362,17 @@ func (q *Queries) GetCustomersCount(ctx context.Context, shopID int64) (int64, e
 
 const getInventoryReport = `-- name: GetInventoryReport :many
 SELECT 
+    pv.product_variation_id,
+    pv.product_id,
     p.title as product_title,
-    pv.sku,
     pv.description as variant_description,
+    pv.sku,
     pv.available_quantity,
+    0 as reserved_quantity,
+    pv.available_quantity as available_stock,
     pv.price,
     (pv.available_quantity * pv.price) as stock_value,
+    pv.updated_at,
     CASE 
         WHEN pv.available_quantity = 0 THEN 'OUT_OF_STOCK'
         WHEN pv.available_quantity <= $2 THEN 'LOW_STOCK'
@@ -385,13 +390,18 @@ type GetInventoryReportParams struct {
 }
 
 type GetInventoryReportRow struct {
-	ProductTitle       string         `json:"product_title"`
-	Sku                string         `json:"sku"`
-	VariantDescription string         `json:"variant_description"`
-	AvailableQuantity  int64          `json:"available_quantity"`
-	Price              pgtype.Numeric `json:"price"`
-	StockValue         int32          `json:"stock_value"`
-	StockStatus        string         `json:"stock_status"`
+	ProductVariationID int64              `json:"product_variation_id"`
+	ProductID          int64              `json:"product_id"`
+	ProductTitle       string             `json:"product_title"`
+	VariantDescription string             `json:"variant_description"`
+	Sku                string             `json:"sku"`
+	AvailableQuantity  int64              `json:"available_quantity"`
+	ReservedQuantity   int32              `json:"reserved_quantity"`
+	AvailableStock     int64              `json:"available_stock"`
+	Price              pgtype.Numeric     `json:"price"`
+	StockValue         int32              `json:"stock_value"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	StockStatus        string             `json:"stock_status"`
 }
 
 func (q *Queries) GetInventoryReport(ctx context.Context, arg GetInventoryReportParams) ([]GetInventoryReportRow, error) {
@@ -404,12 +414,17 @@ func (q *Queries) GetInventoryReport(ctx context.Context, arg GetInventoryReport
 	for rows.Next() {
 		var i GetInventoryReportRow
 		if err := rows.Scan(
+			&i.ProductVariationID,
+			&i.ProductID,
 			&i.ProductTitle,
-			&i.Sku,
 			&i.VariantDescription,
+			&i.Sku,
 			&i.AvailableQuantity,
+			&i.ReservedQuantity,
+			&i.AvailableStock,
 			&i.Price,
 			&i.StockValue,
+			&i.UpdatedAt,
 			&i.StockStatus,
 		); err != nil {
 			return nil, err
@@ -522,6 +537,37 @@ func (q *Queries) GetOrderByTransactionID(ctx context.Context, arg GetOrderByTra
 		&i.CustomerName,
 		&i.CustomerEmail,
 		&i.CustomerPhone,
+	)
+	return i, err
+}
+
+const getProductVariation = `-- name: GetProductVariation :one
+SELECT product_variation_id, sku, description, price, available_quantity, seo_description, seo_keywords, seo_title, is_default, created_at, updated_at, product_id, shop_id FROM product_variations
+WHERE product_variation_id = $1 AND shop_id = $2
+`
+
+type GetProductVariationParams struct {
+	ProductVariationID int64 `json:"product_variation_id"`
+	ShopID             int64 `json:"shop_id"`
+}
+
+func (q *Queries) GetProductVariation(ctx context.Context, arg GetProductVariationParams) (ProductVariation, error) {
+	row := q.db.QueryRow(ctx, getProductVariation, arg.ProductVariationID, arg.ShopID)
+	var i ProductVariation
+	err := row.Scan(
+		&i.ProductVariationID,
+		&i.Sku,
+		&i.Description,
+		&i.Price,
+		&i.AvailableQuantity,
+		&i.SeoDescription,
+		&i.SeoKeywords,
+		&i.SeoTitle,
+		&i.IsDefault,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProductID,
+		&i.ShopID,
 	)
 	return i, err
 }

@@ -18,10 +18,10 @@ type LowStockVariantResponse struct {
 
 // UpdateStockParams represents parameters for updating stock
 type UpdateStockParams struct {
-	Stock         int32   `json:"stock" validate:"required,min=0"`
-	Reason        string  `json:"reason" validate:"required,min=3,max=255"`
-	ReferenceType string  `json:"reference_type" validate:"required"`
-	ReferenceID   *string `json:"reference_id"`
+	Quantity     int32    `json:"quantity" validate:"required,min=0"`
+	MovementType string   `json:"movement_type" validate:"required,oneof=adjustment purchase damage transfer"`
+	Reason       *string  `json:"reason,omitempty" validate:"omitempty,min=3,max=255"`
+	CostPrice    *float64 `json:"cost_price,omitempty" validate:"omitempty,min=0"`
 }
 
 // AddStockParams represents parameters for adding stock
@@ -49,12 +49,28 @@ type VariantStockResponse struct {
 
 // InventoryReportResponse represents an inventory report
 type InventoryReportResponse struct {
-	TotalProducts   int       `json:"total_products"`
-	TotalVariants   int       `json:"total_variants"`
-	TotalStockValue float64   `json:"total_stock_value"`
-	LowStockCount   int       `json:"low_stock_count"`
-	OutOfStockCount int       `json:"out_of_stock_count"`
-	GeneratedAt     time.Time `json:"generated_at"`
+	TotalProducts   int                     `json:"total_products"`
+	TotalVariants   int                     `json:"total_variants"`
+	TotalStockValue float64                 `json:"total_stock_value"`
+	LowStockCount   int                     `json:"low_stock_count"`
+	OutOfStockCount int                     `json:"out_of_stock_count"`
+	GeneratedAt     time.Time               `json:"generated_at"`
+	Items           []InventoryItemResponse `json:"items"`
+}
+
+// InventoryItemResponse represents an inventory item in the report
+type InventoryItemResponse struct {
+	VariantID         int64   `json:"variant_id"`
+	ProductID         int64   `json:"product_id"`
+	ProductTitle      string  `json:"product_title"`
+	VariantTitle      string  `json:"variant_title"`
+	SKU               string  `json:"sku"`
+	CurrentStock      int64   `json:"current_stock"`
+	ReservedStock     int64   `json:"reserved_stock"`
+	AvailableStock    int64   `json:"available_stock"`
+	LowStockThreshold int64   `json:"low_stock_threshold"`
+	Location          *string `json:"location"`
+	LastUpdated       string  `json:"last_updated"`
 }
 
 // StockMovementResponse represents a stock movement record

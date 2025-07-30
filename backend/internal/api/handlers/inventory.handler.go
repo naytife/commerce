@@ -98,18 +98,48 @@ func (h *Handler) UpdateVariantStock(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, errMsgs, nil)
 	}
 
+	// Get current stock before update to track the movement
+	currentVariant, err := h.Repository.GetProductVariation(c.Context(), db.GetProductVariationParams{
+		ProductVariationID: variantID,
+		ShopID:             shopID,
+	})
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Product variant not found", nil)
+	}
+
+	quantityBefore := int32(currentVariant.AvailableQuantity)
+	quantityAfter := param.Quantity
+	quantityChange := quantityAfter - quantityBefore
+
 	updatedVariant, err := h.Repository.UpdateVariantStock(c.Context(), db.UpdateVariantStockParams{
 		ProductVariationID: variantID,
 		ShopID:             shopID,
-		AvailableQuantity:  int64(param.Stock),
+		AvailableQuantity:  int64(param.Quantity),
 	})
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update stock", nil)
 	}
 
 	// Create stock movement record
-	// TODO: Implement stock movement tracking
-	// _, err = h.Repository.CreateStockMovement(c.Context(), db.CreateStockMovementParams{...})
+	var notes *string
+	if param.Reason != nil {
+		notes = param.Reason
+	}
+
+	_, err = h.Repository.CreateStockMovement(c.Context(), db.CreateStockMovementParams{
+		ProductVariationID: variantID,
+		ShopID:             shopID,
+		MovementType:       param.MovementType,
+		QuantityChange:     quantityChange,
+		QuantityBefore:     quantityBefore,
+		QuantityAfter:      quantityAfter,
+		ReferenceID:        nil, // No reference for manual adjustments
+		Notes:              notes,
+	})
+	if err != nil {
+		// Log error but don't fail the request since stock was already updated
+		// In production, you might want to use a proper logger
+	}
 
 	response := models.VariantStockResponse{
 		VariantID: updatedVariant.ProductVariationID,
@@ -296,13 +326,31 @@ func (h *Handler) GetInventoryReport(c *fiber.Ctx) error {
 	lowStockCount := 0
 	outOfStockCount := 0
 
-	for _, item := range report {
+	// Create inventory items array
+	items := make([]models.InventoryItemResponse, len(report))
+
+	for i, item := range report {
 		totalStockValue += models.NumericToFloat64(item.Price) * float64(item.AvailableQuantity)
-		if item.StockStatus == "Low Stock" {
+		if item.StockStatus == "LOW_STOCK" {
 			lowStockCount++
 		}
-		if item.StockStatus == "Out of Stock" {
+		if item.StockStatus == "OUT_OF_STOCK" {
 			outOfStockCount++
+		}
+
+		// Create inventory item response
+		items[i] = models.InventoryItemResponse{
+			VariantID:         item.ProductVariationID,
+			ProductID:         item.ProductID,
+			ProductTitle:      item.ProductTitle,
+			VariantTitle:      item.VariantDescription,
+			SKU:               item.Sku,
+			CurrentStock:      item.AvailableQuantity,
+			ReservedStock:     int64(item.ReservedQuantity),
+			AvailableStock:    item.AvailableStock,
+			LowStockThreshold: 10,  // TODO: Get from product variation settings
+			Location:          nil, // TODO: Add location field
+			LastUpdated:       models.TimestamptzToTime(item.UpdatedAt).Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 
@@ -313,6 +361,7 @@ func (h *Handler) GetInventoryReport(c *fiber.Ctx) error {
 		LowStockCount:   lowStockCount,
 		OutOfStockCount: outOfStockCount,
 		GeneratedAt:     time.Now(),
+		Items:           items,
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Inventory report generated successfully")

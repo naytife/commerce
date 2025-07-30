@@ -116,6 +116,10 @@ WHERE pv.shop_id = $1
 AND pv.available_quantity <= $2
 ORDER BY pv.available_quantity ASC;
 
+-- name: GetProductVariation :one
+SELECT * FROM product_variations
+WHERE product_variation_id = $1 AND shop_id = $2;
+
 -- name: UpdateVariantStock :one
 UPDATE product_variations
 SET available_quantity = $3,
@@ -139,12 +143,17 @@ RETURNING *;
 
 -- name: GetInventoryReport :many
 SELECT 
+    pv.product_variation_id,
+    pv.product_id,
     p.title as product_title,
-    pv.sku,
     pv.description as variant_description,
+    pv.sku,
     pv.available_quantity,
+    0 as reserved_quantity,
+    pv.available_quantity as available_stock,
     pv.price,
     (pv.available_quantity * pv.price) as stock_value,
+    pv.updated_at,
     CASE 
         WHEN pv.available_quantity = 0 THEN 'OUT_OF_STOCK'
         WHEN pv.available_quantity <= $2 THEN 'LOW_STOCK'

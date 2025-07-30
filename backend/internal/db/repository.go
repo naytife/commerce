@@ -63,6 +63,7 @@ type Repository interface {
 	GetCustomerOrders(ctx context.Context, arg GetCustomerOrdersParams) ([]GetCustomerOrdersRow, error)
 	// Inventory Management
 	GetLowStockVariants(ctx context.Context, arg GetLowStockVariantsParams) ([]GetLowStockVariantsRow, error)
+	GetProductVariation(ctx context.Context, arg GetProductVariationParams) (ProductVariation, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariation, error)
 	DeductVariantStock(ctx context.Context, arg DeductVariantStockParams) (ProductVariation, error)
 	AddVariantStock(ctx context.Context, arg AddVariantStockParams) (ProductVariation, error)
