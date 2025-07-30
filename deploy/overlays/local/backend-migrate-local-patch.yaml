@@ -36,7 +36,6 @@ spec:
           PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "SELECT version();" || exit 1
           
           # Ensure schemas exist
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
           PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS hydra;" || exit 1
           
           echo "✅ Pre-migration checks passed"

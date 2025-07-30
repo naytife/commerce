@@ -215,15 +215,6 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	// Attach the tracer to the config
 	config.ConnConfig.Tracer = traceLogger
 
-	// Set schema after each connection is established
-	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET search_path = naytife_schema, public")
-		if err != nil {
-			return fmt.Errorf("failed to set search_path to naytife_schema: %w", err)
-		}
-		return nil
-	}
-
 	// Set pool settings - optimized for e-commerce workload
 	config.MaxConns = 25                       // Increase for better concurrency
 	config.MinConns = 5                        // Keep more connections warm

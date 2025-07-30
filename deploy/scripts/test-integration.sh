@@ -290,7 +290,7 @@ test_cnpg_cluster() {
     local primary_pod=$(kubectl get pods -n "$namespace" -l postgresql=naytife-postgres,role=primary -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
     if [ -n "$primary_pod" ]; then
         run_test "CNPG database is accessible" "kubectl exec -n '$namespace' '$primary_pod' -- psql -U naytife -d naytifedb -c 'SELECT 1;'"
-        run_test "CNPG schemas exist" "kubectl exec -n '$namespace' '$primary_pod' -- psql -U naytife -d naytifedb -c 'SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('\''hydra'\'', '\''naytife_schema'\'');' | grep -E '(hydra|naytife_schema)'"
+        run_test "CNPG schemas exist" "kubectl exec -n '$namespace' '$primary_pod' -- psql -U naytife -d naytifedb -c 'SELECT schema_name FROM information_schema.schemata WHERE schema_name IN ('\''hydra'\'', '\''public'\'');' | grep -E '(hydra|public)'"
     fi
 }
 

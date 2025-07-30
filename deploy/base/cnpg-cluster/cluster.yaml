@@ -41,9 +41,8 @@ spec:
         name: cnpg-cluster-secret
       postInitTemplateSQL:
         - CREATE SCHEMA IF NOT EXISTS hydra;
-        - CREATE SCHEMA IF NOT EXISTS naytife_schema;
         - GRANT ALL PRIVILEGES ON SCHEMA hydra TO naytife;
-        - GRANT ALL PRIVILEGES ON SCHEMA naytife_schema TO naytife;
+        - GRANT ALL PRIVILEGES ON SCHEMA public TO naytife;
 
   storage:
     size: 50Gi

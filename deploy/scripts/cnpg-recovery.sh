@@ -320,7 +320,7 @@ validate_recovery() {
     
     if [ -n "$RECOVERY_PRIMARY" ]; then
         print_info "Testing database connectivity..."
-        if kubectl exec -n "$NAMESPACE" "$RECOVERY_PRIMARY" -- psql -U naytife -d naytifedb -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('hydra', 'naytife_schema');" >/dev/null 2>&1; then
+        if kubectl exec -n "$NAMESPACE" "$RECOVERY_PRIMARY" -- psql -U naytife -d naytifedb -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('hydra', 'public');" >/dev/null 2>&1; then
             print_success "Database connectivity test passed"
         else
             print_error "Database connectivity test failed"

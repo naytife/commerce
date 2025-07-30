@@ -294,8 +294,8 @@ update_app_config() {
     print_header "Updating application configuration"
     
     # Create new DATABASE_URL using pooler
-    NEW_DATABASE_URL="postgresql://naytife:\${POSTGRES_PASSWORD}@naytife-postgres-pooler.${NAMESPACE}.svc.cluster.local:5432/naytifedb?sslmode=require&search_path=naytife_schema"
-    NEW_DATABASE_URL_DIRECT="postgresql://naytife:\${POSTGRES_PASSWORD}@naytife-postgres-rw.${NAMESPACE}.svc.cluster.local:5432/naytifedb?sslmode=require&search_path=naytife_schema"
+    NEW_DATABASE_URL="postgresql://naytife:\${POSTGRES_PASSWORD}@naytife-postgres-pooler.${NAMESPACE}.svc.cluster.local:5432/naytifedb?sslmode=require"
+    NEW_DATABASE_URL_DIRECT="postgresql://naytife:\${POSTGRES_PASSWORD}@naytife-postgres-rw.${NAMESPACE}.svc.cluster.local:5432/naytifedb?sslmode=require"
     
     print_info "New connection strings:"
     print_info "  Pooled: $NEW_DATABASE_URL"
@@ -334,7 +334,7 @@ validate_migration() {
     
     if [ -n "$CNPG_PRIMARY" ]; then
         print_info "Testing database connectivity..."
-        if kubectl exec -n "$NAMESPACE" "$CNPG_PRIMARY" -- psql -U naytife -d naytifedb -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('hydra', 'naytife_schema');" >/dev/null 2>&1; then
+        if kubectl exec -n "$NAMESPACE" "$CNPG_PRIMARY" -- psql -U naytife -d naytifedb -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('hydra', 'public');" >/dev/null 2>&1; then
             print_success "Database connectivity test passed"
         else
             print_error "Database connectivity test failed"

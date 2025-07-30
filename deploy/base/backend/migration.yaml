@@ -55,11 +55,8 @@ spec:
           echo "🔍 Running pre-migration checks..."
           
           # Check if database exists and is accessible
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "SELECT version();" || exit 1
-          
-          # Check if schema exists
-          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-pooler.naytife.svc.cluster.local -U naytife -d naytifedb -c "CREATE SCHEMA IF NOT EXISTS naytife_schema;" || exit 1
-          
+          PGPASSWORD=$POSTGRES_PASSWORD psql -h naytife-postgres-rw.naytife.svc.cluster.local -U naytife -d naytifedb -c "SELECT version();" || exit 1
+                    
           echo "✅ Pre-migration checks passed"
         env:
         - name: POSTGRES_PASSWORD
@@ -84,7 +81,8 @@ spec:
         - -c
         - |
           # Build a clean PostgreSQL URL using direct connection (not pooler)
-          export DB_URL="postgresql://naytife:$POSTGRES_PASSWORD@naytife-postgres-rw.naytife.svc.cluster.local:5432/naytifedb?sslmode=require"
+          export DB_URL="postgresql://naytife:$POSTGRES_PASSWORD@naytife-postgres-rw.naytife.svc.cluster.local:5432/naytifedb?sslmode=require&search_path=public"
+          echo $DB_URL
           
           echo "🔍 Checking current migration status..."
           atlas migrate status \

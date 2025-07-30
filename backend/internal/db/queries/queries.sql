@@ -30,7 +30,7 @@ SELECT
             jsonb_build_object(
                 'shop_id', shops.shop_id,
                 'title', shops.title,
-                'domain', shops.domain,
+                'domain', shops.subdomain,
                 'subdomain', shops.subdomain,
                 'status', shops.status,
                 'created_at', shops.created_at,
@@ -46,7 +46,7 @@ GROUP BY users.user_id;
 -- name: UpsertCustomer :one
 INSERT INTO shop_customers (email, name, locale, profile_picture, verified_email, auth_provider, auth_provider_id, shop_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (email)
+ON CONFLICT (email, shop_id)
 DO UPDATE SET
     name = COALESCE(EXCLUDED.name, shop_customers.name),
     locale = COALESCE(EXCLUDED.locale, shop_customers.locale),
@@ -55,7 +55,6 @@ DO UPDATE SET
     auth_provider = COALESCE(EXCLUDED.auth_provider, shop_customers.auth_provider),
     auth_provider_id = COALESCE(EXCLUDED.auth_provider_id, shop_customers.auth_provider_id),
     last_login = NOW()
-WHERE shop_id = $8
 RETURNING *;
 
 -- name: GetCustomerByEmail :one

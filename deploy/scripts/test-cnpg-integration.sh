@@ -203,7 +203,7 @@ test_database_connectivity() {
     # Test database schemas exist
     run_test "Hydra schema exists" "kubectl exec -n $NAMESPACE $primary_pod -- psql -U naytife -d naytifedb -c 'SELECT 1 FROM information_schema.schemata WHERE schema_name = '\''hydra'\'';'"
     
-    run_test "Naytife schema exists" "kubectl exec -n $NAMESPACE $primary_pod -- psql -U naytife -d naytifedb -c 'SELECT 1 FROM information_schema.schemata WHERE schema_name = '\''naytife_schema'\'';'"
+    run_test "Naytife schema exists" "kubectl exec -n $NAMESPACE $primary_pod -- psql -U naytife -d naytifedb -c 'SELECT 1 FROM information_schema.schemata WHERE schema_name = '\''public'\'';'"
     
     # Test connection through pooler
     local pooler_service="$CLUSTER_NAME-pooler"
