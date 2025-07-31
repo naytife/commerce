@@ -87,6 +87,7 @@ type StockMovementResponse struct {
 	CreatedAt     time.Time `json:"created_at"`
 	ProductTitle  string    `json:"product_title"`
 	VariantTitle  *string   `json:"variant_title"`
+	SKU           string    `json:"sku"`
 }
 
 // StockMovementsResponse represents a paginated list of stock movements

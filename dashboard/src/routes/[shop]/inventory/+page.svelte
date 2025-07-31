@@ -42,7 +42,9 @@
 		MoreHorizontal,
 		Eye,
 		Trash2,
-		RotateCcw
+		RotateCcw,
+		ChevronDown,
+		ChevronRight
 	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -72,6 +74,11 @@
 	let showMovementDialog = false;
 	let selectedVariant: InventoryItem | null = null;
 	let activeTab: string = 'overview';
+
+	// Collapsible table state - track expanded products
+	let expandedProducts = new Set<string>();
+	let expandedLowStockProducts = new Set<string>();
+	let expandedMovementProducts = new Set<string>();
 
 	// Stock update form
 	let stockUpdateForm = {
@@ -244,6 +251,165 @@
 		return formatCurrencyWithLocale(amount, currencyCode);
 	};
 
+	// Group inventory items by product
+	const groupInventoryByProduct = (items: InventoryItem[]) => {
+		const groups = new Map<string, {
+			product_id: number;
+			product_title: string;
+			variants: InventoryItem[];
+			total_stock: number;
+			total_variants: number;
+			lowest_stock: number;
+		}>();
+
+		items.forEach(item => {
+			const key = `${item.product_id}-${item.product_title}`;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					product_id: item.product_id,
+					product_title: item.product_title,
+					variants: [],
+					total_stock: 0,
+					total_variants: 0,
+					lowest_stock: Infinity
+				});
+			}
+			const group = groups.get(key)!;
+			group.variants.push(item);
+			group.total_stock += item.current_stock;
+			group.total_variants += 1;
+			group.lowest_stock = Math.min(group.lowest_stock, item.current_stock);
+		});
+
+		return Array.from(groups.values()).sort((a, b) => a.product_title.localeCompare(b.product_title));
+	};
+
+	// Group low stock products by product
+	const groupLowStockByProduct = (items: LowStockProduct[]) => {
+		const groups = new Map<string, {
+			product_name: string;
+			variants: LowStockProduct[];
+			total_variants: number;
+			lowest_stock: number;
+		}>();
+
+		items.forEach(item => {
+			const key = item.product_name;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					product_name: item.product_name,
+					variants: [],
+					total_variants: 0,
+					lowest_stock: Infinity
+				});
+			}
+			const group = groups.get(key)!;
+			group.variants.push(item);
+			group.total_variants += 1;
+			group.lowest_stock = Math.min(group.lowest_stock, item.stock);
+		});
+
+		return Array.from(groups.values()).sort((a, b) => a.product_name.localeCompare(b.product_name));
+	};
+
+	// Group stock movements by product
+	const groupMovementsByProduct = (movements: StockMovement[]) => {
+		const groups = new Map<string, {
+			product_title: string;
+			movements: StockMovement[];
+			total_movements: number;
+		}>();
+
+		movements.forEach(movement => {
+			const key = movement.product_title;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					product_title: movement.product_title,
+					movements: [],
+					total_movements: 0
+				});
+			}
+			const group = groups.get(key)!;
+			group.movements.push(movement);
+			group.total_movements += 1;
+		});
+
+		return Array.from(groups.values()).sort((a, b) => a.product_title.localeCompare(b.product_title));
+	};
+
+	// Toggle product expansion
+	const toggleProductExpansion = (productKey: string, table: 'inventory' | 'lowstock' | 'movements') => {
+		switch (table) {
+			case 'inventory':
+				if (expandedProducts.has(productKey)) {
+					expandedProducts.delete(productKey);
+				} else {
+					expandedProducts.add(productKey);
+				}
+				expandedProducts = expandedProducts;
+				break;
+			case 'lowstock':
+				if (expandedLowStockProducts.has(productKey)) {
+					expandedLowStockProducts.delete(productKey);
+				} else {
+					expandedLowStockProducts.add(productKey);
+				}
+				expandedLowStockProducts = expandedLowStockProducts;
+				break;
+			case 'movements':
+				if (expandedMovementProducts.has(productKey)) {
+					expandedMovementProducts.delete(productKey);
+				} else {
+					expandedMovementProducts.add(productKey);
+				}
+				expandedMovementProducts = expandedMovementProducts;
+				break;
+		}
+	};
+
+	// Expand/Collapse all products in a table
+	const expandAllProducts = (table: 'inventory' | 'lowstock' | 'movements') => {
+		switch (table) {
+			case 'inventory':
+				if (inventoryReport?.items) {
+					const allProductKeys = groupInventoryByProduct(inventoryReport.items)
+						.map(g => `${g.product_id}-${g.product_title}`);
+					allProductKeys.forEach(key => expandedProducts.add(key));
+					expandedProducts = expandedProducts;
+				}
+				break;
+			case 'lowstock':
+				const allLowStockKeys = groupLowStockByProduct(lowStockVariants)
+					.map(g => g.product_name);
+				allLowStockKeys.forEach(key => expandedLowStockProducts.add(key));
+				expandedLowStockProducts = expandedLowStockProducts;
+				break;
+			case 'movements':
+				const allMovementKeys = groupMovementsByProduct(stockMovements)
+					.map(g => g.product_title);
+				allMovementKeys.forEach(key => expandedMovementProducts.add(key));
+				expandedMovementProducts = expandedMovementProducts;
+				break;
+		}
+	};
+
+	const collapseAllProducts = (table: 'inventory' | 'lowstock' | 'movements') => {
+		switch (table) {
+			case 'inventory':
+				expandedProducts.clear();
+				expandedProducts = expandedProducts;
+				break;
+			case 'lowstock':
+				expandedLowStockProducts.clear();
+				expandedLowStockProducts = expandedLowStockProducts;
+				break;
+			case 'movements':
+				expandedMovementProducts.clear();
+				expandedMovementProducts = expandedMovementProducts;
+				break;
+		}
+	};
+
 	onMount(() => {
 		// Wait for shop ID to be available before loading data
 		let unsubscribe: (() => void) | undefined;
@@ -399,7 +565,30 @@
 			</div>
 
 			<!-- Enhanced Inventory Table -->
-			<div class="border border-border/50 rounded-xl overflow-hidden">
+			<div class="space-y-4">
+				<!-- Table Controls -->
+				{#if inventoryReport?.items && inventoryReport.items.length > 0}
+					{@const groupedInventory = groupInventoryByProduct(inventoryReport.items)}
+					{#if groupedInventory.length > 1}
+						<div class="flex justify-between items-center">
+							<p class="text-sm text-muted-foreground">
+								{groupedInventory.length} products with {inventoryReport.items.length} variants total
+							</p>
+							<div class="flex gap-2">
+								<Button variant="outline" size="sm" on:click={() => expandAllProducts('inventory')}>
+									<ChevronDown class="w-4 h-4 mr-1" />
+									Expand All
+								</Button>
+								<Button variant="outline" size="sm" on:click={() => collapseAllProducts('inventory')}>
+									<ChevronRight class="w-4 h-4 mr-1" />
+									Collapse All
+								</Button>
+							</div>
+						</div>
+					{/if}
+				{/if}
+				
+				<div class="border border-border/50 rounded-xl overflow-hidden">
 				{#if loading}
 					<!-- Enhanced Loading State -->
 					<div class="space-y-6 p-8">
@@ -441,9 +630,11 @@
 						</div>
 					</div>
 				{:else}
+					{@const groupedInventory = groupInventoryByProduct(inventoryReport.items)}
 					<Table.Root>
 						<Table.Header>
 							<Table.Row class="bg-surface-elevated border-border/50 hover:bg-surface-elevated">
+								<Table.Head class="font-medium w-8"></Table.Head>
 								<Table.Head class="font-medium">Product</Table.Head>
 								<Table.Head class="font-medium">SKU</Table.Head>
 								<Table.Head class="font-medium">Current Stock</Table.Head>
@@ -456,64 +647,110 @@
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
-							{#each inventoryReport?.items || [] as item}
-								<Table.Row class="border-border/50 hover:bg-surface-elevated/50 transition-colors">
-									<Table.Cell class="font-medium">
-										<div class="space-y-1">
-											<div class="font-semibold text-foreground">{item.product_title}</div>
-											<div class="text-sm text-muted-foreground">{item.variant_title}</div>
+							{#each groupedInventory as productGroup}
+								{@const productKey = `${productGroup.product_id}-${productGroup.product_title}`}
+								{@const isExpanded = expandedProducts.has(productKey)}
+								<!-- Product Header Row -->
+								<Table.Row class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-primary/60 hover:border-primary hover:shadow-sm hover:-translate-y-px transition-all duration-200 cursor-pointer font-medium">
+									<Table.Cell on:click={() => toggleProductExpansion(productKey, 'inventory')}>
+										<div class="transition-transform duration-200 {isExpanded ? 'rotate-0' : '-rotate-90'}">
+											{#if isExpanded}
+												<ChevronDown class="w-4 h-4 text-muted-foreground" />
+											{:else}
+												<ChevronRight class="w-4 h-4 text-muted-foreground" />
+											{/if}
 										</div>
 									</Table.Cell>
-									<Table.Cell>
-										<Badge variant="outline" class="font-mono text-xs">
-											{item.sku}
-										</Badge>
+									<Table.Cell class="font-semibold text-foreground" on:click={() => toggleProductExpansion(productKey, 'inventory')}>
+										<div class="flex items-center gap-2">
+											<Package class="w-4 h-4 text-primary" />
+											<span>{productGroup.product_title}</span>
+											<Badge variant="outline" class="text-xs">
+												{productGroup.total_variants} variant{productGroup.total_variants !== 1 ? 's' : ''}
+											</Badge>
+										</div>
+									</Table.Cell>
+									<Table.Cell class="text-muted-foreground">
+										<span class="text-xs">Multiple SKUs</span>
 									</Table.Cell>
 									<Table.Cell>
 										<div class="flex items-center gap-2">
-											<span class="font-semibold text-foreground">{item.current_stock}</span>
-											{#if item.current_stock <= item.low_stock_threshold}
+											<span class="font-semibold text-foreground">{productGroup.total_stock}</span>
+											{#if productGroup.lowest_stock <= 10}
 												<AlertTriangle class="w-4 h-4 text-warning" />
 											{/if}
 										</div>
 									</Table.Cell>
-									<Table.Cell>
-										<span class="text-foreground">{item.available_stock}</span>
-									</Table.Cell>
-									<Table.Cell>
-										<span class="text-muted-foreground">{item.reserved_stock}</span>
-									</Table.Cell>
-									<Table.Cell>
-										{@const status = getStockStatusBadge(item)}
-										<Badge class={status.variant === 'destructive' ? 'status-destructive' : 
-													   status.variant === 'secondary' ? 'status-warning' : 
-													   'status-active'}>
-											{status.text}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<span class="text-muted-foreground">{item.location || 'Default'}</span>
-									</Table.Cell>
-									<Table.Cell>
-										<div class="text-sm text-muted-foreground">
-											{formatDate(item.last_updated)}
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										<Button
-											variant="ghost"
-											size="icon"
-											class="h-8 w-8 hover:bg-surface-elevated"
-											on:click={() => openStockUpdateDialog(item)}
-										>
-											<Edit class="w-4 h-4" />
-										</Button>
+									<Table.Cell colspan={6} class="text-muted-foreground text-xs">
+										{isExpanded ? 'Click to collapse variants' : 'Click to expand variants'}
 									</Table.Cell>
 								</Table.Row>
+								
+								<!-- Variant Rows (shown when expanded) -->
+								{#if isExpanded}
+									{#each productGroup.variants as item}
+										<Table.Row class="border-l-2 border-border/30 bg-background/50 hover:bg-surface-elevated/30 hover:border-l-primary/50 transition-all duration-200">
+											<Table.Cell class="pl-8">
+												<!-- Empty space for indentation -->
+											</Table.Cell>
+											<Table.Cell class="font-medium pl-6">
+												<div class="space-y-1">
+													<div class="text-sm text-muted-foreground font-normal">↳ {item.variant_title}</div>
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<Badge variant="outline" class="font-mono text-xs">
+													{item.sku}
+												</Badge>
+											</Table.Cell>
+											<Table.Cell>
+												<div class="flex items-center gap-2">
+													<span class="font-semibold text-foreground">{item.current_stock}</span>
+													{#if item.current_stock <= item.low_stock_threshold}
+														<AlertTriangle class="w-4 h-4 text-warning" />
+													{/if}
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<span class="text-foreground">{item.available_stock}</span>
+											</Table.Cell>
+											<Table.Cell>
+												<span class="text-muted-foreground">{item.reserved_stock}</span>
+											</Table.Cell>
+											<Table.Cell>
+												{@const status = getStockStatusBadge(item)}
+												<Badge class={status.variant === 'destructive' ? 'status-destructive' : 
+															   status.variant === 'secondary' ? 'status-warning' : 
+															   'status-active'}>
+													{status.text}
+												</Badge>
+											</Table.Cell>
+											<Table.Cell>
+												<span class="text-muted-foreground">{item.location || 'Default'}</span>
+											</Table.Cell>
+											<Table.Cell>
+												<div class="text-sm text-muted-foreground">
+													{formatDate(item.last_updated)}
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<Button
+													variant="ghost"
+													size="icon"
+													class="h-8 w-8 hover:bg-surface-elevated"
+													on:click={() => openStockUpdateDialog(item)}
+												>
+													<Edit class="w-4 h-4" />
+												</Button>
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								{/if}
 							{/each}
 						</Table.Body>
 					</Table.Root>
 				{/if}
+				</div>
 			</div>
 		</Tabs.Content>
 
@@ -535,9 +772,31 @@
 							<p class="text-muted-foreground">No products are currently below their low stock threshold.</p>
 						</div>
 					{:else}
+						{@const groupedLowStock = groupLowStockByProduct(lowStockVariants)}
+						
+						<!-- Table Controls -->
+						{#if groupedLowStock.length > 1}
+							<div class="flex justify-between items-center mb-4">
+								<p class="text-sm text-muted-foreground">
+									{groupedLowStock.length} products with {lowStockVariants.length} low stock variants
+								</p>
+								<div class="flex gap-2">
+									<Button variant="outline" size="sm" on:click={() => expandAllProducts('lowstock')}>
+										<ChevronDown class="w-4 h-4 mr-1" />
+										Expand All
+									</Button>
+									<Button variant="outline" size="sm" on:click={() => collapseAllProducts('lowstock')}>
+										<ChevronRight class="w-4 h-4 mr-1" />
+										Collapse All
+									</Button>
+								</div>
+							</div>
+						{/if}
+						
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
+									<Table.Head class="w-8"></Table.Head>
 									<Table.Head>Product</Table.Head>
 									<Table.Head>SKU</Table.Head>
 									<Table.Head>Current Stock</Table.Head>
@@ -547,44 +806,91 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each lowStockVariants as variant}
-									<Table.Row class="bg-orange-50 dark:bg-orange-950/20">
-										<Table.Cell class="font-medium">
-											<div>
-												<div class="font-semibold">{variant.product_name}</div>
-												<div class="text-sm text-muted-foreground">{variant.description}</div>
+								{#each groupedLowStock as productGroup}
+									{@const productKey = productGroup.product_name}
+									{@const isExpanded = expandedLowStockProducts.has(productKey)}
+									<!-- Product Header Row -->
+									<Table.Row class="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-l-4 border-orange-500/60 hover:border-orange-500 hover:shadow-sm hover:-translate-y-px transition-all duration-200 cursor-pointer font-medium">
+										<Table.Cell on:click={() => toggleProductExpansion(productKey, 'lowstock')}>
+											<div class="transition-transform duration-200 {isExpanded ? 'rotate-0' : '-rotate-90'}">
+												{#if isExpanded}
+													<ChevronDown class="w-4 h-4 text-muted-foreground" />
+												{:else}
+													<ChevronRight class="w-4 h-4 text-muted-foreground" />
+												{/if}
 											</div>
 										</Table.Cell>
-										<Table.Cell class="font-mono text-sm">{variant.sku}</Table.Cell>
-										<Table.Cell>
-											<span class="font-semibold text-orange-600">{variant.stock}</span>
-											<AlertTriangle class="w-4 h-4 text-orange-500 inline ml-1" />
+										<Table.Cell class="font-semibold text-foreground" on:click={() => toggleProductExpansion(productKey, 'lowstock')}>
+											<div class="flex items-center gap-2">
+												<AlertTriangle class="w-4 h-4 text-orange-500" />
+												<span>{productGroup.product_name}</span>
+												<Badge variant="outline" class="text-xs bg-orange-100 dark:bg-orange-950">
+													{productGroup.total_variants} variant{productGroup.total_variants !== 1 ? 's' : ''}
+												</Badge>
+											</div>
 										</Table.Cell>
-										<Table.Cell>-</Table.Cell>
-										<Table.Cell>
-											<span class="text-muted-foreground">N/A</span>
+										<Table.Cell class="text-muted-foreground">
+											<span class="text-xs">Multiple SKUs</span>
 										</Table.Cell>
-										<Table.Cell class="text-right">
-											<Button
-												variant="outline"
-												size="sm"
-												on:click={() => openStockUpdateDialog({
-													variant_id: variant.product_variation_id,
-													product_id: 0, // Not available in LowStockProduct
-													product_title: variant.product_name,
-													variant_title: variant.description,
-													sku: variant.sku,
-													current_stock: variant.stock,
-													reserved_stock: 0,
-													available_stock: variant.stock,
-													low_stock_threshold: 0, // Not available in LowStockProduct
-													last_updated: new Date().toISOString()
-												})}
-											>
-												Restock
-											</Button>
+										<Table.Cell>
+											<div class="flex items-center gap-2">
+												<span class="font-semibold text-orange-600">Lowest: {productGroup.lowest_stock}</span>
+												<AlertTriangle class="w-4 h-4 text-orange-500" />
+											</div>
+										</Table.Cell>
+										<Table.Cell colspan={3} class="text-muted-foreground text-xs">
+											{isExpanded ? 'Click to collapse variants' : 'Click to expand variants'}
 										</Table.Cell>
 									</Table.Row>
+									
+									<!-- Variant Rows (shown when expanded) -->
+									{#if isExpanded}
+										{#each productGroup.variants as variant}
+											<Table.Row class="border-l-2 border-orange-200/50 bg-orange-25/50 dark:bg-orange-975/10 hover:bg-orange-50/80 dark:hover:bg-orange-950/20 hover:border-l-orange-400 transition-all duration-200">
+												<Table.Cell class="pl-8">
+													<!-- Empty space for indentation -->
+												</Table.Cell>
+												<Table.Cell class="font-medium pl-6">
+													<div class="space-y-1">
+														<div class="text-sm text-muted-foreground font-normal">↳ {variant.description}</div>
+													</div>
+												</Table.Cell>
+												<Table.Cell>
+													<Badge variant="outline" class="font-mono text-xs">
+														{variant.sku}
+													</Badge>
+												</Table.Cell>
+												<Table.Cell>
+													<span class="font-semibold text-orange-600">{variant.stock}</span>
+													<AlertTriangle class="w-4 h-4 text-orange-500 inline ml-1" />
+												</Table.Cell>
+												<Table.Cell>-</Table.Cell>
+												<Table.Cell>
+													<span class="text-muted-foreground">N/A</span>
+												</Table.Cell>
+												<Table.Cell class="text-right">
+													<Button
+														variant="outline"
+														size="sm"
+														on:click={() => openStockUpdateDialog({
+															variant_id: variant.product_variation_id,
+															product_id: 0, // Not available in LowStockProduct
+															product_title: variant.product_name,
+															variant_title: variant.description,
+															sku: variant.sku,
+															current_stock: variant.stock,
+															reserved_stock: 0,
+															available_stock: variant.stock,
+															low_stock_threshold: 0, // Not available in LowStockProduct
+															last_updated: new Date().toISOString()
+														})}
+													>
+														Restock
+													</Button>
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									{/if}
 								{/each}
 							</Table.Body>
 						</Table.Root>
@@ -660,9 +966,31 @@
 							<p class="text-muted-foreground">Stock movements will appear here as inventory changes.</p>
 						</div>
 					{:else}
+						{@const groupedMovements = groupMovementsByProduct(stockMovements)}
+						
+						<!-- Table Controls -->
+						{#if groupedMovements.length > 1}
+							<div class="flex justify-between items-center mb-4">
+								<p class="text-sm text-muted-foreground">
+									{groupedMovements.length} products with {stockMovements.length} stock movements
+								</p>
+								<div class="flex gap-2">
+									<Button variant="outline" size="sm" on:click={() => expandAllProducts('movements')}>
+										<ChevronDown class="w-4 h-4 mr-1" />
+										Expand All
+									</Button>
+									<Button variant="outline" size="sm" on:click={() => collapseAllProducts('movements')}>
+										<ChevronRight class="w-4 h-4 mr-1" />
+										Collapse All
+									</Button>
+								</div>
+							</div>
+						{/if}
+						
 						<Table.Root>
 							<Table.Header>
 								<Table.Row>
+									<Table.Head class="w-8"></Table.Head>
 									<Table.Head>Product</Table.Head>
 									<Table.Head>Type</Table.Head>
 									<Table.Head>Change</Table.Head>
@@ -673,31 +1001,65 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each stockMovements as movement}
-									<Table.Row>
-										<Table.Cell class="font-medium">
-											<div>
-												<div class="font-semibold">{movement.product_title}</div>
-												<div class="text-sm text-muted-foreground">{movement.variant_title}</div>
-												<div class="text-xs text-muted-foreground font-mono">{movement.sku}</div>
+								{#each groupedMovements as productGroup}
+									{@const productKey = productGroup.product_title}
+									{@const isExpanded = expandedMovementProducts.has(productKey)}
+									<!-- Product Header Row -->
+									<Table.Row class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 border-l-4 border-primary/60 hover:border-primary hover:shadow-sm hover:-translate-y-px transition-all duration-200 cursor-pointer font-medium">
+										<Table.Cell on:click={() => toggleProductExpansion(productKey, 'movements')}>
+											<div class="transition-transform duration-200 {isExpanded ? 'rotate-0' : '-rotate-90'}">
+												{#if isExpanded}
+													<ChevronDown class="w-4 h-4 text-muted-foreground" />
+												{:else}
+													<ChevronRight class="w-4 h-4 text-muted-foreground" />
+												{/if}
 											</div>
 										</Table.Cell>
-										<Table.Cell>
-											{@const type = getMovementTypeBadge(movement.movement_type)}
-											<Badge variant={type.variant}>
-												{type.text}
-											</Badge>
+										<Table.Cell class="font-semibold text-foreground" on:click={() => toggleProductExpansion(productKey, 'movements')}>
+											<div class="flex items-center gap-2">
+												<RefreshCw class="w-4 h-4 text-primary" />
+												<span>{productGroup.product_title}</span>
+												<Badge variant="outline" class="text-xs">
+													{productGroup.total_movements} movement{productGroup.total_movements !== 1 ? 's' : ''}
+												</Badge>
+											</div>
 										</Table.Cell>
-										<Table.Cell>
-											<span class="font-semibold {movement.quantity > 0 ? 'text-green-600' : 'text-red-600'}">
-												{movement.quantity > 0 ? '+' : ''}{movement.quantity}
-											</span>
+										<Table.Cell colspan={6} class="text-muted-foreground text-xs">
+											{isExpanded ? 'Click to collapse movements' : 'Click to expand movements'}
 										</Table.Cell>
-										<Table.Cell>{movement.previous_stock}</Table.Cell>
-										<Table.Cell>{movement.new_stock}</Table.Cell>
-										<Table.Cell>{movement.reason || 'N/A'}</Table.Cell>
-										<Table.Cell>{formatDateTime(movement.created_at)}</Table.Cell>
 									</Table.Row>
+									
+									<!-- Movement Rows (shown when expanded) -->
+									{#if isExpanded}
+										{#each productGroup.movements as movement}
+											<Table.Row class="border-l-2 border-border/30 bg-background/50 hover:bg-surface-elevated/30 hover:border-l-primary/50 transition-all duration-200">
+												<Table.Cell class="pl-8">
+													<!-- Empty space for indentation -->
+												</Table.Cell>
+												<Table.Cell class="font-medium pl-6">
+													<div class="space-y-1">
+														<div class="text-sm text-muted-foreground font-normal">↳ {movement.variant_title}</div>
+														<div class="text-xs text-muted-foreground font-mono">{movement.sku}</div>
+													</div>
+												</Table.Cell>
+												<Table.Cell>
+													{@const type = getMovementTypeBadge(movement.movement_type)}
+													<Badge variant={type.variant}>
+														{type.text}
+													</Badge>
+												</Table.Cell>
+												<Table.Cell>
+													<span class="font-semibold {movement.quantity > 0 ? 'text-green-600' : 'text-red-600'}">
+														{movement.quantity > 0 ? '+' : ''}{movement.quantity}
+													</span>
+												</Table.Cell>
+												<Table.Cell>{movement.previous_stock}</Table.Cell>
+												<Table.Cell>{movement.new_stock}</Table.Cell>
+												<Table.Cell>{movement.reason || 'N/A'}</Table.Cell>
+												<Table.Cell>{formatDateTime(movement.created_at)}</Table.Cell>
+											</Table.Row>
+										{/each}
+									{/if}
 								{/each}
 							</Table.Body>
 						</Table.Root>

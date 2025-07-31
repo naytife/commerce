@@ -573,9 +573,16 @@ func (q *Queries) GetProductVariation(ctx context.Context, arg GetProductVariati
 }
 
 const getStockMovements = `-- name: GetStockMovements :many
-SELECT movement_id, product_variation_id, shop_id, movement_type, quantity_change, quantity_before, quantity_after, reference_id, notes, created_at FROM stock_movements
-WHERE shop_id = $1
-ORDER BY created_at DESC
+SELECT 
+    sm.movement_id, sm.product_variation_id, sm.shop_id, sm.movement_type, sm.quantity_change, sm.quantity_before, sm.quantity_after, sm.reference_id, sm.notes, sm.created_at,
+    p.title as product_title,
+    pv.description as variant_title,
+    pv.sku
+FROM stock_movements sm
+JOIN product_variations pv ON sm.product_variation_id = pv.product_variation_id
+JOIN products p ON pv.product_id = p.product_id
+WHERE sm.shop_id = $1
+ORDER BY sm.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
@@ -585,15 +592,31 @@ type GetStockMovementsParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]StockMovement, error) {
+type GetStockMovementsRow struct {
+	MovementID         int64              `json:"movement_id"`
+	ProductVariationID int64              `json:"product_variation_id"`
+	ShopID             int64              `json:"shop_id"`
+	MovementType       string             `json:"movement_type"`
+	QuantityChange     int32              `json:"quantity_change"`
+	QuantityBefore     int32              `json:"quantity_before"`
+	QuantityAfter      int32              `json:"quantity_after"`
+	ReferenceID        *int64             `json:"reference_id"`
+	Notes              *string            `json:"notes"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	ProductTitle       string             `json:"product_title"`
+	VariantTitle       string             `json:"variant_title"`
+	Sku                string             `json:"sku"`
+}
+
+func (q *Queries) GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]GetStockMovementsRow, error) {
 	rows, err := q.db.Query(ctx, getStockMovements, arg.ShopID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StockMovement
+	var items []GetStockMovementsRow
 	for rows.Next() {
-		var i StockMovement
+		var i GetStockMovementsRow
 		if err := rows.Scan(
 			&i.MovementID,
 			&i.ProductVariationID,
@@ -605,6 +628,9 @@ func (q *Queries) GetStockMovements(ctx context.Context, arg GetStockMovementsPa
 			&i.ReferenceID,
 			&i.Notes,
 			&i.CreatedAt,
+			&i.ProductTitle,
+			&i.VariantTitle,
+			&i.Sku,
 		); err != nil {
 			return nil, err
 		}

@@ -12,6 +12,7 @@
   import { getContext } from 'svelte';
   import { deepEqual, deepClone } from '$lib/utils/deepEqual';
   import type { Writable } from 'svelte/store';
+	import ComingSoon from '$lib/components/ui/coming-soon.svelte';
 
   const shopStore = getContext('shop') as Writable<Partial<Shop>>;
   const authFetch = getContext('authFetch') as typeof fetch;
@@ -175,6 +176,7 @@
   }
 </script>
 
+<ComingSoon>
 <Card.Root class="bg-gradient w-full max-w-screen-md mx-auto">
   <Card.Header>
     <Card.Title>Social Media Integration</Card.Title>
@@ -371,3 +373,4 @@
     {/if}
   </Card.Content>
 </Card.Root>
+</ComingSoon>

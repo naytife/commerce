@@ -68,7 +68,7 @@ type Repository interface {
 	DeductVariantStock(ctx context.Context, arg DeductVariantStockParams) (ProductVariation, error)
 	AddVariantStock(ctx context.Context, arg AddVariantStockParams) (ProductVariation, error)
 	GetInventoryReport(ctx context.Context, arg GetInventoryReportParams) ([]GetInventoryReportRow, error)
-	GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]StockMovement, error)
+	GetStockMovements(ctx context.Context, arg GetStockMovementsParams) ([]GetStockMovementsRow, error)
 	CreateStockMovement(ctx context.Context, arg CreateStockMovementParams) (StockMovement, error)
 	// SHOP
 	CreateShop(ctx context.Context, shopArg CreateShopParams) (Shop, error)

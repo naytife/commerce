@@ -438,8 +438,9 @@ func (h *Handler) GetStockMovements(c *fiber.Ctx) error {
 			ReferenceType: nil, // Not available in current schema
 			ReferenceID:   referenceIDStr,
 			CreatedAt:     models.TimestamptzToTime(movement.CreatedAt),
-			ProductTitle:  "",  // Not available in current query
-			VariantTitle:  nil, // Not available in current query
+			ProductTitle:  movement.ProductTitle,
+			VariantTitle:  &movement.VariantTitle,
+			SKU:           movement.Sku,
 		}
 	}
 

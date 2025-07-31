@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - ../../base/cnpg-operator
+  # - ../../base/cnpg-operator  # Applied separately due to CRD size limits
   - ../../base/cnpg-storage
   - ../../base/cnpg-cluster
   - ../../base/cnpg-pooler

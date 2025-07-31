@@ -165,9 +165,16 @@ WHERE pv.shop_id = $1
 ORDER BY pv.available_quantity ASC;
 
 -- name: GetStockMovements :many
-SELECT * FROM stock_movements
-WHERE shop_id = $1
-ORDER BY created_at DESC
+SELECT 
+    sm.*,
+    p.title as product_title,
+    pv.description as variant_title,
+    pv.sku
+FROM stock_movements sm
+JOIN product_variations pv ON sm.product_variation_id = pv.product_variation_id
+JOIN products p ON pv.product_id = p.product_id
+WHERE sm.shop_id = $1
+ORDER BY sm.created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: CreateStockMovement :one
