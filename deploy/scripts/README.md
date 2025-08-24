@@ -6,12 +6,52 @@ This directory contains enhanced deployment and development scripts for the Nayt
 
 ### Core Deployment Scripts
 
+#### `build.sh` / `build-images.sh`
+
+Enhanced Docker image building with change detection.
+
+```bash
+# Build only changed services (smart build)
+./build.sh
+
+# Force rebuild all services
+./build.sh --force
+
+# Check which services need rebuilding
+./build.sh --check
+
+# Build specific service only
+./build.sh --service=backend
+
+# Build with detailed options (using build-images.sh directly)
+./build-images.sh --parallel --registry=registry.example.com --tag=v1.2.3
+```
+
+**Features:**
+
+- Git-based change detection
+- Caches build state per service
+- Only rebuilds when source code changes
+- Parallel building support
+- Registry push support
+- Service-specific building
+- Comprehensive logging
+
 #### `deploy.sh`
+
+#### `deploy.sh`
+
 Main deployment script with Kustomize and SOPS integration.
 
 ```bash
 # Deploy to local environment
 ./deploy.sh local
+
+# Deploy with image building
+./deploy.sh local --build
+
+# Force rebuild images and deploy
+./deploy.sh local --build-force
 
 # Deploy to staging with dry-run
 ./deploy.sh staging --dry-run
@@ -21,13 +61,16 @@ Main deployment script with Kustomize and SOPS integration.
 ```
 
 **Features:**
+
 - Kustomize-based configuration building
+- Optional pre-deployment image building
 - SOPS secrets decryption
 - Environment validation
 - Deployment health checks
 - Rollback support
 
 #### `cleanup.sh`
+
 Clean up deployed resources from any environment.
 
 ```bash
@@ -42,6 +85,7 @@ Clean up deployed resources from any environment.
 ```
 
 **Features:**
+
 - Safe resource deletion order
 - Environment-specific safety checks
 - Dry-run capability
@@ -50,6 +94,7 @@ Clean up deployed resources from any environment.
 ### CloudNativePG (CNPG) Scripts
 
 #### `cnpg-migration.sh`
+
 Migrate from traditional PostgreSQL deployment to CloudNativePG.
 
 ```bash
@@ -64,6 +109,7 @@ Migrate from traditional PostgreSQL deployment to CloudNativePG.
 ```
 
 **Features:**
+
 - Automated backup creation
 - Zero-downtime migration
 - Data validation
@@ -71,6 +117,7 @@ Migrate from traditional PostgreSQL deployment to CloudNativePG.
 - Environment-specific configurations
 
 #### `cnpg-recovery.sh`
+
 Point-in-time recovery and backup restoration for CNPG clusters.
 
 ```bash
@@ -88,6 +135,7 @@ Point-in-time recovery and backup restoration for CNPG clusters.
 ```
 
 **Features:**
+
 - Point-in-time recovery
 - Backup restoration
 - Cluster cloning
@@ -95,6 +143,7 @@ Point-in-time recovery and backup restoration for CNPG clusters.
 - Recovery cluster management
 
 #### `test-cnpg-integration.sh`
+
 Comprehensive CNPG cluster testing and validation.
 
 ```bash
@@ -109,6 +158,7 @@ Comprehensive CNPG cluster testing and validation.
 ```
 
 **Features:**
+
 - Cluster health validation
 - Database connectivity testing
 - Pooler functionality verification
@@ -118,7 +168,65 @@ Comprehensive CNPG cluster testing and validation.
 
 ### Development and Debugging Scripts
 
+#### `skaffold-utils.sh`
+
+Enhanced Skaffold utilities for development workflows.
+
+```bash
+# Build all images with Skaffold
+./skaffold-utils.sh build
+
+# Smart build (only changed services)
+./skaffold-utils.sh build-smart
+
+# Build specific service
+./skaffold-utils.sh build-smart --service=backend
+
+# Check which services need rebuilding
+./skaffold-utils.sh check
+
+# Start debug mode
+./skaffold-utils.sh debug
+
+# Clean Docker cache
+./skaffold-utils.sh clean
+```
+
+**Features:**
+
+- Skaffold integration
+- Smart building with change detection
+- Debug mode support
+- Docker cleanup utilities
+- Service status monitoring
+
+#### `deploy-skaffold.sh`
+
+Skaffold-based development deployment.
+
+```bash
+# Start development mode
+./deploy-skaffold.sh dev
+
+# One-time build and deploy
+./deploy-skaffold.sh run
+
+# Fast build mode
+./deploy-skaffold.sh fast
+
+# Debug mode
+./deploy-skaffold.sh debug
+```
+
+**Features:**
+
+- File watching and hot reload
+- Port forwarding
+- Multiple build profiles
+- k3s integration
+
 #### `status.sh`
+
 Enhanced status monitoring for deployed services.
 
 ```bash
@@ -133,12 +241,14 @@ Enhanced status monitoring for deployed services.
 ```
 
 **Features:**
+
 - Pod and deployment status
 - Service health checks
 - Resource usage monitoring
 - Recent events display
 
 #### `logs.sh`
+
 Advanced log aggregation and viewing.
 
 ```bash
@@ -153,12 +263,14 @@ Advanced log aggregation and viewing.
 ```
 
 **Features:**
+
 - Service-specific log viewing
 - Multi-pod log aggregation
 - Follow mode for real-time logs
 - Environment-aware log access
 
 #### `debug.sh`
+
 Comprehensive debugging and troubleshooting tool.
 
 ```bash
@@ -173,6 +285,7 @@ Comprehensive debugging and troubleshooting tool.
 ```
 
 **Features:**
+
 - Deployment and pod analysis
 - Event and condition checking
 - Resource utilization review
@@ -181,6 +294,7 @@ Comprehensive debugging and troubleshooting tool.
 ### Validation and Testing Scripts
 
 #### `validate-environment.sh`
+
 Environment configuration validation.
 
 ```bash
@@ -192,12 +306,14 @@ Environment configuration validation.
 ```
 
 **Features:**
+
 - Prerequisites checking
 - Configuration validation
 - Service health verification
 - Comprehensive test suite
 
 #### `test-integration.sh`
+
 Integration testing suite for deployed services.
 
 ```bash
@@ -212,12 +328,14 @@ Integration testing suite for deployed services.
 ```
 
 **Features:**
+
 - Service connectivity testing
 - Database connectivity checks
 - Authentication flow validation
 - End-to-end workflow testing
 
 #### `benchmark.sh`
+
 Performance benchmarking tool.
 
 ```bash
@@ -232,6 +350,7 @@ Performance benchmarking tool.
 ```
 
 **Features:**
+
 - HTTP load testing with hey
 - Response time analysis
 - Resource usage monitoring
@@ -240,6 +359,7 @@ Performance benchmarking tool.
 ### Security and Secret Management
 
 #### `sops-helper.sh`
+
 Comprehensive SOPS encryption and secret management utilities.
 
 ```bash
@@ -265,6 +385,7 @@ Comprehensive SOPS encryption and secret management utilities.
 ## Script Dependencies
 
 ### Required Tools
+
 - `kubectl` - Kubernetes CLI
 - `kustomize` - Configuration management
 - `sops` - Secrets encryption
@@ -272,48 +393,55 @@ Comprehensive SOPS encryption and secret management utilities.
 - `hey` - Load testing (auto-installed via go)
 
 ### Optional Tools
+
 - `go` - For installing additional tools
 - Metrics server (for resource usage data)
 
 ## Environment Configuration
 
 ### Namespace Mapping
+
 - **local**: `naytife`
 - **staging**: `naytife-staging`
 - **production**: `naytife-production`
 
 ### Service Mappings
-| Service | Port | Health Endpoint |
-|---------|------|-----------------|
-| backend | 8000 | `/health` |
-| auth-handler | 8080 | `/health` |
-| hydra | 4444 | `/health/ready` |
-| oathkeeper | 4456 | `/health/ready` |
-| postgres | 5432 | N/A |
-| redis | 6379 | N/A |
-| store-deployer | 8090 | `/health` |
-| template-registry | 8091 | `/health` |
+
+| Service           | Port | Health Endpoint |
+| ----------------- | ---- | --------------- |
+| backend           | 8000 | `/health`       |
+| auth-handler      | 8080 | `/health`       |
+| hydra             | 4444 | `/health/ready` |
+| oathkeeper        | 4456 | `/health/ready` |
+| postgres          | 5432 | N/A             |
+| redis             | 6379 | N/A             |
+| store-deployer    | 8090 | `/health`       |
+| template-registry | 8091 | `/health`       |
 
 ## Usage Patterns
 
 ### Development Workflow
 
 1. **Deploy to local environment:**
+
    ```bash
    ./deploy.sh local
    ```
 
 2. **Check deployment status:**
+
    ```bash
    ./status.sh local --detailed
    ```
 
 3. **Run integration tests:**
+
    ```bash
    ./test-integration.sh local
    ```
 
 4. **Debug any issues:**
+
    ```bash
    ./debug.sh local
    ```
@@ -326,11 +454,13 @@ Comprehensive SOPS encryption and secret management utilities.
 ### Performance Testing
 
 1. **Run baseline benchmarks:**
+
    ```bash
    ./benchmark.sh local --duration=30s
    ```
 
 2. **Test under load:**
+
    ```bash
    ./benchmark.sh local --concurrency=20 --duration=60s
    ```
@@ -343,11 +473,13 @@ Comprehensive SOPS encryption and secret management utilities.
 ### Environment Validation
 
 1. **Validate configuration:**
+
    ```bash
    ./validate-environment.sh staging
    ```
 
 2. **Test service connectivity:**
+
    ```bash
    ./test-integration.sh staging --verbose
    ```
@@ -360,6 +492,7 @@ Comprehensive SOPS encryption and secret management utilities.
 ## Error Handling
 
 All scripts include comprehensive error handling with:
+
 - **Exit codes**: 0 for success, non-zero for failures
 - **Colored output**: Visual indicators for status
 - **Verbose modes**: Detailed debugging information
@@ -368,12 +501,14 @@ All scripts include comprehensive error handling with:
 ## Security Considerations
 
 ### Secrets Management
+
 - All secrets are encrypted with SOPS
 - Environment-specific encryption keys
 - Automatic decryption during deployment
 - No secrets stored in plain text
 
 ### Production Safety
+
 - Confirmation prompts for production operations
 - Force flags for automation
 - Detailed logging of all operations
@@ -382,11 +517,13 @@ All scripts include comprehensive error handling with:
 ## Output and Logging
 
 ### Log Locations
+
 - Benchmark results: `/tmp/naytife-benchmarks/`
 - Temporary files: `/tmp/kustomize-output-*`
 - Script logs: Console output with colored formatting
 
 ### Report Formats
+
 - **Status**: Tabular console output
 - **Benchmarks**: Markdown reports with metrics
 - **Tests**: Pass/fail with detailed error messages
@@ -397,18 +534,21 @@ All scripts include comprehensive error handling with:
 ### Common Issues
 
 1. **kubectl not connected:**
+
    ```bash
    kubectl config current-context
    kubectl cluster-info
    ```
 
 2. **SOPS decryption fails:**
+
    ```bash
    ./sops-helper.sh check-keys
    sops --version
    ```
 
 3. **Services not accessible:**
+
    ```bash
    ./debug.sh local
    ./validate-environment.sh local
@@ -423,6 +563,7 @@ All scripts include comprehensive error handling with:
 ### Getting Help
 
 Each script includes a `--help` flag:
+
 ```bash
 ./deploy.sh --help
 ./status.sh --help
@@ -440,6 +581,7 @@ The legacy k3s scripts in `/k3s/scripts/` provide similar functionality but use 
 - **Performance monitoring** with benchmarking tools
 
 To migrate:
+
 1. Use the new deployment scripts for all environments
 2. Validate functionality with integration tests
 3. Gradually phase out legacy scripts
@@ -448,6 +590,7 @@ To migrate:
 ## Contributing
 
 When adding new scripts:
+
 1. Follow the established patterns for colored output
 2. Include comprehensive error handling
 3. Add help documentation with `--help` flag

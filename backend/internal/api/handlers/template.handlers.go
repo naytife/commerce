@@ -2,17 +2,21 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	ic "github.com/petrejonn/naytife/internal/httpclient"
+	"github.com/petrejonn/naytife/internal/observability"
 )
 
 type TemplateHandler struct {
@@ -34,7 +38,8 @@ func NewTemplateHandler(repo db.Repository) *TemplateHandler {
 // @Success      200  {object}  models.SuccessResponse{data=[]models.Template}
 // @Failure      500  {object}  models.ErrorResponse
 func (h *TemplateHandler) ListTemplates(c *fiber.Ctx) error {
-	templates, err := h.fetchTemplatesFromService()
+	// Pass the incoming request context into the helper to preserve cancellation and tracing.
+	templates, err := h.fetchTemplatesFromService(c.Context())
 	if err != nil {
 		log.Printf("Failed to fetch templates: %v", err)
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch templates", nil)
@@ -59,7 +64,8 @@ func (h *TemplateHandler) GetTemplateVersions(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
 	}
 
-	versions, err := h.fetchTemplateVersionsFromService(templateName)
+	// Pass the incoming request context into the helper to preserve cancellation and tracing.
+	versions, err := h.fetchTemplateVersionsFromService(c.Context(), templateName)
 	if err != nil {
 		log.Printf("Failed to fetch template versions: %v", err)
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch template versions", nil)
@@ -84,7 +90,8 @@ func (h *TemplateHandler) GetLatestTemplateVersion(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
 	}
 
-	latest, err := h.fetchLatestTemplateVersionFromService(templateName)
+	// Pass the incoming request context into the helper to preserve cancellation and tracing.
+	latest, err := h.fetchLatestTemplateVersionFromService(c.Context(), templateName)
 	if err != nil {
 		log.Printf("Failed to fetch latest template version: %v", err)
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch latest template version", nil)
@@ -114,7 +121,8 @@ func (h *TemplateHandler) BuildTemplate(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
 	}
 
-	response, err := h.triggerTemplateBuild(req)
+	// Pass the incoming request context into the helper to preserve cancellation and tracing.
+	response, err := h.triggerTemplateBuild(c.Context(), req)
 	if err != nil {
 		log.Printf("Failed to trigger template build: %v", err)
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to trigger template build", nil)
@@ -148,7 +156,8 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
-	status, err := h.fetchDeploymentStatusFromService(shop.Subdomain)
+	// Pass the incoming request context into the helper to preserve cancellation and tracing.
+	status, err := h.fetchDeploymentStatusFromService(c.Context(), shop.Subdomain)
 	if err != nil {
 		log.Printf("Failed to fetch deployment status: %v", err)
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch deployment status", nil)
@@ -159,9 +168,21 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 
 // Service integration methods
 
-func (h *TemplateHandler) fetchTemplatesFromService() ([]models.Template, error) {
+func (h *TemplateHandler) fetchTemplatesFromService(ctx context.Context) ([]models.Template, error) {
 	serviceURL := getServiceURL("store-deployer", "9003")
-	resp, err := http.Get(fmt.Sprintf("%s/templates", serviceURL))
+	// TODO: This helper should accept a caller-provided ctx so cancellation and tracing propagate.
+	// If caller passed a background/TODO context, we still create a short timeout as a safeguard.
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "fetchTemplatesFromService", "store-deployer", http.MethodGet, fmt.Sprintf("%s/templates", serviceURL))
+	defer finish(0, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/templates", serviceURL), nil)
+	if err != nil {
+		return nil, err
+	}
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	resp, err := ic.DoWithRetry(ctx, req, 3)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to template service: %w", err)
 	}
@@ -184,9 +205,20 @@ func (h *TemplateHandler) fetchTemplatesFromService() ([]models.Template, error)
 
 // Template version and build service methods
 
-func (h *TemplateHandler) fetchTemplateVersionsFromService(templateName string) ([]models.TemplateVersion, error) {
+func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, templateName string) ([]models.TemplateVersion, error) {
 	serviceURL := getServiceURL("template-registry", "9001")
-	resp, err := http.Get(fmt.Sprintf("%s/versions/%s", serviceURL, templateName))
+	// TODO: Accept caller ctx to preserve cancellation/tracing.
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "fetchTemplateVersionsFromService", "template-registry", http.MethodGet, fmt.Sprintf("%s/versions/%s", serviceURL, templateName))
+	defer finish(0, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/versions/%s", serviceURL, templateName), nil)
+	if err != nil {
+		return nil, err
+	}
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	resp, err := ic.DoWithRetry(ctx, req, 3)
 	if err != nil {
 		return nil, err
 	}
@@ -207,9 +239,20 @@ func (h *TemplateHandler) fetchTemplateVersionsFromService(templateName string) 
 	return result.Versions, nil
 }
 
-func (h *TemplateHandler) fetchLatestTemplateVersionFromService(templateName string) (*models.TemplateVersion, error) {
+func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Context, templateName string) (*models.TemplateVersion, error) {
 	serviceURL := getServiceURL("template-registry", "9001")
-	resp, err := http.Get(fmt.Sprintf("%s/latest/%s", serviceURL, templateName))
+	// TODO: Accept caller ctx to preserve cancellation/tracing.
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "fetchLatestTemplateVersionFromService", "template-registry", http.MethodGet, fmt.Sprintf("%s/latest/%s", serviceURL, templateName))
+	defer finish(0, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/latest/%s", serviceURL, templateName), nil)
+	if err != nil {
+		return nil, err
+	}
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	resp, err := ic.DoWithRetry(ctx, req, 3)
 	if err != nil {
 		return nil, err
 	}
@@ -227,19 +270,26 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(templateName str
 	return &result, nil
 }
 
-func (h *TemplateHandler) triggerTemplateBuild(req models.TemplateBuildRequest) (*models.BuildResponse, error) {
+func (h *TemplateHandler) triggerTemplateBuild(ctx context.Context, req models.TemplateBuildRequest) (*models.BuildResponse, error) {
 	serviceURL := getServiceURL("template-registry", "9001")
 
 	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := http.Post(
-		fmt.Sprintf("%s/build", serviceURL),
-		"application/json",
-		jsonPayload(payload),
-	)
+	// TODO: Accept caller ctx to preserve cancellation/tracing.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "triggerTemplateBuild", "template-registry", http.MethodPost, fmt.Sprintf("%s/build", serviceURL))
+	defer finish(0, nil)
+	reqHttp, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/build", serviceURL), jsonPayload(payload))
+	if err != nil {
+		return nil, err
+	}
+	reqHttp.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, reqHttp)
+	observability.EnsureRequestID(reqHttp)
+	resp, err := ic.DefaultClient.Do(reqHttp)
 	if err != nil {
 		return nil, err
 	}
@@ -257,19 +307,26 @@ func (h *TemplateHandler) triggerTemplateBuild(req models.TemplateBuildRequest) 
 	return &result, nil
 }
 
-func (h *TemplateHandler) triggerStoreDeployment(req models.StoreDeploymentRequest) (*models.DeploymentResponse, error) {
+func (h *TemplateHandler) triggerStoreDeployment(ctx context.Context, req models.StoreDeploymentRequest) (*models.DeploymentResponse, error) {
 	serviceURL := getServiceURL("store-deployer", "9003")
 
 	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := http.Post(
-		fmt.Sprintf("%s/deploy", serviceURL),
-		"application/json",
-		jsonPayload(payload),
-	)
+	// TODO: Accept caller ctx to preserve cancellation/tracing.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "triggerStoreDeployment", "template-registry", http.MethodPost, fmt.Sprintf("%s/deploy", serviceURL))
+	defer finish(0, nil)
+	reqHttp, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/deploy", serviceURL), jsonPayload(payload))
+	if err != nil {
+		return nil, err
+	}
+	reqHttp.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, reqHttp)
+	observability.EnsureRequestID(reqHttp)
+	resp, err := ic.DefaultClient.Do(reqHttp)
 	if err != nil {
 		return nil, err
 	}
@@ -289,9 +346,20 @@ func (h *TemplateHandler) triggerStoreDeployment(req models.StoreDeploymentReque
 
 // NOTE: Data update functionality is now handled by proxy handlers which proxy to store-deployer service
 
-func (h *TemplateHandler) fetchDeploymentStatusFromService(subdomain string) (*models.DeploymentStatus, error) {
+func (h *TemplateHandler) fetchDeploymentStatusFromService(ctx context.Context, subdomain string) (*models.DeploymentStatus, error) {
 	serviceURL := getServiceURL("store-deployer", "9003")
-	resp, err := http.Get(fmt.Sprintf("%s/status/%s", serviceURL, subdomain))
+	// TODO: Accept caller ctx to preserve cancellation/tracing.
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "fetchDeploymentStatusFromService", "store-deployer", http.MethodGet, fmt.Sprintf("%s/status/%s", serviceURL, subdomain))
+	defer finish(0, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/status/%s", serviceURL, subdomain), nil)
+	if err != nil {
+		return nil, err
+	}
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	resp, err := ic.DoWithRetry(ctx, req, 3)
 	if err != nil {
 		return nil, err
 	}

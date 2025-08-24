@@ -76,6 +76,8 @@ Options:
   --dry-run              Show what would be deployed without applying
   --force                Skip confirmation prompts
   --no-secrets          Skip secrets deployment
+  --build               Build images before deployment (with change detection)
+  --build-force         Force rebuild all images before deployment
   --timeout=DURATION    Deployment timeout (default: 600s)
   --wait                Wait for deployment to be ready
   --rollback            Rollback to previous deployment
@@ -85,6 +87,7 @@ Options:
 
 Examples:
   $SCRIPT_NAME local                          # Deploy to local
+  $SCRIPT_NAME local --build                  # Build changed images then deploy
   $SCRIPT_NAME staging --dry-run              # Preview staging deployment
   $SCRIPT_NAME production --force --wait      # Force deploy to production and wait
   $SCRIPT_NAME local --rollback               # Rollback local deployment
@@ -97,6 +100,8 @@ ENVIRONMENT=""
 DRY_RUN=false
 FORCE=false
 NO_SECRETS=false
+BUILD_IMAGES=false
+BUILD_FORCE=false
 TIMEOUT="600s"
 WAIT_FOR_READY=false
 ROLLBACK=false
@@ -120,6 +125,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-secrets)
             NO_SECRETS=true
+            shift
+            ;;
+        --build)
+            BUILD_IMAGES=true
+            shift
+            ;;
+        --build-force)
+            BUILD_IMAGES=true
+            BUILD_FORCE=true
             shift
             ;;
         --timeout=*)
@@ -333,6 +347,52 @@ if [ "$ROLLBACK" = true ]; then
     exit 0
 fi
 
+# Image building (if requested)
+if [ "$BUILD_IMAGES" = true ]; then
+    print_header "Building Images"
+    
+    # Check if build script exists
+    BUILD_SCRIPT="$SCRIPT_DIR/build-images.sh"
+    if [ ! -f "$BUILD_SCRIPT" ]; then
+        print_error "Build script not found: $BUILD_SCRIPT"
+        exit 1
+    fi
+    
+    # Prepare build arguments
+    build_args=()
+    if [ "$BUILD_FORCE" = true ]; then
+        build_args+=("--force")
+    fi
+    
+    # Add environment-specific registry if needed
+    case $ENVIRONMENT in
+        staging)
+            # Use staging registry if defined
+            if [ -n "${STAGING_REGISTRY:-}" ]; then
+                build_args+=("--registry=$STAGING_REGISTRY")
+            fi
+            ;;
+        production)
+            # Use production registry if defined
+            if [ -n "${PRODUCTION_REGISTRY:-}" ]; then
+                build_args+=("--registry=$PRODUCTION_REGISTRY")
+            fi
+            ;;
+    esac
+    
+    print_info "Building images with arguments: ${build_args[*]}"
+    log "IMAGE BUILD START: Environment=$ENVIRONMENT, Args=${build_args[*]}"
+    
+    if "$BUILD_SCRIPT" "${build_args[@]}"; then
+        print_success "Image building completed successfully"
+        log "IMAGE BUILD SUCCESS"
+    else
+        print_error "Image building failed"
+        log "IMAGE BUILD FAILED"
+        exit 1
+    fi
+fi
+
 # Configuration validation
 print_header "Configuration Validation"
 
@@ -394,13 +454,19 @@ if [ "$NO_SECRETS" = false ]; then
                     secret_files_found=true
                     filename=$(basename "$secret_file")
                     print_info "Processing secret: $filename"
-                    log "DECRYPT SECRET: $filename"
-                    
-                    if sops -d "$secret_file" > "$TEMP_DIR/$filename"; then
-                        print_success "Decrypted $filename"
+                    # Decide whether to decrypt (SOPS) or copy (plaintext manifest)
+                    if grep -q '^sops:' "$secret_file" || grep -q 'ENC\[' "$secret_file"; then
+                        log "DECRYPT SECRET: $filename"
+                        if sops -d "$secret_file" > "$TEMP_DIR/$filename"; then
+                            print_success "Decrypted $filename"
+                        else
+                            print_error "Failed to decrypt $filename"
+                            exit 1
+                        fi
                     else
-                        print_error "Failed to decrypt $filename"
-                        exit 1
+                        log "COPY PLAIN SECRET: $filename"
+                        cp "$secret_file" "$TEMP_DIR/$filename"
+                        print_success "Copied plaintext secret $filename"
                     fi
                 fi
             done

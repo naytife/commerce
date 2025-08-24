@@ -16,6 +16,7 @@ show_help() {
     echo ""
     echo -e "${YELLOW}Commands:${NC}"
     echo -e "  ${GREEN}build${NC}        - Build all images without deploying"
+    echo -e "  ${GREEN}build-smart${NC}  - Build only changed images (with change detection)"
     echo -e "  ${GREEN}render${NC}       - Render Kubernetes manifests without deploying"
     echo -e "  ${GREEN}deploy${NC}       - Deploy using pre-built images"
     echo -e "  ${GREEN}delete${NC}       - Delete all deployed resources"
@@ -24,14 +25,21 @@ show_help() {
     echo -e "  ${GREEN}debug${NC}        - Start in debug mode"
     echo -e "  ${GREEN}validate${NC}     - Validate Skaffold configuration"
     echo -e "  ${GREEN}clean${NC}        - Clean up Docker images and build cache"
+    echo -e "  ${GREEN}check${NC}        - Check which services need rebuilding"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
     echo -e "  $0 build"
+    echo -e "  $0 build-smart"
+    echo -e "  $0 build-smart --service=backend"
     echo -e "  $0 render"
     echo -e "  $0 deploy"
     echo -e "  $0 logs backend"
     echo -e "  $0 debug"
+    echo -e "  $0 check"
 }
+
+# Get script directory for locating build script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if skaffold is available
 if ! command -v skaffold &> /dev/null; then
@@ -40,11 +48,32 @@ if ! command -v skaffold &> /dev/null; then
 fi
 
 COMMAND=${1:-help}
+shift || true  # Remove first argument, keep the rest for passing to build script
 
 case $COMMAND in
     "build")
-        echo -e "${BLUE}🔨 Building all images...${NC}"
+        echo -e "${BLUE}🔨 Building all images with Skaffold...${NC}"
         skaffold build --profile=local
+        ;;
+    
+    "build-smart")
+        echo -e "${BLUE}🧠 Building images with change detection...${NC}"
+        if [ -f "$SCRIPT_DIR/build-images.sh" ]; then
+            "$SCRIPT_DIR/build-images.sh" "$@"
+        else
+            echo -e "${RED}❌ build-images.sh not found. Please ensure it exists.${NC}"
+            exit 1
+        fi
+        ;;
+    
+    "check")
+        echo -e "${BLUE}🔍 Checking which services need rebuilding...${NC}"
+        if [ -f "$SCRIPT_DIR/build-images.sh" ]; then
+            "$SCRIPT_DIR/build-images.sh" --check-only "$@"
+        else
+            echo -e "${RED}❌ build-images.sh not found. Please ensure it exists.${NC}"
+            exit 1
+        fi
         ;;
     
     "render")

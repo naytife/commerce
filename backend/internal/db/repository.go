@@ -224,7 +224,9 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	config.HealthCheckPeriod = 1 * time.Minute // Regular health checks
 
 	// Create the connection pool
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, err
 	}

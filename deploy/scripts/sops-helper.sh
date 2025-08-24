@@ -28,6 +28,8 @@ usage() {
     echo "  view       View decrypted content of a secret file"
     echo "  validate   Validate all encrypted secret files"
     echo "  list       List all secret files for an environment"
+    echo "  doctor     Diagnose key/recipient issues for a secret file"
+    echo "  updatekeys Re-wrap one or all secrets with current recipients"
     echo "  keygen     Generate new age key"
     echo "  keyshow    Show public key" 
     echo "  keycheck   Check key security and permissions"
@@ -63,7 +65,12 @@ check_prerequisites() {
 
 get_key_file() {
     local env="$1"
-    echo "$HOME/.config/sops/age/keys.txt"
+    # Allow override via environment, else default
+    if [[ -n "$SOPS_AGE_KEY_FILE" ]]; then
+        echo "$SOPS_AGE_KEY_FILE"
+    else
+        echo "$HOME/.config/sops/age/keys.txt"
+    fi
 }
 
 validate_environment() {
@@ -76,7 +83,7 @@ validate_environment() {
 }
 
 validate_key_file() {
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     
     if [[ ! -f "$key_file" ]]; then
         echo -e "${RED}Error: Age key file not found${NC}"
@@ -92,7 +99,7 @@ validate_key_file() {
 decrypt_file() {
     local env="$1"
     local file="$2"
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     local secret_file="${SECRETS_DIR}/${env}/${file}"
     
     if [[ ! -f "$secret_file" ]]; then
@@ -101,6 +108,7 @@ decrypt_file() {
     fi
     
     echo -e "${BLUE}Decrypting $file for $env environment...${NC}"
+    echo -e "Using key file: ${YELLOW}$key_file${NC}"
     SOPS_AGE_KEY_FILE="$key_file" sops -d -i "$secret_file"
     echo -e "${GREEN}✓ Decrypted successfully${NC}"
 }
@@ -108,7 +116,7 @@ decrypt_file() {
 encrypt_file() {
     local env="$1"
     local file="$2"
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     local secret_file="${SECRETS_DIR}/${env}/${file}"
     
     if [[ ! -f "$secret_file" ]]; then
@@ -117,6 +125,7 @@ encrypt_file() {
     fi
     
     echo -e "${BLUE}Encrypting $file for $env environment...${NC}"
+    echo -e "Using key file: ${YELLOW}$key_file${NC}"
     SOPS_AGE_KEY_FILE="$key_file" sops -e -i "$secret_file"
     echo -e "${GREEN}✓ Encrypted successfully${NC}"
 }
@@ -124,7 +133,7 @@ encrypt_file() {
 edit_file() {
     local env="$1"
     local file="$2"
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     local secret_file="${SECRETS_DIR}/${env}/${file}"
     
     if [[ ! -f "$secret_file" ]]; then
@@ -133,6 +142,7 @@ edit_file() {
     fi
     
     echo -e "${BLUE}Editing $file for $env environment...${NC}"
+    echo -e "Using key file: ${YELLOW}$key_file${NC}"
     SOPS_AGE_KEY_FILE="$key_file" sops "$secret_file"
     echo -e "${GREEN}✓ Edit completed${NC}"
 }
@@ -140,7 +150,7 @@ edit_file() {
 view_file() {
     local env="$1"
     local file="$2"
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     local secret_file="${SECRETS_DIR}/${env}/${file}"
     
     if [[ ! -f "$secret_file" ]]; then
@@ -150,13 +160,14 @@ view_file() {
     
     echo -e "${BLUE}Viewing $file for $env environment:${NC}"
     echo ""
+    echo -e "Using key file: ${YELLOW}$key_file${NC}"
     SOPS_AGE_KEY_FILE="$key_file" sops -d "$secret_file"
 }
 
 validate_all() {
     echo -e "${BLUE}Validating all encrypted secret files...${NC}"
     local errors=0
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     
     if [[ ! -f "$key_file" ]]; then
         echo -e "${RED}  ✗ Age key file missing: $key_file${NC}"
@@ -213,7 +224,7 @@ list_files() {
 }
 
 generate_key() {
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     
     if [[ -f "$key_file" ]]; then
         echo -e "${YELLOW}Warning: Age key file already exists: $key_file${NC}"
@@ -243,7 +254,7 @@ generate_key() {
 }
 
 show_public_key() {
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     
     if [[ ! -f "$key_file" ]]; then
         echo -e "${RED}Error: Age key file not found: $key_file${NC}"
@@ -257,7 +268,7 @@ show_public_key() {
 check_key_security() {
     echo -e "${BLUE}Checking key security...${NC}"
     local errors=0
-    local key_file="$HOME/.config/sops/age/keys.txt"
+    local key_file="$(get_key_file)"
     
     if [[ -f "$key_file" ]]; then
         local perms=$(stat -f "%A" "$key_file" 2>/dev/null || stat -c "%a" "$key_file" 2>/dev/null)
@@ -285,6 +296,56 @@ check_key_security() {
     else
         echo -e "\n${YELLOW}Found $errors security issue(s)${NC}"
     fi
+}
+
+doctor() {
+    local env="$1"
+    local file="$2"
+    local key_file="$(get_key_file)"
+    local secret_file="${SECRETS_DIR}/${env}/${file}"
+
+    echo -e "${BLUE}SOPS Doctor${NC}"
+    echo -e "Environment: ${YELLOW}$env${NC}"
+    echo -e "Secret file: ${YELLOW}$secret_file${NC}"
+    echo -e "Key file:    ${YELLOW}$key_file${NC}"
+
+    if [[ ! -f "$key_file" ]]; then
+        echo -e "${RED}  ✗ Key file not found${NC}"
+    else
+        local my_pub
+        my_pub=$(grep "public key:" "$key_file" | sed 's/# public key: //')
+        if [[ -n "$my_pub" ]]; then
+            echo -e "${GREEN}  ✓ Your public key: ${YELLOW}$my_pub${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ Could not read public key from key file${NC}"
+        fi
+    fi
+
+    # From .sops.yaml creation rules
+    local cfg_pub
+    cfg_pub=$(awk '/path_regex: deploy\/secrets\/'"$env"'\/.+\\.yaml\$/ {f=1} f && /age:/ {print $2; exit}' "$PROJECT_ROOT/.sops.yaml" 2>/dev/null || true)
+    if [[ -n "$cfg_pub" ]]; then
+        echo -e "${GREEN}  ✓ Configured recipient in .sops.yaml: ${YELLOW}$cfg_pub${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ No matching creation_rule found in .sops.yaml for $env${NC}"
+    fi
+
+    # From the encrypted file metadata
+    if [[ -f "$secret_file" ]]; then
+        local file_recips
+        file_recips=$(grep -E "^[[:space:]]*-?[[:space:]]*recipient:" "$secret_file" | awk '{print $2}' | paste -sd "," -)
+        if [[ -n "$file_recips" ]]; then
+            echo -e "${GREEN}  ✓ Recipients in file: ${YELLOW}$file_recips${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ Could not detect recipients in file (file may not be SOPS-encrypted)${NC}"
+        fi
+    fi
+
+    echo ""
+    echo "Hints:"
+    echo "- Ensure your key file contains the private key matching one of the recipients above."
+    echo "- Override key path temporarily: SOPS_AGE_KEY_FILE=/path/to/keys.txt $0 edit $env $file"
+    echo "- Show your public key to compare: $0 keyshow"
 }
 
 # Main script logic
@@ -361,6 +422,38 @@ case "${1:-}" in
         ;;
     keycheck)
         check_key_security
+        ;;
+    updatekeys)
+        if [[ $# -lt 2 || $# -gt 3 ]]; then
+            echo -e "${RED}Error: updatekeys requires environment and optional file name${NC}"
+            usage
+            exit 1
+        fi
+        validate_environment "$2"
+        env="$2"
+        key_file="$(get_key_file)"
+        if [[ -n "$3" ]]; then
+            file="$3"
+            secret_file="${SECRETS_DIR}/${env}/${file}"
+            echo -e "${BLUE}Re-wrapping keys for ${YELLOW}$secret_file${NC} using ${YELLOW}$key_file${NC}..."
+            SOPS_AGE_KEY_FILE="$key_file" sops updatekeys "$secret_file"
+        else
+            echo -e "${BLUE}Re-wrapping keys for all ${YELLOW}$env${NC} secrets using ${YELLOW}$key_file${NC}..."
+            for secret_file in "${SECRETS_DIR}/${env}"/*.yaml; do
+                [[ -f "$secret_file" ]] || continue
+                echo "  - $(basename "$secret_file")"
+                SOPS_AGE_KEY_FILE="$key_file" sops updatekeys "$secret_file"
+            done
+        fi
+        ;;
+    doctor)
+        if [[ $# -ne 3 ]]; then
+            echo -e "${RED}Error: doctor requires environment and file name${NC}"
+            usage
+            exit 1
+        fi
+        validate_environment "$2"
+        doctor "$2" "$3"
         ;;
     *)
         usage

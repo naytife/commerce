@@ -1,12 +1,9 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +16,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+	// ic and observability not required here; updateStoreDataWithCtx in shop.handlers.go provides tracing
 )
 
 // CreateProduct Create a new product
@@ -268,7 +266,12 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	}
 
 	// Auto-publish if publish handler is available
-	go h.autoPublishProductChanges(shopID, "product_create", fmt.Sprintf("product:%d", createdProduct.ProductID), fmt.Sprintf("Product \"%s\" created", createdProduct.Title))
+	// derive worker context from request context
+	go func() {
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		h.autoPublishProductChangesWithCtx(ctx, shopID, "product_create", fmt.Sprintf("product:%d", createdProduct.ProductID), fmt.Sprintf("Product \"%s\" created", createdProduct.Title))
+	}()
 
 	return api.SuccessResponse(c, fiber.StatusCreated, productResponse, "Product created successfully")
 }
@@ -694,7 +697,12 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 	}
 
 	// Auto-publish if publish handler is available
-	go h.autoPublishProductChanges(shopID, "product_update", fmt.Sprintf("product:%d", productID), "Product updated")
+	// derive worker context from request context
+	go func() {
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		h.autoPublishProductChangesWithCtx(ctx, shopID, "product_update", fmt.Sprintf("product:%d", productID), "Product updated")
+	}()
 
 	return api.SuccessResponse(c, fiber.StatusOK, nil, "Product updated successfully")
 }
@@ -731,7 +739,12 @@ func (h *Handler) DeleteProduct(c *fiber.Ctx) error {
 	}
 
 	// Auto-publish if publish handler is available
-	go h.autoPublishProductChanges(shopID, "product_delete", fmt.Sprintf("product:%d", productID), "Product deleted")
+	// derive worker context from request context
+	go func() {
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		h.autoPublishProductChangesWithCtx(ctx, shopID, "product_delete", fmt.Sprintf("product:%d", productID), "Product deleted")
+	}()
 
 	return api.SuccessResponse(c, fiber.StatusOK, nil, "Product deleted successfully")
 }
@@ -839,60 +852,35 @@ func (h *Handler) GetProductsByType(c *fiber.Ctx) error {
 }
 
 // autoPublishProductChanges automatically triggers a publish when products are changed
+// autoPublishProductChanges uses a request-derived context; fallback uses TODO
 func (h *Handler) autoPublishProductChanges(shopID int64, changeType, entity, description string) {
+	// TODO: callers should pass a request context; this fallback uses TODO to signal improvement needed
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+	h.autoPublishProductChangesWithCtx(ctx, shopID, changeType, entity, description)
+}
+
+func (h *Handler) autoPublishProductChangesWithCtx(ctx context.Context, shopID int64, changeType, entity, description string) {
 	// Get shop details for subdomain
-	shop, err := h.Repository.GetShop(context.Background(), shopID)
+	shop, err := h.Repository.GetShop(ctx, shopID)
 	if err != nil {
 		return // Silently fail for auto-publish
 	}
 
-	// Call store-deployer directly to update products JSON
-	go func() {
-		if err := h.updateStoreData(shop.Subdomain, shopID, "products"); err != nil {
-			// Log error but don't block the main operation
-			fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
-		}
-	}()
+	// Call store-deployer to update products JSON
+	// Derive a worker timeout from the passed context
+	workerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := h.updateStoreDataWithCtx(workerCtx, shop.Subdomain, shopID, "products"); err != nil {
+		// Log error but don't block the main operation
+		fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
+	}
 }
 
 // updateStoreData calls the store-deployer service to update specific data types
 func (h *Handler) updateStoreData(subdomain string, shopID int64, dataType string) error {
-	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
-	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003"
-	}
-
-	// Prepare the update request
-	updateReq := map[string]interface{}{
-		"shop_id":   fmt.Sprintf("%d", shopID),
-		"data_type": dataType,
-	}
-
-	reqBody, err := json.Marshal(updateReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal update request: %v", err)
-	}
-
-	// Call the store-deployer update-data endpoint
-	client := &http.Client{Timeout: 30 * time.Second}
-	url := fmt.Sprintf("%s/update-data/%s", storeDeployerURL, subdomain)
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create update request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to call store-deployer: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("store-deployer returned status %d", resp.StatusCode)
-	}
-
-	return nil
+	// TODO: This function is deprecated; use updateStoreDataWithCtx(ctx, ...) where possible.
+	ctx, cancel := context.WithTimeout(context.TODO(), 20*time.Second)
+	defer cancel()
+	return h.updateStoreDataWithCtx(ctx, subdomain, shopID, dataType)
 }

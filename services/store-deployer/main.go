@@ -26,7 +26,8 @@ var (
 	storesBucketName    string
 	templatesBucketName string
 	imagesBucketName    string
-	ctx                 = context.Background()
+	httpClient          = &http.Client{Timeout: 15 * time.Second}
+	rootCtx             = context.TODO()
 )
 
 type StoreDeployer struct {
@@ -128,7 +129,7 @@ func init() {
 		log.Fatal("Missing required R2 environment variables")
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx,
+	cfg, err := config.LoadDefaultConfig(rootCtx,
 		config.WithRegion("auto"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
@@ -230,8 +231,12 @@ func (sd *StoreDeployer) resolveTemplateVersion() (string, error) {
 		templateRegistryURL = "http://template-registry:9001"
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, sd.TemplateName))
+	reqURL := fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, sd.TemplateName)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to contact template registry: %v", err)
 	}
@@ -262,7 +267,7 @@ func (sd *StoreDeployer) resolveTemplateVersion() (string, error) {
 func (sd *StoreDeployer) getTemplateManifest() (*TemplateManifest, error) {
 	manifestKey := fmt.Sprintf("%s/%s/manifest.json", sd.TemplateName, sd.Version)
 
-	resp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	resp, err := s3Client.GetObject(rootCtx, &s3.GetObjectInput{
 		Bucket: aws.String(templatesBucketName),
 		Key:    aws.String(manifestKey),
 	})
@@ -345,7 +350,6 @@ func (sd *StoreDeployer) fetchStoreData() (map[string]interface{}, error) {
 // Helper to do a GraphQL POST and parse JSON response
 func doGraphQLRequest(url string, reqBody map[string]interface{}, subdomain string) (map[string]interface{}, error) {
 	jsonBody, _ := json.Marshal(reqBody)
-	client := &http.Client{Timeout: 15 * time.Second}
 	req, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBody)))
 	if err != nil {
 		return nil, err
@@ -355,7 +359,9 @@ func doGraphQLRequest(url string, reqBody map[string]interface{}, subdomain stri
 		req.Header.Set("X-Shop-Subdomain", subdomain)
 	}
 
-	resp, err := client.Do(req)
+	// Inject tracing headers and request id when available (best-effort)
+	// Note: this package doesn't depend on observability to avoid circular imports; use httpClient as shared client.
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +399,7 @@ func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
 		destKey := fmt.Sprintf("%s/%s", storePath, asset.Path)
 
 		// Copy object from templates bucket to stores bucket
-		_, err := s3Client.CopyObject(ctx, &s3.CopyObjectInput{
+		_, err := s3Client.CopyObject(rootCtx, &s3.CopyObjectInput{
 			Bucket:      aws.String(storesBucketName),
 			Key:         aws.String(destKey),
 			CopySource:  aws.String(fmt.Sprintf("%s/%s", templatesBucketName, sourceKey)),
@@ -449,7 +455,7 @@ func (sd *StoreDeployer) uploadDataFile(filename string, data interface{}) error
 
 	key := fmt.Sprintf("%s/data/%s", sd.Subdomain, filename)
 
-	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err = s3Client.PutObject(rootCtx, &s3.PutObjectInput{
 		Bucket:       aws.String(storesBucketName),
 		Key:          aws.String(key),
 		Body:         strings.NewReader(string(jsonData)),
@@ -975,7 +981,7 @@ func listObjectsInBucket(bucketName, prefix string) ([]string, error) {
 
 	paginator := s3.NewListObjectsV2Paginator(s3Client, input)
 	for paginator.HasMorePages() {
-		output, err := paginator.NextPage(ctx)
+		output, err := paginator.NextPage(rootCtx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list objects in bucket %s: %v", bucketName, err)
 		}
@@ -1003,7 +1009,7 @@ func deleteObjectsBatchInBucket(bucketName string, keys []string) error {
 		})
 	}
 
-	_, err := s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+	_, err := s3Client.DeleteObjects(rootCtx, &s3.DeleteObjectsInput{
 		Bucket: aws.String(bucketName),
 		Delete: &types.Delete{
 			Objects: objectsToDelete,
@@ -1035,7 +1041,7 @@ func cleanupProductImagesByShop(shopID string) error {
 func getCurrentDeploymentInfo(subdomain string) (map[string]interface{}, error) {
 	metadataKey := fmt.Sprintf("%s/data/metadata.json", subdomain)
 
-	resp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	resp, err := s3Client.GetObject(rootCtx, &s3.GetObjectInput{
 		Bucket: aws.String(storesBucketName),
 		Key:    aws.String(metadataKey),
 	})
@@ -1079,7 +1085,7 @@ func checkStoreAccessibility(subdomain string) bool {
 	// Check if main index.html exists
 	indexKey := fmt.Sprintf("%s/index.html", subdomain)
 
-	_, err := s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+	_, err := s3Client.HeadObject(rootCtx, &s3.HeadObjectInput{
 		Bucket: aws.String(storesBucketName),
 		Key:    aws.String(indexKey),
 	})

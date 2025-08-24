@@ -26,7 +26,7 @@ build:
           - src: "config/**"
             dest: /app/config
             strip: ""
-    
+
     - image: naytife/backend-migrations
       context: backend
       docker:
@@ -39,7 +39,7 @@ build:
           - src: "atlas.hcl"
             dest: /atlas.hcl
             strip: ""
-    
+
     - image: naytife/auth-handler
       context: auth/authentication-handler
       docker:
@@ -53,8 +53,8 @@ build:
             dest: /app/go.mod
           - src: "go.sum"
             dest: /app/go.sum
-    
-    - image: docker.io/library/store-deployer
+
+    - image: naytife/store-deployer
       context: services/store-deployer
       docker:
         dockerfile: Dockerfile
@@ -67,8 +67,8 @@ build:
             dest: /app/go.mod
           - src: "go.sum"
             dest: /app/go.sum
-    
-    - image: template-registry
+
+    - image: naytife/template-registry
       context: services/template-registry
       docker:
         dockerfile: Dockerfile
@@ -93,25 +93,25 @@ portForward:
     namespace: naytife-local
     port: 8000
     localPort: 8000
-  
+
   - resourceType: service
     resourceName: local-auth-handler
     namespace: naytife-local
     port: 3000
     localPort: 3000
-  
+
   - resourceType: service
     resourceName: local-oathkeeper-api
     namespace: naytife-local
     port: 4456
     localPort: 4456
-  
+
   - resourceType: service
     resourceName: local-hydra-admin
     namespace: naytife-local
     port: 4445
     localPort: 4445
-  
+
   - resourceType: service
     resourceName: local-postgres
     namespace: naytife-local
@@ -125,7 +125,7 @@ profiles:
         push: false
         useDockerCLI: true
         useBuildkit: true
-    
+
   - name: debug
     build:
       artifacts:

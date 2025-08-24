@@ -14,6 +14,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	ic "github.com/petrejonn/naytife/internal/httpclient"
 )
 
 type ProxyHandler struct {
@@ -39,30 +40,42 @@ func NewProxyHandler(repo db.Repository) *ProxyHandler {
 		Repository:          repo,
 		TemplateRegistryURL: templateRegistryURL,
 		StoreDeployerURL:    storeDeployerURL,
-		HttpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		HttpClient:          ic.DefaultClient,
 	}
 }
 
-// Generic proxy method
+// Generic proxy method (context-aware, header whitelist, shared client)
 func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string) error {
-	// Build the full URL
 	fullURL := fmt.Sprintf("%s%s", targetURL, path)
 
-	// Create a new request
 	var reqBody io.Reader
 	if c.Body() != nil && len(c.Body()) > 0 {
 		reqBody = bytes.NewReader(c.Body())
 	}
 
-	req, err := http.NewRequest(string(c.Method()), fullURL, reqBody)
+	// Use request context from fiber (it exposes context.Context)
+	ctx := c.Context()
+	req, err := http.NewRequestWithContext(ctx, string(c.Method()), fullURL, reqBody)
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create proxy request", nil)
 	}
 
-	// Copy headers from original request
+	// Whitelist headers to copy
+	allowed := map[string]bool{
+		"Authorization":    true,
+		"Content-Type":     true,
+		"Accept":           true,
+		"X-Request-Id":     true,
+		"X-Shop-Subdomain": true,
+		"Traceparent":      true,
+		"X-B3-TraceId":     true,
+		"X-B3-SpanId":      true,
+		"X-B3-Sampled":     true,
+	}
 	for key, values := range c.GetReqHeaders() {
+		if _, ok := allowed[key]; !ok {
+			continue
+		}
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
@@ -75,8 +88,13 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 	}
 	req.URL.RawQuery = query.Encode()
 
-	// Make the request
-	resp, err := h.HttpClient.Do(req)
+	// For idempotent methods use retry helper, otherwise do a single request
+	var resp *http.Response
+	if req.Method == http.MethodGet || req.Method == http.MethodHead {
+		resp, err = ic.DoWithRetry(ctx, req, 3)
+	} else {
+		resp, err = h.HttpClient.Do(req)
+	}
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusBadGateway, "Failed to reach service", nil)
 	}
@@ -89,18 +107,18 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 		}
 	}
 
-	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to read service response", nil)
 	}
 
-	// Set status code and return body
 	c.Status(resp.StatusCode)
 	return c.Send(body)
 }
 
-// Template Registry Proxy Handlers
+// The remaining handlers delegate to ProxyWithStandardResponse which wraps
+// responses into the backend standard format. These implementations keep
+// the same signatures and swagger comments as before.
 
 // ProxyListTemplates proxies requests to template-registry /templates
 // @Summary      List all templates
@@ -169,15 +187,15 @@ func (h *ProxyHandler) ProxyGetLatestTemplateVersion(c *fiber.Ctx) error {
 // ProxyGetTemplateVersion proxies requests to template-registry /templates/{name}/versions/{version}
 // @Summary      Get a specific template version
 // @Description  Get details of a specific template version
-// @Tags         templates
-// @Produce      json
-// @Param        name path string true "Template name"
-// @Param        version path string true "Template version"
-// @Success      200  {object}  models.SuccessResponse  "Template version retrieved successfully"
-// @Failure      404  {object}  models.ErrorResponse "Template version not found"
-// @Failure      500  {object}  models.ErrorResponse "Internal server error"
-// @Security     OAuth2AccessCode
-// @Router       /templates/{name}/versions/{version} [get]
+// @Tags templates
+// @Produce json
+// @Param name path string true "Template name"
+// @Param version path string true "Template version"
+// @Success 200 {object} models.SuccessResponse "Template version retrieved successfully"
+// @Failure 404 {object} models.ErrorResponse "Template version not found"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Security OAuth2AccessCode
+// @Router /templates/{name}/versions/{version} [get]
 func (h *ProxyHandler) ProxyGetTemplateVersion(c *fiber.Ctx) error {
 	templateName := c.Params("name")
 	version := c.Params("version")
@@ -186,17 +204,17 @@ func (h *ProxyHandler) ProxyGetTemplateVersion(c *fiber.Ctx) error {
 }
 
 // ProxyDownloadTemplate proxies requests to template-registry /templates/{name}/versions/{version}/download
-// @Summary      Download a template version
-// @Description  Download assets for a specific template version
-// @Tags         templates
-// @Produce      json
-// @Param        name path string true "Template name"
-// @Param        version path string true "Template version"
-// @Success      200  {object}  models.TemplateDownload  "Template download information"
-// @Failure      404  {object}  models.ErrorResponse "Template version not found"
-// @Failure      500  {object}  models.ErrorResponse "Internal server error"
-// @Security     OAuth2AccessCode
-// @Router       /templates/{name}/versions/{version}/download [get]
+// @Summary Download a template version
+// @Description Download assets for a specific template version
+// @Tags templates
+// @Produce json
+// @Param name path string true "Template name"
+// @Param version path string true "Template version"
+// @Success 200 {object} models.TemplateDownload "Template download information"
+// @Failure 404 {object} models.ErrorResponse "Template version not found"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Security OAuth2AccessCode
+// @Router /templates/{name}/versions/{version}/download [get]
 func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 	templateName := c.Params("name")
 	version := c.Params("version")
@@ -204,37 +222,21 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 	return h.proxyRequest(c, h.TemplateRegistryURL, path)
 }
 
-// TemplateUploadRequest represents the multipart form data for template upload
-type TemplateUploadRequest struct {
-	TemplateName string `json:"template_name" form:"template_name" binding:"required" example:"my-template" description:"Template name"`
-	Version      string `json:"version" form:"version" example:"1.0.0" description:"Template version (auto-generated if not provided)"`
-	Description  string `json:"description" form:"description" example:"Template description" description:"Template description"`
-	Category     string `json:"category" form:"category" example:"ecommerce" description:"Template category (e.g., ecommerce, blog, portfolio)"`
-	Features     string `json:"features" form:"features" example:"responsive,dark-mode,multi-language" description:"Comma-separated list of template features"`
-	Force        bool   `json:"force" form:"force" example:"false" description:"Force upload even if version exists"`
-	Assets       string `json:"assets" form:"assets" swaggertype:"string" format:"binary" binding:"required" description:"Template assets (tar.gz file)"`
-	PreviewImage string `json:"preview_image" form:"preview_image" swaggertype:"string" format:"binary" description:"Optional preview image for the template (PNG, JPG, WebP, GIF)"`
-}
-
-// ProxyUploadTemplate proxies template upload requests to template-registry /templates/upload
-// @Summary      Upload a template
-// @Description  Upload a new template to the template registry
-// @Tags         templates
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        request body TemplateUploadRequest true "Template upload form data"
-// @Success      200  {object}  models.SuccessResponse  "Template uploaded successfully"
-// @Failure      400  {object}  models.ErrorResponse "Invalid request"
-// @Failure      500  {object}  models.ErrorResponse "Internal server error"
-// @Security     OAuth2AccessCode
-// @Router       /templates/upload [post]
+// ProxyUploadTemplate proxies template uploads to the template-registry
+// @Summary Upload a new template
+// @Description Proxy upload requests to template-registry
+// @Tags templates
+// @Accept multipart/form-data
+// @Produce json
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Security OAuth2AccessCode
+// @Router /templates/upload [post]
 func (h *ProxyHandler) ProxyUploadTemplate(c *fiber.Ctx) error {
-	return h.ProxyWithStandardResponse(c, h.TemplateRegistryURL, "/templates/upload", "Template uploaded successfully")
+	return h.proxyRequest(c, h.TemplateRegistryURL, "/upload")
 }
 
-// Store Deployer Proxy Handlers
-
-// ProxyDeployStore proxies requests to store-deployer /deploy
 // @Summary      Deploy a store
 // @Description  Deploy a store using the store deployer service
 // @Tags         deployment

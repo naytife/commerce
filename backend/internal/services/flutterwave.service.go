@@ -13,6 +13,10 @@ import (
 
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+
+	ic "github.com/petrejonn/naytife/internal/httpclient"
+
+	"github.com/petrejonn/naytife/internal/observability"
 )
 
 type FlutterwaveService struct {
@@ -195,14 +199,16 @@ func (f *FlutterwaveService) makeFlutterwaveRequest(ctx context.Context, method,
 	// Set default headers
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	ctx, finish := observability.StartSpan(ctx, "makeFlutterwaveRequest", "flutterwave", method, url)
+	defer finish(0, nil)
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
+	observability.RecordServiceRequest("flutterwave", req.Method, req.URL.String(), resp.StatusCode, time.Since(start))
 
 	return resp, nil
 }

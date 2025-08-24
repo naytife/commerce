@@ -30,7 +30,7 @@ var (
 	s3Client   *s3.Client
 	bucketName string
 	publicURL  string
-	ctx        = context.Background()
+	rootCtx    = context.TODO()
 )
 
 // TemplateRegistry manages pre-built template assets and metadata
@@ -120,7 +120,7 @@ func init() {
 		log.Fatal("Missing required Cloudflare R2 environment variables")
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx,
+	cfg, err := config.LoadDefaultConfig(rootCtx,
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			accessKeyID, secretAccessKey, "")),
 		config.WithRegion("auto"),
@@ -491,7 +491,7 @@ func (tr *TemplateRegistry) uploadAssetsToR2(buildDir string, manifest *Template
 			return fmt.Errorf("failed to open asset %s: %v", asset.Path, err)
 		}
 
-		_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		_, err = s3Client.PutObject(rootCtx, &s3.PutObjectInput{
 			Bucket:      aws.String(bucketName),
 			Key:         aws.String(s3Key),
 			Body:        file,
@@ -510,7 +510,7 @@ func (tr *TemplateRegistry) uploadAssetsToR2(buildDir string, manifest *Template
 	manifestJSON, _ := json.Marshal(manifest)
 	manifestKey := fmt.Sprintf("%s/%s/manifest.json", tr.TemplateName, tr.Version)
 
-	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := s3Client.PutObject(rootCtx, &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(manifestKey),
 		Body:        strings.NewReader(string(manifestJSON)),
@@ -549,7 +549,7 @@ func (tr *TemplateRegistry) uploadPreviewImage(previewImageFile multipart.File, 
 	s3Key := fmt.Sprintf("template-previews/%s/%s/preview_%d%s", tr.TemplateName, tr.Version, timestamp, fileExt)
 
 	// Upload the preview image
-	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := s3Client.PutObject(rootCtx, &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(s3Key),
 		Body:        previewImageFile,
@@ -698,7 +698,7 @@ func downloadTemplateHandler(w http.ResponseWriter, r *http.Request) {
 func templateVersionExists(templateName, version string) (bool, error) {
 	manifestKey := fmt.Sprintf("%s/%s/manifest.json", templateName, version)
 
-	_, err := s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+	_, err := s3Client.HeadObject(rootCtx, &s3.HeadObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(manifestKey),
 	})
@@ -714,7 +714,7 @@ func templateVersionExists(templateName, version string) (bool, error) {
 func updateLatestPointer(templateName, version string) error {
 	latestKey := fmt.Sprintf("%s/latest", templateName)
 
-	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := s3Client.PutObject(rootCtx, &s3.PutObjectInput{
 		Bucket:      aws.String(bucketName),
 		Key:         aws.String(latestKey),
 		Body:        strings.NewReader(version),
@@ -727,7 +727,7 @@ func updateLatestPointer(templateName, version string) error {
 func listAvailableTemplates() ([]string, error) {
 	prefix := ""
 
-	resp, err := s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	resp, err := s3Client.ListObjectsV2(rootCtx, &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucketName),
 		Prefix:    aws.String(prefix),
 		Delimiter: aws.String("/"),
@@ -753,7 +753,7 @@ func listAvailableTemplates() ([]string, error) {
 func listAvailableTemplatesWithMetadata() ([]Template, error) {
 	prefix := ""
 
-	resp, err := s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	resp, err := s3Client.ListObjectsV2(rootCtx, &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucketName),
 		Prefix:    aws.String(prefix),
 		Delimiter: aws.String("/"),
@@ -838,7 +838,7 @@ func listAvailableTemplatesWithMetadata() ([]Template, error) {
 func getTemplateVersions(templateName string) ([]TemplateVersion, error) {
 	prefix := fmt.Sprintf("%s/", templateName)
 
-	resp, err := s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	resp, err := s3Client.ListObjectsV2(rootCtx, &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucketName),
 		Prefix:    aws.String(prefix),
 		Delimiter: aws.String("/"),
@@ -906,7 +906,7 @@ func getLatestVersion(templateName string) (*TemplateVersion, error) {
 func getTemplateManifest(templateName, version string) (*TemplateManifest, error) {
 	manifestKey := fmt.Sprintf("%s/%s/manifest.json", templateName, version)
 
-	resp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	resp, err := s3Client.GetObject(rootCtx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(manifestKey),
 	})
@@ -928,7 +928,7 @@ func getLatestManifest(templateName string) (*TemplateManifest, error) {
 	// First try to get the latest version
 	latestKey := fmt.Sprintf("%s/latest", templateName)
 
-	resp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	resp, err := s3Client.GetObject(rootCtx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(latestKey),
 	})

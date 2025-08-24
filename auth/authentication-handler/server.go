@@ -117,7 +117,10 @@ func handleLogin(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString("Missing login_challenge")
 	}
 	log.Printf("Calling Hydra Admin for login challenge: %s", loginChallenge)
-	loginRequest, _, err := hydraAdminClient.OAuth2API.GetOAuth2LoginRequest(context.Background()).LoginChallenge(loginChallenge).Execute()
+	// Use request context for external Hydra call with a short timeout
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
+	loginRequest, _, err := hydraAdminClient.OAuth2API.GetOAuth2LoginRequest(ctx).LoginChallenge(loginChallenge).Execute()
 	if err != nil {
 		log.Printf("Failed to get login request: %v", err)
 		return c.Status(http.StatusInternalServerError).SendString("Failed to get login request")
@@ -233,12 +236,16 @@ func handleCallback(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString("Unsupported provider")
 	}
 
-	token, err := oauthProvider.OAuth2Config.Exchange(context.Background(), code)
+	// Use request context with timeout for token exchange and subsequent userinfo calls
+	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
+	defer cancel()
+
+	token, err := oauthProvider.OAuth2Config.Exchange(ctx, code)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Token exchange failed: " + err.Error())
 	}
 
-	client := oauthProvider.OAuth2Config.Client(context.Background(), token)
+	client := oauthProvider.OAuth2Config.Client(ctx, token)
 	userInfo, err := fetchUserInfo(client)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to fetch user info: " + err.Error())
@@ -259,7 +266,7 @@ func handleCallback(c *fiber.Ctx) error {
 	if loginChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing login_challenge")
 	}
-	redirectTo, err := acceptHydraLogin(loginChallenge, userInfo, shopID, appType)
+	redirectTo, err := acceptHydraLogin(ctx, loginChallenge, userInfo, shopID, appType)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to accept login in Hydra: " + err.Error())
 	}
@@ -372,7 +379,7 @@ type GoogleUserInfo struct {
 	Locale        string `json:"locale"`
 }
 
-func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo, shopID, appType string) (*hydra.OAuth2RedirectTo, error) {
+func acceptHydraLogin(ctx context.Context, loginChallenge string, user *GoogleUserInfo, shopID, appType string) (*hydra.OAuth2RedirectTo, error) {
 	// Create a new map to hold the context data
 	contextData := make(map[string]interface{})
 
@@ -388,8 +395,8 @@ func acceptHydraLogin(loginChallenge string, user *GoogleUserInfo, shopID, appTy
 		RememberFor: hydra.PtrInt64(3600),
 		Context:     contextData, // Assign the map here
 	}
-
-	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2LoginRequest(context.Background()).
+	// Note: ctx should be a request context provided by caller with timeout/cancellation.
+	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2LoginRequest(ctx).
 		LoginChallenge(loginChallenge).
 		AcceptOAuth2LoginRequest(acceptRequest).
 		Execute()
@@ -405,11 +412,15 @@ func handleConsent(c *fiber.Ctx) error {
 	if consentChallenge == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing consent_challenge")
 	}
-	consentRequest, _, err := hydraAdminClient.OAuth2API.GetOAuth2ConsentRequest(context.Background()).ConsentChallenge(consentChallenge).Execute()
+	// Use request context with timeout for calls to Hydra
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
+
+	consentRequest, _, err := hydraAdminClient.OAuth2API.GetOAuth2ConsentRequest(ctx).ConsentChallenge(consentChallenge).Execute()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to get consent request in Hydra: " + err.Error())
 	}
-	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2ConsentRequest(context.Background()).
+	redirectTo, _, err := hydraAdminClient.OAuth2API.AcceptOAuth2ConsentRequest(ctx).
 		ConsentChallenge(consentChallenge).
 		AcceptOAuth2ConsentRequest(hydra.AcceptOAuth2ConsentRequest{
 			GrantAccessTokenAudience: consentRequest.RequestedAccessTokenAudience,

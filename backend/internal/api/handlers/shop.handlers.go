@@ -20,6 +20,10 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+
+	ic "github.com/petrejonn/naytife/internal/httpclient"
+
+	"github.com/petrejonn/naytife/internal/observability"
 )
 
 type ShopStatus string
@@ -121,8 +125,16 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
-	// Auto-trigger deployment for new shops
-	go h.autoDeployNewShop(objDB.ShopID, objDB.Subdomain, shop.Template)
+	// Auto-trigger deployment for new shops using cancellable worker context
+	go func(shopID int64, subdomain, templateName string) {
+		// derive worker context from request context to preserve cancellation/traces
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		// start a span for the worker
+		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
+		defer finish(0, nil)
+		h.autoDeployNewShopWithCtx(ctx, shopID, subdomain, templateName)
+	}(objDB.ShopID, objDB.Subdomain, shop.Template)
 
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Shop created")
 }
@@ -233,7 +245,8 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 
 	// Call store-deployer cleanup endpoint to remove R2 files
 	// This is done before database deletion to ensure we have the shop data
-	err = h.cleanupStoreFiles(shopIDInt, shop.Subdomain)
+	// Pass request context so cancellation and trace propagation work correctly
+	err = h.cleanupStoreFiles(c.Context(), shopIDInt, shop.Subdomain)
 	if err != nil {
 		// Log the error but don't fail the deletion - database cleanup should proceed
 		fmt.Printf("Warning: Failed to cleanup R2 files for shop %d: %v\n", shopIDInt, err)
@@ -506,7 +519,15 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 	}
 
 	// Auto-publish if publish handler is available
-	go h.autoPublishShopChanges(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop details updated")
+	// Use cancellable worker context for auto publish
+	go func(shopID int64, changeType, entity, description string) {
+		// derive worker context from request context
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
+		defer finish(0, nil)
+		h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
+	}(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop details updated")
 
 	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
 }
@@ -627,13 +648,20 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	}
 
 	// Auto-publish if publish handler is available
-	go h.autoPublishShopChanges(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop images updated")
+	go func(shopID int64, changeType, entity, description string) {
+		// derive worker context from request context
+		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
+		defer finish(0, nil)
+		h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
+	}(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop images updated")
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
 }
 
 // cleanupStoreFiles calls the store-deployer service to cleanup R2 files for a deleted shop
-func (h *Handler) cleanupStoreFiles(shopID int64, subdomain string) error {
+func (h *Handler) cleanupStoreFiles(ctx context.Context, shopID int64, subdomain string) error {
 	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
 	if storeDeployerURL == "" {
 		storeDeployerURL = "http://store-deployer:9003"
@@ -650,16 +678,25 @@ func (h *Handler) cleanupStoreFiles(shopID int64, subdomain string) error {
 	}
 
 	// Call the store-deployer cleanup endpoint
-	client := &http.Client{Timeout: 30 * time.Second}
 	url := fmt.Sprintf("%s/cleanup/%s", storeDeployerURL, subdomain)
 
-	req, err := http.NewRequest("DELETE", url, bytes.NewReader(reqBody))
+	// use a short cancellable context for the cleanup call
+	// TODO: callers should pass a context; we enforce a short timeout here as a safeguard.
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, bytes.NewReader(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create cleanup request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	// Observability and shared client
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	ctx, finish := observability.StartSpan(ctx, "cleanupStoreFiles", "store-deployer", "DELETE", url)
+	defer finish(0, nil)
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to call cleanup endpoint: %v", err)
 	}
@@ -667,6 +704,7 @@ func (h *Handler) cleanupStoreFiles(shopID int64, subdomain string) error {
 
 	// Read response for logging
 	responseBody, _ := io.ReadAll(resp.Body)
+	observability.RecordServiceRequest("store-deployer", "DELETE", url, resp.StatusCode, time.Since(start))
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("cleanup endpoint returned status %d: %s", resp.StatusCode, string(responseBody))
@@ -678,8 +716,21 @@ func (h *Handler) cleanupStoreFiles(shopID int64, subdomain string) error {
 
 // autoDeployNewShop automatically triggers deployment for newly created shops
 func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName string) {
+	// delegate to context-aware implementation with a short cancellable worker context
+	// TODO: callers should pass a request context; this fallback uses TODO to signal a needed improvement
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	defer cancel()
+	h.autoDeployNewShopWithCtx(ctx, shopID, subdomain, templateName)
+}
+
+// autoDeployNewShopWithCtx performs the same work but uses the provided context for cancellation and tracing
+func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, subdomain string, templateName string) {
 	// Wait a bit to ensure shop creation is fully complete
-	time.Sleep(2 * time.Second)
+	select {
+	case <-time.After(2 * time.Second):
+	case <-ctx.Done():
+		return
+	}
 
 	// Create deployment record in database
 	startedAt := pgtype.Timestamptz{
@@ -687,7 +738,7 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 		Valid: true,
 	}
 
-	deployment, err := h.Repository.CreateDeployment(context.Background(), db.CreateDeploymentParams{
+	deployment, err := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
 		ShopID:          shopID,
 		TemplateName:    templateName, // Use selected template for new shops
 		TemplateVersion: "latest",     // Use latest version
@@ -708,8 +759,6 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 		"version":       "",           // Use latest version
 		"data_override": map[string]string{},
 	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
 	reqBody, _ := json.Marshal(deploymentReq)
 
 	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
@@ -717,13 +766,22 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 		storeDeployerURL = "http://store-deployer:9003"
 	}
 
-	resp, err := client.Post(storeDeployerURL+"/deploy", "application/json",
-		bytes.NewReader(reqBody))
+	url := storeDeployerURL + "/deploy"
+	reqHTTP, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
+	if err != nil {
+		fmt.Printf("Failed to create auto-deploy request for new shop %d: %v\n", shopID, err)
+		return
+	}
+	reqHTTP.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, reqHTTP)
+	observability.EnsureRequestID(reqHTTP)
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(reqHTTP)
 	if err != nil {
 		fmt.Printf("Failed to auto-deploy new shop %d: %v\n", shopID, err)
 		// Update deployment status to failed
 		errMsg := err.Error()
-		h.Repository.UpdateDeploymentStatus(context.Background(), db.UpdateDeploymentStatusParams{
+		h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			DeploymentID: deployment.DeploymentID,
 			Status:       "failed",
 			Message:      &errMsg,
@@ -732,20 +790,74 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 	}
 	defer resp.Body.Close()
 
+	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
+
 	fmt.Printf("Auto-deployment triggered for new shop: %d (%s) - Deployment ID: %d\n", shopID, subdomain, deployment.DeploymentID)
 }
 
 // autoPublishShopChanges automatically triggers a publish when shop details are changed
 func (h *Handler) autoPublishShopChanges(shopID int64, changeType, entity, description string) {
+	// TODO: callers should pass a request context; this fallback uses TODO to signal a needed improvement
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	defer cancel()
+	h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
+}
+
+func (h *Handler) autoPublishShopChangesWithCtx(ctx context.Context, shopID int64, changeType, entity, description string) {
 	// Get shop details for subdomain
-	shop, err := h.Repository.GetShop(context.Background(), shopID)
+	shop, err := h.Repository.GetShop(ctx, shopID)
 	if err != nil {
 		return // Silently fail for auto-publish
 	}
 
 	// Call store-deployer to update shop data only
-	if err := h.updateStoreData(shop.Subdomain, shopID, "shop"); err != nil {
+	if err := h.updateStoreDataWithCtx(ctx, shop.Subdomain, shopID, "shop"); err != nil {
 		// Log error but don't fail the main operation
 		fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
 	}
+}
+
+// updateStoreDataWithCtx is a context-aware variant of updateStoreData
+func (h *Handler) updateStoreDataWithCtx(ctx context.Context, subdomain string, shopID int64, dataType string) error {
+	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
+	if storeDeployerURL == "" {
+		storeDeployerURL = "http://store-deployer:9003"
+	}
+
+	// Prepare the update request
+	updateReq := map[string]interface{}{
+		"shop_id":   fmt.Sprintf("%d", shopID),
+		"data_type": dataType,
+	}
+
+	reqBody, err := json.Marshal(updateReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal update request: %v", err)
+	}
+
+	// Call the store-deployer update-data endpoint
+	url := fmt.Sprintf("%s/update-data/%s", storeDeployerURL, subdomain)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("failed to create update request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to call store-deployer: %v", err)
+	}
+	defer resp.Body.Close()
+
+	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("store-deployer returned status %d", resp.StatusCode)
+	}
+
+	return nil
 }

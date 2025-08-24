@@ -7,49 +7,49 @@ spec:
   template:
     spec:
       initContainers:
-      - name: wait-for-postgres
-        image: postgres:15-alpine
-        command:
-        - sh
-        - -c
-        - |
-          echo "Waiting for CNPG pooler to be ready..."
-          until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
-            echo "CNPG pooler not ready, waiting 2 seconds..."
-            sleep 2
-          done
-          echo "✅ CNPG pooler is ready!"
-      - name: wait-for-redis
-        image: redis:7-alpine
-        command:
-        - sh
-        - -c
-        - |
-          until redis-cli -h redis.naytife.svc.cluster.local -p 6379 -a naytife-redis-2024 ping; do
-            echo "Waiting for redis..."
-            sleep 2
-          done
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for CNPG pooler to be ready..."
+              until pg_isready -h naytife-postgres-pooler.naytife.svc.cluster.local -p 5432 -U naytife; do
+                echo "CNPG pooler not ready, waiting 2 seconds..."
+                sleep 2
+              done
+              echo "✅ CNPG pooler is ready!"
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis.naytife.svc.cluster.local -p 6379 -a naytife-redis-2024 ping; do
+                echo "Waiting for redis..."
+                sleep 2
+              done
       containers:
-      - name: backend
-        imagePullPolicy: Never
-        env:
-        - name: APP_ENV
-          value: "local"
-        - name: LOG_LEVEL
-          value: "debug"
-        - name: API_URL
-          value: "http://127.0.0.1:8080"
-        - name: REDIS_ADDR
-          value: "redis.naytife.svc.cluster.local:6379"
-        - name: REDIS_URL
-          value: "redis://:naytife-redis-2024@redis.naytife.svc.cluster.local:6379"
-        - name: HYDRA_ADMIN_URL
-          value: "http://hydra-admin.naytife-auth.svc.cluster.local:4445"
-        - name: HYDRA_PUBLIC_URL
-          value: "http://hydra-public.naytife-auth.svc.cluster.local:4444"
-        - name: AUTH_HANDLER_URL
-          value: "http://auth-handler.naytife-auth.svc.cluster.local:3000"
-        - name: TEMPLATE_REGISTRY_URL
-          value: "http://template-registry.naytife.svc.cluster.local:9001"
-        - name: STORE_DEPLOYER_URL
-          value: "http://store-deployer.naytife.svc.cluster.local:9003"
+        - name: backend
+          imagePullPolicy: Never
+          env:
+            - name: APP_ENV
+              value: "local"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: API_URL
+              value: "http://127.0.0.1:8080"
+            - name: REDIS_ADDR
+              value: "redis.naytife.svc.cluster.local:6379"
+            - name: REDIS_URL
+              value: "redis://:naytife-redis-2025@redis.naytife.svc.cluster.local:6379"
+            - name: HYDRA_ADMIN_URL
+              value: "http://hydra-admin.naytife-auth.svc.cluster.local:4445"
+            - name: HYDRA_PUBLIC_URL
+              value: "http://hydra-public.naytife-auth.svc.cluster.local:4444"
+            - name: AUTH_HANDLER_URL
+              value: "http://auth-handler.naytife-auth.svc.cluster.local:3000"
+            - name: TEMPLATE_REGISTRY_URL
+              value: "http://template-registry.naytife.svc.cluster.local:9001"
+            - name: STORE_DEPLOYER_URL
+              value: "http://store-deployer.naytife.svc.cluster.local:9003"

@@ -12,6 +12,10 @@ import (
 
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+
+	ic "github.com/petrejonn/naytife/internal/httpclient"
+
+	"github.com/petrejonn/naytife/internal/observability"
 )
 
 type PayPalService struct {
@@ -124,8 +128,12 @@ func (p *PayPalService) GetAccessToken(ctx context.Context, config *PayPalConfig
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(config.ClientID, config.ClientSecret)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	ctx, finish := observability.StartSpan(ctx, "GetAccessToken", "paypal", "POST", req.URL.String())
+	defer func() { finish(0, nil) }()
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -140,6 +148,8 @@ func (p *PayPalService) GetAccessToken(ctx context.Context, config *PayPalConfig
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("failed to decode token response: %w", err)
 	}
+
+	observability.RecordServiceRequest("paypal", req.Method, req.URL.String(), resp.StatusCode, time.Since(start))
 
 	return &tokenResp, nil
 }
@@ -465,8 +475,11 @@ func (p *PayPalService) createPayPalOrder(ctx context.Context, config *PayPalCon
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	var finish func(int, error)
+	ctx, finish = observability.StartSpan(ctx, "createPayPalOrder", "paypal", "POST", req.URL.String())
+	defer func() { finish(0, nil) }()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create PayPal order: %w", err)
 	}
@@ -496,8 +509,11 @@ func (p *PayPalService) capturePayPalOrder(ctx context.Context, config *PayPalCo
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	var finish func(int, error)
+	ctx, finish = observability.StartSpan(ctx, "capturePayPalOrder", "paypal", "POST", req.URL.String())
+	defer func() { finish(0, nil) }()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to capture PayPal order: %w", err)
 	}
@@ -526,8 +542,11 @@ func (p *PayPalService) getPayPalOrder(ctx context.Context, config *PayPalConfig
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	var finish func(int, error)
+	ctx, finish = observability.StartSpan(ctx, "getPayPalOrder", "paypal", "GET", req.URL.String())
+	defer func() { finish(0, nil) }()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get PayPal order: %w", err)
 	}

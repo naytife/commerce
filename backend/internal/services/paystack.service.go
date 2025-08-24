@@ -13,6 +13,10 @@ import (
 
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+
+	ic "github.com/petrejonn/naytife/internal/httpclient"
+
+	"github.com/petrejonn/naytife/internal/observability"
 )
 
 type PaystackService struct {
@@ -145,14 +149,16 @@ func (p *PaystackService) makePaystackRequest(ctx context.Context, method, url s
 	// Set default headers
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := client.Do(req)
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+	ctx, finish := observability.StartSpan(ctx, "makePaystackRequest", "paystack", method, url)
+	defer finish(0, nil)
+	start := time.Now()
+	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
+	observability.RecordServiceRequest("paystack", req.Method, req.URL.String(), resp.StatusCode, time.Since(start))
 
 	return resp, nil
 }
