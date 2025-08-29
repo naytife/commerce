@@ -245,35 +245,16 @@ needs_rebuild() {
 
 # Function to import Docker image to k3s
 import_to_k3s() {
-    local image_tag="$1"
-    
-    # Skip if explicitly disabled
-    if [ "$NO_K3S_IMPORT" = true ]; then
-        return 0
-    fi
-    
-    # Check if k3s is available
-    if ! command -v k3s &> /dev/null; then
-        return 0  # Skip if k3s not available
-    fi
-    
-    # Check if we're in a local development environment
-    if [ -n "$REGISTRY" ]; then
-        return 0  # Skip if pushing to registry
-    fi
-    
-    print_info "Importing $image_tag to k3s..."
-    log "K3S IMPORT START: $image_tag"
-    
-    # Export image from Docker and import to k3s (need sudo for containerd socket access)
-    if docker save "$image_tag" | sudo k3s ctr images import -; then
-        print_success "Imported $image_tag to k3s"
-        log "K3S IMPORT SUCCESS: $image_tag"
+  local image_tag="$1"
+  if [ "$NO_K3S_IMPORT" = true ]; then return 0; fi
+  if command -v k3d &>/dev/null; then
+    print_info "Importing $image_tag into k3d cluster..."
+    if k3d image import "$image_tag" -c naytifecluster; then
+      print_success "Imported $image_tag into k3d"
     else
-        print_warning "Failed to import $image_tag to k3s (continuing anyway)"
-        log "K3S IMPORT FAILED: $image_tag"
-        # Don't fail the build for k3s import failure
+      print_warning "Failed to import $image_tag into k3d"
     fi
+  fi
 }
 
 # Function to build a single service

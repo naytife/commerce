@@ -128,7 +128,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// Auto-trigger deployment for new shops using cancellable worker context
 	go func(shopID int64, subdomain, templateName string) {
 		// derive worker context from request context to preserve cancellation/traces
-		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		// start a span for the worker
 		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
@@ -522,7 +522,7 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 	// Use cancellable worker context for auto publish
 	go func(shopID int64, changeType, entity, description string) {
 		// derive worker context from request context
-		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
 		defer finish(0, nil)
@@ -650,7 +650,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	// Auto-publish if publish handler is available
 	go func(shopID int64, changeType, entity, description string) {
 		// derive worker context from request context
-		ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
 		defer finish(0, nil)
@@ -793,14 +793,6 @@ func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, su
 	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
 
 	fmt.Printf("Auto-deployment triggered for new shop: %d (%s) - Deployment ID: %d\n", shopID, subdomain, deployment.DeploymentID)
-}
-
-// autoPublishShopChanges automatically triggers a publish when shop details are changed
-func (h *Handler) autoPublishShopChanges(shopID int64, changeType, entity, description string) {
-	// TODO: callers should pass a request context; this fallback uses TODO to signal a needed improvement
-	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
-	defer cancel()
-	h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
 }
 
 func (h *Handler) autoPublishShopChangesWithCtx(ctx context.Context, shopID int64, changeType, entity, description string) {
