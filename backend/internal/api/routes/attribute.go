@@ -2,12 +2,14 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
-func AttributeRouter(app fiber.Router, repo db.Repository) {
-	handler := handlers.NewHandler(repo)
+func AttributeRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
+	handler := handlers.NewHandler(repo, logger, retryClient)
 
 	app.Post("/shops/:shop_id/product-types/:product_type_id/attributes", handler.CreateAttribute)
 	app.Get("/shops/:shop_id/product-types/:product_type_id/attributes", handler.GetAttributes)

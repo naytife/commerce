@@ -13,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -20,6 +21,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+	"go.uber.org/zap"
 
 	ic "github.com/petrejonn/naytife/internal/httpclient"
 
@@ -49,42 +51,41 @@ const (
 // @Security     OAuth2AccessCode
 // @Router       /shops [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
-	// TODO: verify user exist
 	userSub, _ := c.Locals("user_id").(string)
+	// Parse input
 	var shop models.ShopCreateParams
-	c.BodyParser(&shop)
-
-	var user db.User
-	var err error
-
-	// Development mode bypass
-	devMode := os.Getenv("DEV_MODE")
-	if devMode == "true" {
-		// Use the test user we created
-		testEmail := "test@example.com"
-		user, err = h.Repository.GetUser(c.Context(), &testEmail)
-	} else {
-		user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
+	if err := c.BodyParser(&shop); err != nil {
+		h.Logger.Error("failed to parse request body", zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
+	// Validate user
+	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
+		h.Logger.Warn("failed to get user profile", zap.String("user_sub", userSub), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
+
+	// Default values
 	shop.Status = string(db.ProductStatusDRAFT)
 	shop.CurrencyCode = "NGN"
+
+	// Validate slug
 	if !slug.IsSlug(shop.Subdomain) {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid subdomain format", nil)
 	}
 
+	// Validate struct fields
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&shop); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
-
 		return &fiber.Error{
 			Code:    fiber.ErrBadRequest.Code,
 			Message: errMsgs,
 		}
 	}
+
+	// Create shop in DB
 	param := db.CreateShopParams{
 		OwnerID:         user.UserID,
 		Title:           shop.Title,
@@ -95,14 +96,17 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	}
 	objDB, err := h.Repository.CreateShop(c.Context(), param)
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-
-			if pgErr.Code == errors.UniqueViolation {
-				return api.ErrorResponse(c, fiber.StatusConflict, "Shop already exist", nil)
-			}
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == errors.UniqueViolation {
+			h.Logger.Info("shop already exists",
+				zap.String("subdomain", shop.Subdomain),
+				zap.String("user_id", user.UserID.String()))
+			return api.ErrorResponse(c, fiber.StatusConflict, "Shop already exists", nil)
 		}
+		h.Logger.Error("failed to create shop", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create shop", nil)
 	}
+
+	// Prepare response
 	resp := models.Shop{
 		ID:                  objDB.ShopID,
 		Title:               objDB.Title,
@@ -125,16 +129,21 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
-	// Auto-trigger deployment for new shops using cancellable worker context
+	// Auto-trigger deployment for new shops
 	go func(shopID int64, subdomain, templateName string) {
-		// derive worker context from request context to preserve cancellation/traces
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		// start a span for the worker
+
 		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
 		defer finish(0, nil)
+
 		h.autoDeployNewShopWithCtx(ctx, shopID, subdomain, templateName)
 	}(objDB.ShopID, objDB.Subdomain, shop.Template)
+
+	h.Logger.Info("shop created successfully",
+		zap.Int64("shop_id", objDB.ShopID),
+		zap.String("subdomain", objDB.Subdomain),
+		zap.String("owner_id", user.UserID.String()))
 
 	return api.SuccessResponse(c, fiber.StatusCreated, resp, "Shop created")
 }
@@ -725,38 +734,33 @@ func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName
 
 // autoDeployNewShopWithCtx performs the same work but uses the provided context for cancellation and tracing
 func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, subdomain string, templateName string) {
-	// Wait a bit to ensure shop creation is fully complete
 	select {
 	case <-time.After(2 * time.Second):
 	case <-ctx.Done():
 		return
 	}
 
-	// Create deployment record in database
-	startedAt := pgtype.Timestamptz{
-		Time:  time.Now(),
-		Valid: true,
-	}
-
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
 	deployment, err := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
 		ShopID:          shopID,
-		TemplateName:    templateName, // Use selected template for new shops
-		TemplateVersion: "latest",     // Use latest version
+		TemplateName:    templateName,
+		TemplateVersion: "latest",
 		Status:          "deploying",
 		DeploymentType:  "full",
 		Message:         nil,
 		StartedAt:       startedAt,
 	})
 	if err != nil {
-		fmt.Printf("Failed to create deployment record for new shop %d: %v\n", shopID, err)
+		h.Logger.Error("failed to create deployment record",
+			zap.Int64("shop_id", shopID), zap.Error(err))
 		return
 	}
 
 	deploymentReq := map[string]interface{}{
 		"shop_id":       fmt.Sprintf("%d", shopID),
 		"subdomain":     subdomain,
-		"template_name": templateName, // Use selected template for new shops
-		"version":       "",           // Use latest version
+		"template_name": templateName,
+		"version":       "",
 		"data_override": map[string]string{},
 	}
 	reqBody, _ := json.Marshal(deploymentReq)
@@ -765,23 +769,30 @@ func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, su
 	if storeDeployerURL == "" {
 		storeDeployerURL = "http://store-deployer:9003"
 	}
-
 	url := storeDeployerURL + "/deploy"
-	reqHTTP, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
+
+	req, err := retryablehttp.NewRequest("POST", url, bytes.NewReader(reqBody))
 	if err != nil {
-		fmt.Printf("Failed to create auto-deploy request for new shop %d: %v\n", shopID, err)
+		h.Logger.Error("failed to create retryable request",
+			zap.Int64("shop_id", shopID), zap.Error(err))
 		return
 	}
-	reqHTTP.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, reqHTTP)
-	observability.EnsureRequestID(reqHTTP)
+
+	req = req.WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, req.Request)
+	observability.EnsureRequestID(req.Request)
+
 	start := time.Now()
-	resp, err := ic.DefaultClient.Do(reqHTTP)
+	resp, err := h.RetryClient.Do(req)
 	if err != nil {
-		fmt.Printf("Failed to auto-deploy new shop %d: %v\n", shopID, err)
-		// Update deployment status to failed
 		errMsg := err.Error()
-		h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+		h.Logger.Error("deployment request failed after retries",
+			zap.Int64("shop_id", shopID),
+			zap.Int64("deployment_id", deployment.DeploymentID),
+			zap.Error(err))
+
+		_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 			DeploymentID: deployment.DeploymentID,
 			Status:       "failed",
 			Message:      &errMsg,
@@ -792,7 +803,11 @@ func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, su
 
 	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
 
-	fmt.Printf("Auto-deployment triggered for new shop: %d (%s) - Deployment ID: %d\n", shopID, subdomain, deployment.DeploymentID)
+	h.Logger.Info("auto-deployment triggered",
+		zap.Int64("shop_id", shopID),
+		zap.String("subdomain", subdomain),
+		zap.Int64("deployment_id", deployment.DeploymentID),
+		zap.Int("status_code", resp.StatusCode))
 }
 
 func (h *Handler) autoPublishShopChangesWithCtx(ctx context.Context, shopID int64, changeType, entity, description string) {

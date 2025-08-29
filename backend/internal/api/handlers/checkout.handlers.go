@@ -228,29 +228,29 @@ func (h *Handler) processPaymentWithFactory(c *fiber.Ctx, shopID int64, shop db.
 }
 
 // processStripePayment handles Stripe payment processing (legacy)
-func (h *Handler) processStripePayment(c *fiber.Ctx, shopID int64, shop db.Shop, req models.PaymentRequest) error {
-	// Check if Stripe service is available
-	if h.StripeService == nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Stripe service not available", nil)
-	}
+// func (h *Handler) processStripePayment(c *fiber.Ctx, shopID int64, shop db.Shop, req models.PaymentRequest) error {
+// 	// Check if Stripe service is available
+// 	if h.StripeService == nil {
+// 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Stripe service not available", nil)
+// 	}
 
-	// Extract payment intent ID from payment details
-	paymentIntentID, ok := req.PaymentDetails["payment_intent_id"].(string)
-	if !ok {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Missing payment intent ID", nil)
-	}
+// 	// Extract payment intent ID from payment details
+// 	paymentIntentID, ok := req.PaymentDetails["payment_intent_id"].(string)
+// 	if !ok {
+// 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Missing payment intent ID", nil)
+// 	}
 
-	// Confirm the payment with Stripe
-	response, err := h.StripeService.ConfirmPayment(c.Context(), shopID, paymentIntentID)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusPaymentRequired, fmt.Sprintf("Payment failed: %v", err), nil)
-	}
+// 	// Confirm the payment with Stripe
+// 	response, err := h.StripeService.ConfirmPayment(c.Context(), shopID, paymentIntentID)
+// 	if err != nil {
+// 		return api.ErrorResponse(c, fiber.StatusPaymentRequired, fmt.Sprintf("Payment failed: %v", err), nil)
+// 	}
 
-	// Create order if payment successful
-	response.OrderID = 1 // TODO: Implement actual order creation from checkout session
+// 	// Create order if payment successful
+// 	response.OrderID = 1 // TODO: Implement actual order creation from checkout session
 
-	return api.SuccessResponse(c, fiber.StatusOK, *response, "Payment processed successfully")
-}
+// 	return api.SuccessResponse(c, fiber.StatusOK, *response, "Payment processed successfully")
+// }
 
 // processPayPalPayment handles PayPal payment processing (placeholder)
 func (h *Handler) processPayPalPayment(c *fiber.Ctx, shopID int64, shop db.Shop, req models.PaymentRequest) error {

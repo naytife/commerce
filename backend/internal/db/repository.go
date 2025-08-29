@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type repoSvc struct {
@@ -185,23 +185,25 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	}
 }
 
-func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
-	// Initialize a new logger (using Logrus)
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel) // Set log level to Debug for detailed SQL logging
-
-	// Wrap the Logrus logger in a TraceLog object
+func InitDB(dataSourceName string, logger *zap.Logger) (*pgxpool.Pool, error) {
+	// Wrap the Zap logger in a TraceLog object
 	traceLogger := &tracelog.TraceLog{
 		Logger: tracelog.LoggerFunc(func(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]interface{}) {
+			// Convert map[string]interface{} into Zap fields
+			fields := make([]zap.Field, 0, len(data))
+			for k, v := range data {
+				fields = append(fields, zap.Any(k, v))
+			}
+
 			switch level {
 			case tracelog.LogLevelError:
-				logger.WithFields(logrus.Fields(data)).Error(msg)
+				logger.Error(msg, fields...)
 			case tracelog.LogLevelWarn:
-				logger.WithFields(logrus.Fields(data)).Warn(msg)
+				logger.Warn(msg, fields...)
 			case tracelog.LogLevelInfo:
-				logger.WithFields(logrus.Fields(data)).Info(msg)
+				logger.Info(msg, fields...)
 			case tracelog.LogLevelDebug:
-				logger.WithFields(logrus.Fields(data)).Debug(msg)
+				logger.Debug(msg, fields...)
 			}
 		}),
 		LogLevel: tracelog.LogLevelDebug, // Set log level to Debug
@@ -224,7 +226,7 @@ func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
 	config.HealthCheckPeriod = 1 * time.Minute // Regular health checks
 
 	// Create the connection pool
-	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {

@@ -12,7 +12,6 @@ require (
 	github.com/gosimple/slug v1.14.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/prometheus/client_golang v1.23.0
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
 	github.com/stripe/stripe-go/v81 v81.4.0
@@ -20,6 +19,11 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.30
 	go.opentelemetry.io/otel v1.24.0
 	go.opentelemetry.io/otel/trace v1.24.0
+)
+
+require (
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 )
 
 require (
@@ -81,7 +85,8 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.41.0 // indirect

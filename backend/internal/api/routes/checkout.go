@@ -2,13 +2,15 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/services"
+	"go.uber.org/zap"
 )
 
-func CheckoutRouter(app fiber.Router, repo db.Repository, paymentProcessorFactory *services.PaymentProcessorFactory) {
-	handler := handlers.NewHandlerWithPaymentFactory(repo, paymentProcessorFactory)
+func CheckoutRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client, paymentProcessorFactory *services.PaymentProcessorFactory) {
+	handler := handlers.NewHandlerWithPaymentFactory(repo, logger, retryClient, paymentProcessorFactory)
 
 	// Checkout endpoints
 	app.Post("/shops/:shop_id/checkout", handler.InitiateCheckout)

@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/config"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/routes"
@@ -17,6 +18,7 @@ import (
 	publicgraph "github.com/petrejonn/naytife/internal/gql/public"
 	"github.com/petrejonn/naytife/internal/middleware"
 	"github.com/petrejonn/naytife/internal/services"
+	"go.uber.org/zap"
 )
 
 // @title Naytife API Docs
@@ -34,7 +36,13 @@ func main() {
 		panic(err)
 	}
 
-	dbase, err := db.InitDB(env.DATABASE_URL)
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("failed to initialize zap logger: %v", err)
+	}
+	defer logger.Sync()
+
+	dbase, err := db.InitDB(env.DATABASE_URL, logger)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
@@ -42,21 +50,30 @@ func main() {
 
 	repo := db.NewRepository(dbase)
 
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = 5
+	retryClient.RetryWaitMin = 500 * time.Millisecond
+	retryClient.RetryWaitMax = 5 * time.Second
+	retryClient.HTTPClient = &http.Client{
+		Timeout: 15 * time.Second, // hard timeout per attempt
+	}
+	retryClient.Logger = nil // silence retryablehttp’s default logs (we use zap)
+
 	// Initialize Redis client for publish functionality
 	var redisClient *redis.Client
 	if env.REDIS_URL != "" {
 		// Parse Redis URL if provided
 		opt, err := redis.ParseURL(env.REDIS_URL)
 		if err != nil {
-			log.Printf("Warning: Failed to parse Redis URL: %v", err)
+			logger.Fatal("Failed to parse Redis URL", zap.Error(err))
 		} else {
 			redisClient = redis.NewClient(opt)
 			// Test Redis connection
 			if _, err := redisClient.Ping(redisClient.Context()).Result(); err != nil {
-				log.Printf("Warning: Failed to connect to Redis: %v", err)
+				logger.Warn("Failed to connect to Redis", zap.Error(err))
 				redisClient = nil
 			} else {
-				log.Println("✅ Redis connected successfully")
+				logger.Info("✅ Connected to Redis successfully")
 			}
 		}
 	}
@@ -103,7 +120,23 @@ func main() {
 	})
 
 	// Note: CORS is handled by Oathkeeper, so we don't need the CORS middleware here
-	app.Use(logger.New())
+	// Custom logging middleware using Zap
+	app.Use(func(c *fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next() // process request
+		stop := time.Since(start)
+
+		logger.Info("incoming request",
+			zap.String("method", c.Method()),
+			zap.String("path", c.Path()),
+			zap.Int("status", c.Response().StatusCode()),
+			zap.Duration("latency", stop),
+			zap.String("ip", c.IP()),
+			zap.String("user_agent", c.Get("User-Agent")),
+		)
+
+		return err
+	})
 
 	// Health check endpoints for Kubernetes
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -148,21 +181,21 @@ func main() {
 
 	v1 := app.Group("/v1")
 	api := v1.Group("/", middleware.WebMiddlewareFiber())
-	routes.AuthRouter(v1, repo)
-	routes.ShopRouter(api, repo)
-	routes.ProductTypeRouter(api, repo)
-	routes.ProductRouter(api, repo)
-	routes.AttributeRouter(api, repo)
-	routes.UserRouter(api, repo)
-	routes.CheckoutRouter(api, repo, paymentProcessorFactory)
+	routes.AuthRouter(v1, repo, logger, retryClient)
+	routes.ShopRouter(api, repo, logger, retryClient)
+	routes.ProductTypeRouter(api, repo, logger, retryClient)
+	routes.ProductRouter(api, repo, logger, retryClient)
+	routes.AttributeRouter(api, repo, logger, retryClient)
+	routes.UserRouter(api, repo, logger, retryClient)
+	routes.CheckoutRouter(api, repo, logger, retryClient, paymentProcessorFactory)
 	routes.PaymentRouter(api, repo, paymentProcessorFactory)
-	routes.PaymentMethodsRouter(api, repo)
-	routes.OrderRouter(api, repo)
-	routes.CustomerRouter(api, repo)
-	routes.InventoryRouter(api, repo)
+	routes.PaymentMethodsRouter(api, repo, logger, retryClient)
+	routes.OrderRouter(api, repo, logger, retryClient)
+	routes.CustomerRouter(api, repo, logger, retryClient)
+	routes.InventoryRouter(api, repo, logger, retryClient)
 	routes.AnalyticsRouter(api, repo)
 	routes.TemplateRouter(api, repo)
-	routes.PublishRouter(api, repo, redisClient)
+	// routes.PublishRouter(api, repo, redisClient)
 	routes.WebhookRouter(v1, repo, paymentProcessorFactory)
 
 	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))
