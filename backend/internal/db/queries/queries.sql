@@ -152,7 +152,7 @@ SELECT
     0 as reserved_quantity,
     pv.available_quantity as available_stock,
     pv.price,
-    (pv.available_quantity * pv.price) as stock_value,
+    (pv.available_quantity * pv.price)::numeric(12,2) as stock_value,
     pv.updated_at,
     CASE 
         WHEN pv.available_quantity = 0 THEN 'OUT_OF_STOCK'

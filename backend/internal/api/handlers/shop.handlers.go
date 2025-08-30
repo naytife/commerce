@@ -1,19 +1,13 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -22,8 +16,6 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
 	"go.uber.org/zap"
-
-	ic "github.com/petrejonn/naytife/internal/httpclient"
 
 	"github.com/petrejonn/naytife/internal/observability"
 )
@@ -52,6 +44,7 @@ const (
 // @Router       /shops [post]
 func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	userSub, _ := c.Locals("user_id").(string)
+
 	// Parse input
 	var shop models.ShopCreateParams
 	if err := c.BodyParser(&shop); err != nil {
@@ -66,23 +59,19 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
 
-	// Default values
+	// Defaults
 	shop.Status = string(db.ProductStatusDRAFT)
 	shop.CurrencyCode = "NGN"
+	shop.Status = string(PUBLISHED)
 
-	// Validate slug
+	// Validate slug + struct
 	if !slug.IsSlug(shop.Subdomain) {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid subdomain format", nil)
 	}
-
-	// Validate struct fields
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&shop); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: errMsgs}
 	}
 
 	// Create shop in DB
@@ -106,7 +95,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create shop", nil)
 	}
 
-	// Prepare response
+	// Response
 	resp := models.Shop{
 		ID:                  objDB.ShopID,
 		Title:               objDB.Title,
@@ -129,15 +118,63 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
-	// Auto-trigger deployment for new shops
+	// Auto-trigger deployment for new shops (DB record + StoreDeployerClient)
 	go func(shopID int64, subdomain, templateName string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-
 		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
 		defer finish(0, nil)
 
-		h.autoDeployNewShopWithCtx(ctx, shopID, subdomain, templateName)
+		// 1) Create deployment record (deploying)
+		startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+		deployment, derr := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
+			ShopID:          shopID,
+			TemplateName:    templateName,
+			TemplateVersion: "latest",
+			Status:          "deploying",
+			DeploymentType:  "full",
+			Message:         nil,
+			StartedAt:       startedAt,
+		})
+		if derr != nil {
+			h.Logger.Error("failed to create deployment record",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.String("template", templateName),
+				zap.Error(derr))
+			return
+		}
+
+		// 2) Call store-deployer via the client
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, templateName); err != nil {
+			errMsg := err.Error()
+			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+				DeploymentID: deployment.DeploymentID,
+				Status:       "failed",
+				Message:      &errMsg,
+			})
+
+			h.Logger.Warn("auto-deploy failed",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.String("template", templateName),
+				zap.Int64("deployment_id", deployment.DeploymentID),
+				zap.Error(err))
+			return
+		}
+
+		// Optional: if you have a distinct "queued"/"requested" state, set it here.
+		// If you want to keep legacy semantics (leave "deploying"), do nothing.
+		// _ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+		// 	DeploymentID: deployment.DeploymentID,
+		// 	Status:       "deploying",
+		// 	Message:      nil,
+		// })
+
+		h.Logger.Info("auto-deployment triggered",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", subdomain),
+			zap.String("template", templateName))
 	}(objDB.ShopID, objDB.Subdomain, shop.Template)
 
 	h.Logger.Info("shop created successfully",
@@ -163,17 +200,7 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 
 	var user db.User
 	var err error
-
-	// Development mode bypass
-	devMode := os.Getenv("DEV_MODE")
-	if devMode == "true" {
-		// Use the test user we created
-		testEmail := "test@example.com"
-		user, err = h.Repository.GetUser(c.Context(), &testEmail)
-	} else {
-		user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
-	}
-
+	user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
@@ -243,23 +270,32 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 	shopID := c.Params("shop_id", "0")
 	shopIDInt, _ := strconv.ParseInt(shopID, 10, 64)
 
-	// First, get the shop data before deletion to extract subdomain for cleanup
+	// Fetch shop info before deletion (needed for cleanup)
 	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
+		h.Logger.Error("failed to retrieve shop before deletion",
+			zap.Int64("shop_id", shopIDInt),
+			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve shop", nil)
 	}
 
-	// Call store-deployer cleanup endpoint to remove R2 files
-	// This is done before database deletion to ensure we have the shop data
-	// Pass request context so cancellation and trace propagation work correctly
-	err = h.cleanupStoreFiles(c.Context(), shopIDInt, shop.Subdomain)
-	if err != nil {
-		// Log the error but don't fail the deletion - database cleanup should proceed
-		fmt.Printf("Warning: Failed to cleanup R2 files for shop %d: %v\n", shopIDInt, err)
-	}
+	// Trigger cleanup asynchronously in store-deployer
+	go func(shopID int64, subdomain string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "cleanupStoreFiles", "store-deployer", "DELETE", "cleanup")
+		defer finish(0, nil)
+
+		if err := h.StoreDeployerClient.Cleanup(ctx, subdomain, shopID); err != nil {
+			h.Logger.Warn("failed to cleanup store files",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.Error(err))
+		}
+	}(shopIDInt, shop.Subdomain)
 
 	// Proceed with database deletion
 	err = h.Repository.DeleteShop(c.Context(), shopIDInt)
@@ -267,6 +303,9 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
+		h.Logger.Error("failed to delete shop",
+			zap.Int64("shop_id", shopIDInt),
+			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to delete shop", nil)
 	}
 
@@ -467,16 +506,15 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 
 	var shop models.ShopUpdateParams
 	if err := c.BodyParser(&shop); err != nil {
+		h.Logger.Warn("invalid request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&shop); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
-		return &fiber.Error{
-			Code:    fiber.ErrBadRequest.Code,
-			Message: errMsgs,
-		}
+		h.Logger.Warn("validation failed", zap.String("errors", errMsgs))
+		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: errMsgs}
 	}
 
 	param := db.UpdateShopParams{
@@ -502,6 +540,9 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
+		h.Logger.Error("failed to update shop",
+			zap.Int64("shop_id", shopID),
+			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop", nil)
 	}
 
@@ -527,18 +568,21 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
-	// Auto-publish if publish handler is available
-	// Use cancellable worker context for auto publish
-	go func(shopID int64, changeType, entity, description string) {
-		// derive worker context from request context
+	// Auto-publish asynchronously via StoreDeployerClient
+	go func(shopID int64, subdomain string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
+		ctx, finish := observability.StartSpan(ctx, "autoPublishShopUpdate", "store-deployer", "POST", "update-data")
 		defer finish(0, nil)
-		h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
-	}(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop details updated")
 
-	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated")
+		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "shop"); err != nil {
+			h.Logger.Warn("auto-publish failed",
+				zap.Int64("shop_id", shopID),
+				zap.Error(err))
+		}
+	}(shopID, objDB.Subdomain)
+
+	return api.SuccessResponse(c, fiber.StatusOK, resp, "Shop updated successfully")
 }
 
 // UpdateShopImages updates the shop images
@@ -556,95 +600,78 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /shops/{shop_id}/images [put]
 func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
-	// Parse shop ID from params
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		h.Logger.Warn("invalid shop id", zap.String("shop_id", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
 	// Verify shop exists
-	_, err = h.Repository.GetShop(c.Context(), shopID)
+	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
+		h.Logger.Error("failed to get shop", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to verify shop", nil)
 	}
 
-	// Parse request body
+	// Parse body
 	var imageParams models.ShopImagesUpdateParams
 	if err := c.BodyParser(&imageParams); err != nil {
+		h.Logger.Warn("invalid request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
-	// Check if shop images record exists
+	// Update or create shop images
 	var updatedImages db.ShopImage
-	var exists bool
-
 	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
-		// Try to get existing shop images
 		_, err := q.GetShopImages(c.Context(), shopID)
 		if err != nil {
 			if err == pgx.ErrNoRows {
-				// No existing record, we'll create a new one
-				exists = false
+				// Create new record
+				createdImgs, err := q.CreateShopImages(c.Context(), db.CreateShopImagesParams{
+					ShopID:            shopID,
+					FaviconUrl:        imageParams.FaviconUrl,
+					LogoUrl:           imageParams.LogoUrl,
+					LogoUrlDark:       imageParams.LogoUrlDark,
+					BannerUrl:         imageParams.BannerUrl,
+					BannerUrlDark:     imageParams.BannerUrlDark,
+					CoverImageUrl:     imageParams.CoverImageUrl,
+					CoverImageUrlDark: imageParams.CoverImageUrlDark,
+				})
+				if err != nil {
+					return err
+				}
+				updatedImages = createdImgs
 				return nil
 			}
 			return err
 		}
 
-		exists = true
-		return nil
-	})
-
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to check shop images", nil)
-	}
-
-	// Update or create shop images
-	err = h.Repository.WithTx(c.Context(), func(q *db.Queries) error {
-		if exists {
-			// Update existing record
-			updatedImgs, err := q.UpdateShopImages(c.Context(), db.UpdateShopImagesParams{
-				ShopID:            shopID,
-				FaviconUrl:        imageParams.FaviconUrl,
-				LogoUrl:           imageParams.LogoUrl,
-				LogoUrlDark:       imageParams.LogoUrlDark,
-				BannerUrl:         imageParams.BannerUrl,
-				BannerUrlDark:     imageParams.BannerUrlDark,
-				CoverImageUrl:     imageParams.CoverImageUrl,
-				CoverImageUrlDark: imageParams.CoverImageUrlDark,
-			})
-			if err != nil {
-				return err
-			}
-			updatedImages = updatedImgs
-		} else {
-			// Create new record
-			createdImgs, err := q.CreateShopImages(c.Context(), db.CreateShopImagesParams{
-				ShopID:            shopID,
-				FaviconUrl:        imageParams.FaviconUrl,
-				LogoUrl:           imageParams.LogoUrl,
-				LogoUrlDark:       imageParams.LogoUrlDark,
-				BannerUrl:         imageParams.BannerUrl,
-				BannerUrlDark:     imageParams.BannerUrlDark,
-				CoverImageUrl:     imageParams.CoverImageUrl,
-				CoverImageUrlDark: imageParams.CoverImageUrlDark,
-			})
-			if err != nil {
-				return err
-			}
-			updatedImages = createdImgs
+		// Update existing record
+		updatedImgs, err := q.UpdateShopImages(c.Context(), db.UpdateShopImagesParams{
+			ShopID:            shopID,
+			FaviconUrl:        imageParams.FaviconUrl,
+			LogoUrl:           imageParams.LogoUrl,
+			LogoUrlDark:       imageParams.LogoUrlDark,
+			BannerUrl:         imageParams.BannerUrl,
+			BannerUrlDark:     imageParams.BannerUrlDark,
+			CoverImageUrl:     imageParams.CoverImageUrl,
+			CoverImageUrlDark: imageParams.CoverImageUrlDark,
+		})
+		if err != nil {
+			return err
 		}
+		updatedImages = updatedImgs
 		return nil
 	})
-
 	if err != nil {
+		h.Logger.Error("failed to update shop images", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop images", nil)
 	}
 
-	// Return success response
 	response := models.ShopImagesData{
 		ID:                updatedImages.ShopImageID,
 		FaviconUrl:        updatedImages.FaviconUrl,
@@ -656,215 +683,19 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 		CoverImageUrlDark: updatedImages.CoverImageUrlDark,
 	}
 
-	// Auto-publish if publish handler is available
-	go func(shopID int64, changeType, entity, description string) {
-		// derive worker context from request context
+	// Auto-publish asynchronously
+	go func(shopID int64, subdomain string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		ctx, finish := observability.StartSpan(ctx, "autoPublishShopChanges", "store-deployer", "POST", "update-data")
+		ctx, finish := observability.StartSpan(ctx, "autoPublishShopImages", "store-deployer", "POST", "update-data")
 		defer finish(0, nil)
-		h.autoPublishShopChangesWithCtx(ctx, shopID, changeType, entity, description)
-	}(shopID, "shop_update", fmt.Sprintf("shop:%d", shopID), "Shop images updated")
+
+		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "shop"); err != nil {
+			h.Logger.Warn("auto-publish failed",
+				zap.Int64("shop_id", shopID),
+				zap.Error(err))
+		}
+	}(shopID, shop.Subdomain)
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
-}
-
-// cleanupStoreFiles calls the store-deployer service to cleanup R2 files for a deleted shop
-func (h *Handler) cleanupStoreFiles(ctx context.Context, shopID int64, subdomain string) error {
-	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
-	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003"
-	}
-
-	// Prepare the cleanup request
-	cleanupReq := map[string]interface{}{
-		"shop_id": fmt.Sprintf("%d", shopID),
-	}
-
-	reqBody, err := json.Marshal(cleanupReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal cleanup request: %v", err)
-	}
-
-	// Call the store-deployer cleanup endpoint
-	url := fmt.Sprintf("%s/cleanup/%s", storeDeployerURL, subdomain)
-
-	// use a short cancellable context for the cleanup call
-	// TODO: callers should pass a context; we enforce a short timeout here as a safeguard.
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, bytes.NewReader(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create cleanup request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Observability and shared client
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-	ctx, finish := observability.StartSpan(ctx, "cleanupStoreFiles", "store-deployer", "DELETE", url)
-	defer finish(0, nil)
-	start := time.Now()
-	resp, err := ic.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to call cleanup endpoint: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response for logging
-	responseBody, _ := io.ReadAll(resp.Body)
-	observability.RecordServiceRequest("store-deployer", "DELETE", url, resp.StatusCode, time.Since(start))
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("cleanup endpoint returned status %d: %s", resp.StatusCode, string(responseBody))
-	}
-
-	fmt.Printf("Successfully triggered cleanup for shop %d (subdomain: %s)\n", shopID, subdomain)
-	return nil
-}
-
-// autoDeployNewShop automatically triggers deployment for newly created shops
-func (h *Handler) autoDeployNewShop(shopID int64, subdomain string, templateName string) {
-	// delegate to context-aware implementation with a short cancellable worker context
-	// TODO: callers should pass a request context; this fallback uses TODO to signal a needed improvement
-	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
-	defer cancel()
-	h.autoDeployNewShopWithCtx(ctx, shopID, subdomain, templateName)
-}
-
-// autoDeployNewShopWithCtx performs the same work but uses the provided context for cancellation and tracing
-func (h *Handler) autoDeployNewShopWithCtx(ctx context.Context, shopID int64, subdomain string, templateName string) {
-	select {
-	case <-time.After(2 * time.Second):
-	case <-ctx.Done():
-		return
-	}
-
-	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
-	deployment, err := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
-		ShopID:          shopID,
-		TemplateName:    templateName,
-		TemplateVersion: "latest",
-		Status:          "deploying",
-		DeploymentType:  "full",
-		Message:         nil,
-		StartedAt:       startedAt,
-	})
-	if err != nil {
-		h.Logger.Error("failed to create deployment record",
-			zap.Int64("shop_id", shopID), zap.Error(err))
-		return
-	}
-
-	deploymentReq := map[string]interface{}{
-		"shop_id":       fmt.Sprintf("%d", shopID),
-		"subdomain":     subdomain,
-		"template_name": templateName,
-		"version":       "",
-		"data_override": map[string]string{},
-	}
-	reqBody, _ := json.Marshal(deploymentReq)
-
-	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
-	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003"
-	}
-	url := storeDeployerURL + "/deploy"
-
-	req, err := retryablehttp.NewRequest("POST", url, bytes.NewReader(reqBody))
-	if err != nil {
-		h.Logger.Error("failed to create retryable request",
-			zap.Int64("shop_id", shopID), zap.Error(err))
-		return
-	}
-
-	req = req.WithContext(ctx)
-	req.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, req.Request)
-	observability.EnsureRequestID(req.Request)
-
-	start := time.Now()
-	resp, err := h.RetryClient.Do(req)
-	if err != nil {
-		errMsg := err.Error()
-		h.Logger.Error("deployment request failed after retries",
-			zap.Int64("shop_id", shopID),
-			zap.Int64("deployment_id", deployment.DeploymentID),
-			zap.Error(err))
-
-		_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-			DeploymentID: deployment.DeploymentID,
-			Status:       "failed",
-			Message:      &errMsg,
-		})
-		return
-	}
-	defer resp.Body.Close()
-
-	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
-
-	h.Logger.Info("auto-deployment triggered",
-		zap.Int64("shop_id", shopID),
-		zap.String("subdomain", subdomain),
-		zap.Int64("deployment_id", deployment.DeploymentID),
-		zap.Int("status_code", resp.StatusCode))
-}
-
-func (h *Handler) autoPublishShopChangesWithCtx(ctx context.Context, shopID int64, changeType, entity, description string) {
-	// Get shop details for subdomain
-	shop, err := h.Repository.GetShop(ctx, shopID)
-	if err != nil {
-		return // Silently fail for auto-publish
-	}
-
-	// Call store-deployer to update shop data only
-	if err := h.updateStoreDataWithCtx(ctx, shop.Subdomain, shopID, "shop"); err != nil {
-		// Log error but don't fail the main operation
-		fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
-	}
-}
-
-// updateStoreDataWithCtx is a context-aware variant of updateStoreData
-func (h *Handler) updateStoreDataWithCtx(ctx context.Context, subdomain string, shopID int64, dataType string) error {
-	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
-	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003"
-	}
-
-	// Prepare the update request
-	updateReq := map[string]interface{}{
-		"shop_id":   fmt.Sprintf("%d", shopID),
-		"data_type": dataType,
-	}
-
-	reqBody, err := json.Marshal(updateReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal update request: %v", err)
-	}
-
-	// Call the store-deployer update-data endpoint
-	url := fmt.Sprintf("%s/update-data/%s", storeDeployerURL, subdomain)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create update request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-	start := time.Now()
-	resp, err := ic.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to call store-deployer: %v", err)
-	}
-	defer resp.Body.Close()
-
-	observability.RecordServiceRequest("store-deployer", "POST", url, resp.StatusCode, time.Since(start))
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("store-deployer returned status %d", resp.StatusCode)
-	}
-
-	return nil
 }

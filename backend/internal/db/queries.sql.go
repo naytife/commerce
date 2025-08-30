@@ -371,7 +371,7 @@ SELECT
     0 as reserved_quantity,
     pv.available_quantity as available_stock,
     pv.price,
-    (pv.available_quantity * pv.price) as stock_value,
+    (pv.available_quantity * pv.price)::numeric(12,2) as stock_value,
     pv.updated_at,
     CASE 
         WHEN pv.available_quantity = 0 THEN 'OUT_OF_STOCK'
@@ -399,7 +399,7 @@ type GetInventoryReportRow struct {
 	ReservedQuantity   int32              `json:"reserved_quantity"`
 	AvailableStock     int64              `json:"available_stock"`
 	Price              pgtype.Numeric     `json:"price"`
-	StockValue         int32              `json:"stock_value"`
+	StockValue         pgtype.Numeric     `json:"stock_value"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 	StockStatus        string             `json:"stock_status"`
 }

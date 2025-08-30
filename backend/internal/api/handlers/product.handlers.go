@@ -16,6 +16,8 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+	"github.com/petrejonn/naytife/internal/observability"
+	"go.uber.org/zap"
 	// ic and observability not required here; updateStoreDataWithCtx in shop.handlers.go provides tracing
 )
 
@@ -265,12 +267,24 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		UpdatedAt:   createdProduct.UpdatedAt,
 	}
 
-	shopIDCopy := shopID
+	shop, err := h.Repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Product created, but failed to fetch shop for auto-publish", nil)
+	}
+	// Auto-publish asynchronously via StoreDeployerClient
+	go func(shopID int64, subdomain string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "autoPublishProductChanges", "store-deployer", "POST", "update-data")
+		defer finish(0, nil)
 
-	go func() {
-		ctx := context.Background()
-		h.autoPublishProductChangesWithCtx(ctx, shopIDCopy, "product_create", fmt.Sprintf("product:%d", createdProduct.ProductID), fmt.Sprintf("Product \"%s\" created", createdProduct.Title))
-	}()
+		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
+			h.Logger.Warn("auto-publish failed",
+				zap.Int64("shop_id", shopID),
+				zap.Error(err))
+		}
+	}(shopID, shop.Subdomain)
 
 	return api.SuccessResponse(c, fiber.StatusCreated, productResponse, "Product created successfully")
 }
@@ -852,14 +866,14 @@ func (h *Handler) autoPublishProductChangesWithCtx(parentCtx context.Context, sh
 	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 	defer cancel()
 	// Get shop details for subdomain
-	shop, err := h.Repository.GetShop(ctx, shopID)
+	_, err := h.Repository.GetShop(ctx, shopID)
 	if err != nil {
 		fmt.Printf("Auto-publish: failed to get shop %d: %v\n", shopID, err)
 		return // Silently fail for auto-publish
 	}
 
-	if err := h.updateStoreDataWithCtx(ctx, shop.Subdomain, shopID, "products"); err != nil {
-		// Log error but don't block the main operation
-		fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
-	}
+	// if err := h.updateStoreDataWithCtx(ctx, shop.Subdomain, shopID, "products"); err != nil {
+	// 	// Log error but don't block the main operation
+	// 	fmt.Printf("Auto-publish failed for shop %d: %v\n", shopID, err)
+	// }
 }

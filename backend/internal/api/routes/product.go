@@ -5,11 +5,13 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/services"
 	"go.uber.org/zap"
 )
 
 func ProductRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	storeDeployerClient := services.NewStoreDeployerClient(retryClient, logger)
+	handler := handlers.NewHandlerWithStoreDeployerClient(repo, logger, retryClient, storeDeployerClient)
 
 	app.Post("/shops/:shop_id/product-types/:product_type_id/products", handler.CreateProduct)
 	app.Get("/shops/:shop_id/product-types/:product_type_id/products", handler.GetProductsByType)

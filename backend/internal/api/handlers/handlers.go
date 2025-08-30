@@ -13,6 +13,7 @@ type Handler struct {
 	PaymentProcessorFactory *services.PaymentProcessorFactory
 	RetryClient             *retryablehttp.Client
 	Logger                  *zap.Logger
+	StoreDeployerClient     *services.StoreDeployerClient
 }
 
 func NewHandler(repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) *Handler {
@@ -36,6 +37,15 @@ func NewHandlerWithPaymentFactory(repo db.Repository, logger *zap.Logger, retryC
 		Logger:                  logger,
 		RetryClient:             retryClient,
 		PaymentProcessorFactory: paymentFactory,
+	}
+}
+
+func NewHandlerWithStoreDeployerClient(repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client, storeDeployerClient *services.StoreDeployerClient) *Handler {
+	return &Handler{
+		Repository:          repo,
+		Logger:              logger,
+		RetryClient:         retryClient,
+		StoreDeployerClient: storeDeployerClient,
 	}
 }
 
