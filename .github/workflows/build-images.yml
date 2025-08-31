@@ -186,7 +186,9 @@ jobs:
       #     fetch-depth: 0
 
       - name: Install kustomize
-        uses: imjasonh/setup-kustomize@v3
+        uses: extractions/setup-kustomize@v1
+        with:
+          kustomize-version: '5.4.2'
 
       - name: Bump images in production overlay
         working-directory: deploy/overlay/production
