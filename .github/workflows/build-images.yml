@@ -3,7 +3,7 @@ name: Build & Push Docker Images + Bump GitOps
 on:
   workflow_dispatch:
   push:
-    branches: [ "dev" ]
+    branches: [ "stage" ]
     paths:
       - "backend/**"
       - "auth/**"
@@ -23,9 +23,36 @@ env:
   IMAGE_TAG: ${{ github.sha }}                        # immutable tag used in GitOps bump
 
 jobs:
-  build-backend:
+  changes:
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[skip-ci]') == false
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      auth: ${{ steps.filter.outputs.auth }}
+      store: ${{ steps.filter.outputs.store }}
+      registry: ${{ steps.filter.outputs.registry }}
+      migrations: ${{ steps.filter.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            auth:
+              - 'auth/**'
+            store:
+              - 'services/store-deployer/**'
+            registry:
+              - 'services/template-registry/**'
+            migrations:
+              - 'backend/migrations.Dockerfile'
+
+  build-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && contains(github.event.head_commit.message, '[skip-ci]') == false
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -57,6 +84,8 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-auth-handler:
+    needs: changes
+    if: needs.changes.outputs.store == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
@@ -82,6 +111,8 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-store-deployer:
+    needs: changes
+    if: needs.changes.outputs.store == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
@@ -107,6 +138,8 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-template-registry:
+    needs: changes
+    if: needs.changes.outputs.registry == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
@@ -132,6 +165,8 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-migrations:
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
