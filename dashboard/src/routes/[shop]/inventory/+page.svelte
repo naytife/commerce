@@ -449,7 +449,7 @@
 			</p>
 		</div>
 		<div class="flex items-center gap-3">
-			<Button variant="outline" class="glass border-border/50">
+			<!-- <Button variant="outline" class="glass border-border/50">
 				<Download class="w-4 h-4 mr-2" />
 				Export
 			</Button>
@@ -460,13 +460,13 @@
 			<Button on:click={() => (showMovementDialog = true)} class="btn-gradient shadow-brand">
 				<Plus class="w-4 h-4 mr-2" />
 				Record Movement
-			</Button>
+			</Button> -->
 		</div>
 	</div>
 
 	<!-- Enhanced Stats Cards -->
 	{#if inventoryReport}
-		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+		<!-- <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 			<div class="card-interactive text-center">
 				<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 					<Package class="w-6 h-6 text-white" />
@@ -498,7 +498,7 @@
 				<div class="text-2xl font-bold text-foreground mb-1">{inventoryReport.out_of_stock_count.toLocaleString()}</div>
 				<div class="text-sm text-muted-foreground">Out of Stock</div>
 			</div>
-		</div>
+		</div> -->
 	{/if}
 
 	<!-- Enhanced Tabs Navigation -->

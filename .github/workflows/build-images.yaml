@@ -1,0 +1,141 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [ "dev" ]
+    paths:
+      - "backend/**"
+      - "auth/**"
+      - "services/store-deployer/**"
+      - "services/template-registry/**"
+      - "migrations.Dockerfile"
+      - ".github/workflows/build.yml"
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[skip-ci]') == false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-auth-handler:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push auth-handler
+        uses: docker/build-push-action@v5
+        with:
+          context: ./auth/authentication-handler
+          file: ./auth/authentication-handler/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/auth-handler:latest
+            ghcr.io/${{ github.repository }}/auth-handler:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-store-deployer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push store-deployer
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/store-deployer
+          file: ./services/store-deployer/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/store-deployer:latest
+            ghcr.io/${{ github.repository }}/store-deployer:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-template-registry:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push template-registry
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/template-registry
+          file: ./services/template-registry/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/template-registry:latest
+            ghcr.io/${{ github.repository }}/template-registry:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push migrations
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/migrations.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend-migrations:latest
+            ghcr.io/${{ github.repository }}/backend-migrations:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
