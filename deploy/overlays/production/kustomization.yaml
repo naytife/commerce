@@ -2,61 +2,61 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
-  - ../../base/cnpg-operator
-  - ../../base/cnpg-storage
-  - ../../base/cnpg-cluster
-  - ../../base/cnpg-pooler
-  - ../../base/cnpg-backup
-  - ../../base/cnpg-monitoring
-  - persistent-volumes-production.yaml
-  - ingress-production.yaml
-  - network-policy.yaml
+- ../../base
+- ../../base/cnpg-operator
+- ../../base/cnpg-storage
+- ../../base/cnpg-cluster
+- ../../base/cnpg-pooler
+- ../../base/cnpg-backup
+- ../../base/cnpg-monitoring
+- persistent-volumes-production.yaml
+- ingress-production.yaml
+- network-policy.yaml
 
 images:
-  - name: naytife/backend
-    newName: ghcr.io/<OWNER>/<REPO>/backend
-    newTag: ci-seed
-  - name: naytife/auth-handler
-    newName: ghcr.io/<OWNER>/<REPO>/auth-handler
-    newTag: ci-seed
-  - name: template-registry
-    newName: ghcr.io/<OWNER>/<REPO>/template-registry
-    newTag: ci-seed
-  - name: docker.io/library/store-deployer
-    newName: ghcr.io/<OWNER>/<REPO>/store-deployer
-    newTag: ci-seed
+- name: docker.io/library/store-deployer
+  newName: ghcr.io/naytife/commerce/store-deployer
+  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+- name: naytife/auth-handler
+  newName: ghcr.io/naytife/commerce/auth-handler
+  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+- name: naytife/backend
+  newName: ghcr.io/naytife/commerce/backend
+  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+- name: template-registry
+  newName: ghcr.io/naytife/commerce/template-registry
+  newTag: 0131f212225f4710e38c8f847cf30996306e614e
 
 replicas:
-  - name: backend
-    count: 3
-  - name: store-deployer
-    count: 3
-  - name: postgres
-    count: 1
-  - name: redis
-    count: 1
+- count: 3
+  name: backend
+- count: 3
+  name: store-deployer
+- count: 1
+  name: postgres
+- count: 1
+  name: redis
 
 labels:
-  - pairs:
-      environment: production
-      deployment-method: kustomize
+- pairs:
+    deployment-method: kustomize
+    environment: production
 
 patches:
-  - path: backend-production-patch.yaml
-  - path: auth-handler-production-patch.yaml
-  - path: postgres-production-patch.yaml
-  - path: redis-production-patch.yaml
-  - path: template-registry-production-patch.yaml
-  - path: store-deployer-production-patch.yaml
-  - path: cnpg-cluster-production-patch.yaml
+- path: backend-production-patch.yaml
+- path: auth-handler-production-patch.yaml
+- path: postgres-production-patch.yaml
+- path: redis-production-patch.yaml
+- path: template-registry-production-patch.yaml
+- path: store-deployer-production-patch.yaml
+- path: cnpg-cluster-production-patch.yaml
 
 namePrefix: prod-
 
 configMapGenerator:
-  - name: production-config
-    literals:
-      - LOG_LEVEL=warn
-      - APP_ENV=production
-      - DATABASE_HOST=postgres.naytife-production.svc.cluster.local
-      - REDIS_HOST=redis.naytife-production.svc.cluster.local
+- literals:
+  - LOG_LEVEL=warn
+  - APP_ENV=production
+  - DATABASE_HOST=postgres.naytife-production.svc.cluster.local
+  - REDIS_HOST=redis.naytife-production.svc.cluster.local
+  name: production-config
