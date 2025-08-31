@@ -1,16 +1,26 @@
-name: Build & Push Docker Images
+name: Build & Push Docker Images + Bump GitOps
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "dev" ]
+    branches: [ "stage" ]
     paths:
       - "backend/**"
       - "auth/**"
       - "services/store-deployer/**"
       - "services/template-registry/**"
       - "migrations.Dockerfile"
-      - ".github/workflows/build.yml"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  REPO_PATH: ${{ github.repository }}                 # owner/repo
+  IMAGE_TAG: ${{ github.sha }}                        # immutable tag used in GitOps bump
 
 jobs:
   build-backend:
@@ -25,15 +35,14 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            image=moby/buildkit:latest
+          driver-opts: image=moby/buildkit:latest
 
       - name: Build & Push backend
         uses: docker/build-push-action@v5
@@ -42,30 +51,24 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend:latest
-            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-auth-handler:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            image=moby/buildkit:latest
-
+          driver-opts: image=moby/buildkit:latest
       - name: Build & Push auth-handler
         uses: docker/build-push-action@v5
         with:
@@ -73,30 +76,24 @@ jobs:
           file: ./auth/authentication-handler/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/auth-handler:latest
-            ghcr.io/${{ github.repository }}/auth-handler:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-store-deployer:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            image=moby/buildkit:latest
-
+          driver-opts: image=moby/buildkit:latest
       - name: Build & Push store-deployer
         uses: docker/build-push-action@v5
         with:
@@ -104,30 +101,24 @@ jobs:
           file: ./services/store-deployer/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/store-deployer:latest
-            ghcr.io/${{ github.repository }}/store-deployer:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-template-registry:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            image=moby/buildkit:latest
-
+          driver-opts: image=moby/buildkit:latest
       - name: Build & Push template-registry
         uses: docker/build-push-action@v5
         with:
@@ -135,30 +126,24 @@ jobs:
           file: ./services/template-registry/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/template-registry:latest
-            ghcr.io/${{ github.repository }}/template-registry:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-migrations:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            image=moby/buildkit:latest
-
+          driver-opts: image=moby/buildkit:latest
       - name: Build & Push migrations
         uses: docker/build-push-action@v5
         with:
@@ -166,7 +151,68 @@ jobs:
           file: ./backend/migrations.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend-migrations:latest
-            ghcr.io/${{ github.repository }}/backend-migrations:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  gitops-bump:
+    name: Update kustomization.yaml with new tag & commit once
+    runs-on: ubuntu-latest
+    needs:
+      - build-backend
+      - build-auth-handler
+      - build-store-deployer
+      - build-template-registry
+      - build-migrations
+    permissions:
+      contents: write         # needed to push back to the repo
+    steps:
+      # --- Same-repo GitOps (default) ---
+      - name: Checkout repo (manifests live here)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      # --- Separate GitOps repo (optional) ---
+      # - name: Checkout GitOps repo
+      #   if: env.GITOPS_REPO != ''
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: ${{ env.GITOPS_REPO }}            # e.g. your-org/your-gitops-repo
+      #     token: ${{ secrets.GITOPS_PUSH_TOKEN }}        # classic PAT with repo write
+      #     ref: ${{ env.GITOPS_BRANCH || 'main' }}
+      #     fetch-depth: 0
+
+      - name: Install kustomize
+        uses: imjasonh/setup-kustomize@v3
+
+      - name: Bump images in production overlay
+        working-directory: deploy/overlay/production
+        run: |
+          set -euo pipefail
+          echo "Using IMAGE_TAG=${IMAGE_TAG}"
+          # Map base image names -> canonical GHCR newName and tag
+          kustomize edit set image naytife/backend=${REGISTRY}/${REPO_PATH}/backend:${IMAGE_TAG}
+          kustomize edit set image naytife/auth-handler=${REGISTRY}/${REPO_PATH}/auth-handler:${IMAGE_TAG}
+          kustomize edit set image template-registry=${REGISTRY}/${REPO_PATH}/template-registry:${IMAGE_TAG}
+          kustomize edit set image docker.io/library/store-deployer=${REGISTRY}/${REPO_PATH}/store-deployer:${IMAGE_TAG}
+
+      - name: Show diff
+        run: |
+          git status
+          git --no-pager diff || true
+
+      - name: Commit & push (single commit)
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+          git config user.name  "gitops-bot"
+          git config user.email "gitops-bot@users.noreply.github.com"
+          git add deploy/overlay/production/kustomization.yaml
+          git commit -m "gitops: bump production images to ${IMAGE_TAG} [skip-ci]"
+          git push
