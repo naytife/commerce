@@ -17,6 +17,7 @@ import (
 	ic "github.com/petrejonn/naytife/internal/httpclient"
 
 	"github.com/petrejonn/naytife/internal/observability"
+	"go.uber.org/zap"
 )
 
 type FlutterwaveService struct {
@@ -163,15 +164,18 @@ func (f *FlutterwaveService) GetFlutterwaveConfig(ctx context.Context, shopID in
 		MethodType: db.PaymentMethodTypeFlutterwave,
 	})
 	if err != nil {
+		zap.L().Error("GetFlutterwaveConfig: failed to get Flutterwave config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to get Flutterwave config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
+		zap.L().Warn("GetFlutterwaveConfig: flutterwave not enabled for shop", zap.Int64("shop_id", shopID))
 		return nil, fmt.Errorf("flutterwave is not enabled for this shop")
 	}
 
 	var config FlutterwaveConfig
 	if err := json.Unmarshal(paymentMethod.Attributes, &config); err != nil {
+		zap.L().Error("GetFlutterwaveConfig: failed to parse Flutterwave config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to parse Flutterwave config: %w", err)
 	}
 
@@ -188,6 +192,7 @@ func (f *FlutterwaveService) getBaseURL(testMode bool) string {
 func (f *FlutterwaveService) makeFlutterwaveRequest(ctx context.Context, method, url string, headers map[string]string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
+		zap.L().Error("makeFlutterwaveRequest: failed to create request", zap.String("method", method), zap.String("url", url), zap.Error(err))
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -206,6 +211,7 @@ func (f *FlutterwaveService) makeFlutterwaveRequest(ctx context.Context, method,
 	start := time.Now()
 	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
+		zap.L().Error("makeFlutterwaveRequest: request failed", zap.String("method", method), zap.String("url", url), zap.Error(err))
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	observability.RecordServiceRequest("flutterwave", req.Method, req.URL.String(), resp.StatusCode, time.Since(start))
@@ -295,6 +301,7 @@ func (f *FlutterwaveService) ProcessPayment(ctx context.Context, shopID int64, r
 
 	paymentReqJSON, err := json.Marshal(paymentReq)
 	if err != nil {
+		zap.L().Error("ProcessPayment: failed to marshal payment request", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.Error(err))
 		return nil, fmt.Errorf("failed to marshal payment request: %w", err)
 	}
 
@@ -305,29 +312,35 @@ func (f *FlutterwaveService) ProcessPayment(ctx context.Context, shopID int64, r
 
 	resp, err := f.makeFlutterwaveRequest(ctx, "POST", baseURL+"/payments", headers, bytes.NewBuffer(paymentReqJSON))
 	if err != nil {
+		zap.L().Error("ProcessPayment: failed to create payment", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.Error(err))
 		return nil, fmt.Errorf("failed to create payment: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		zap.L().Error("ProcessPayment: failed to read response body", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.Error(err))
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp FlutterwaveErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
+			zap.L().Error("ProcessPayment: flutterwave api error", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.String("message", errorResp.Message))
 			return nil, fmt.Errorf("flutterwave api error: %s", errorResp.Message)
 		}
+		zap.L().Error("ProcessPayment: flutterwave api non-200 response", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.Int("status", resp.StatusCode))
 		return nil, fmt.Errorf("flutterwave api error: status %d", resp.StatusCode)
 	}
 
 	var paymentResp FlutterwavePaymentResponse
 	if err := json.Unmarshal(respBody, &paymentResp); err != nil {
+		zap.L().Error("ProcessPayment: failed to unmarshal response", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.Error(err))
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	if paymentResp.Status != "success" {
+		zap.L().Error("ProcessPayment: payment creation failed", zap.Int64("shop_id", shopID), zap.String("tx_ref", txRef), zap.String("message", paymentResp.Message))
 		return nil, fmt.Errorf("failed to create payment: %s", paymentResp.Message)
 	}
 

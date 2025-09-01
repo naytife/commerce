@@ -6,10 +6,9 @@ import (
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/services"
-	"go.uber.org/zap"
 )
 
-func CheckoutRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client, paymentProcessorFactory *services.PaymentProcessorFactory) {
+func CheckoutRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client, paymentProcessorFactory *services.PaymentProcessorFactory) {
 	handler := handlers.NewHandlerWithPaymentFactory(repo, retryClient, paymentProcessorFactory)
 
 	// Checkout endpoints

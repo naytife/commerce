@@ -16,6 +16,7 @@ import (
 	ic "github.com/petrejonn/naytife/internal/httpclient"
 
 	"github.com/petrejonn/naytife/internal/observability"
+	"go.uber.org/zap"
 )
 
 type PayPalService struct {
@@ -92,15 +93,18 @@ func (p *PayPalService) GetPayPalConfig(ctx context.Context, shopID int64) (*Pay
 		MethodType: db.PaymentMethodTypePaypal,
 	})
 	if err != nil {
+		zap.L().Error("GetPayPalConfig: failed to get PayPal config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to get PayPal config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
+		zap.L().Warn("GetPayPalConfig: paypal not enabled for shop", zap.Int64("shop_id", shopID))
 		return nil, fmt.Errorf("PayPal is not enabled for this shop")
 	}
 
 	var config PayPalConfig
 	if err := json.Unmarshal(paymentMethod.Attributes, &config); err != nil {
+		zap.L().Error("GetPayPalConfig: failed to parse PayPal config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to parse PayPal config: %w", err)
 	}
 

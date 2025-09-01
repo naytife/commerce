@@ -185,8 +185,8 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	}
 }
 
-func InitDB(dataSourceName string, logger *zap.Logger) (*pgxpool.Pool, error) {
-	// Wrap the Zap logger in a TraceLog object
+func InitDB(dataSourceName string) (*pgxpool.Pool, error) {
+	// Wrap the Zap logger in a TraceLog object using the global zap logger
 	traceLogger := &tracelog.TraceLog{
 		Logger: tracelog.LoggerFunc(func(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]interface{}) {
 			// Convert map[string]interface{} into Zap fields
@@ -197,13 +197,13 @@ func InitDB(dataSourceName string, logger *zap.Logger) (*pgxpool.Pool, error) {
 
 			switch level {
 			case tracelog.LogLevelError:
-				logger.Error(msg, fields...)
+				zap.L().Error(msg, fields...)
 			case tracelog.LogLevelWarn:
-				logger.Warn(msg, fields...)
+				zap.L().Warn(msg, fields...)
 			case tracelog.LogLevelInfo:
-				logger.Info(msg, fields...)
+				zap.L().Info(msg, fields...)
 			case tracelog.LogLevelDebug:
-				logger.Debug(msg, fields...)
+				zap.L().Debug(msg, fields...)
 			}
 		}),
 		LogLevel: tracelog.LogLevelDebug, // Set log level to Debug

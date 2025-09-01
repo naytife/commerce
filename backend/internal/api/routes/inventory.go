@@ -5,10 +5,9 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
-	"go.uber.org/zap"
 )
 
-func InventoryRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
+func InventoryRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client) {
 	handler := handlers.NewHandler(repo, retryClient)
 
 	// Inventory management endpoints

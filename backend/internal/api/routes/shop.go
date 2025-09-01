@@ -6,10 +6,9 @@ import (
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/services"
-	"go.uber.org/zap"
 )
 
-func ShopRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
+func ShopRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client) {
 	storeDeployerClient := services.NewStoreDeployerClient(retryClient)
 	handler := handlers.NewHandlerWithStoreDeployerClient(repo, retryClient, storeDeployerClient)
 

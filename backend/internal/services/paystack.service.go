@@ -17,6 +17,7 @@ import (
 	ic "github.com/petrejonn/naytife/internal/httpclient"
 
 	"github.com/petrejonn/naytife/internal/observability"
+	"go.uber.org/zap"
 )
 
 type PaystackService struct {
@@ -113,15 +114,18 @@ func (p *PaystackService) GetPaystackConfig(ctx context.Context, shopID int64) (
 		MethodType: db.PaymentMethodTypePaystack,
 	})
 	if err != nil {
+		zap.L().Error("GetPaystackConfig: failed to get paystack config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to get paystack config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
+		zap.L().Warn("GetPaystackConfig: paystack not enabled for shop", zap.Int64("shop_id", shopID))
 		return nil, fmt.Errorf("paystack is not enabled for this shop")
 	}
 
 	var config PaystackConfig
 	if err := json.Unmarshal(paymentMethod.Attributes, &config); err != nil {
+		zap.L().Error("GetPaystackConfig: failed to parse Paystack config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to parse Paystack config: %w", err)
 	}
 

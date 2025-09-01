@@ -257,8 +257,6 @@ func (h *Handler) processPaymentWithFactory(c *fiber.Ctx, shopID int64, shop db.
 // 	return api.SuccessResponse(c, fiber.StatusOK, *response, "Payment processed successfully")
 // }
 
-
-
 // getPaymentMethodDisplayName returns a user-friendly display name for payment methods
 func getPaymentMethodDisplayName(methodType db.PaymentMethodType) string {
 	switch methodType {

@@ -356,5 +356,3 @@ func (h *PaymentHandler) GetPaymentStatus(c *fiber.Ctx) error {
 
 	return c.JSON(response)
 }
-
-

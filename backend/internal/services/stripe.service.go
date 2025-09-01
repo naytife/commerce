@@ -13,6 +13,7 @@ import (
 	"github.com/stripe/stripe-go/v81/paymentintent"
 	"github.com/stripe/stripe-go/v81/refund"
 	"github.com/stripe/stripe-go/v81/webhook"
+	"go.uber.org/zap"
 )
 
 type StripeService struct {
@@ -39,15 +40,18 @@ func (s *StripeService) GetStripeConfig(ctx context.Context, shopID int64) (*Str
 		MethodType: db.PaymentMethodTypeStripe,
 	})
 	if err != nil {
+		zap.L().Error("GetStripeConfig: failed to get stripe config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to get stripe config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
+		zap.L().Warn("GetStripeConfig: stripe not enabled for shop", zap.Int64("shop_id", shopID))
 		return nil, fmt.Errorf("stripe is not enabled for this shop")
 	}
 
 	var config StripeConfig
 	if err := json.Unmarshal(paymentMethod.Attributes, &config); err != nil {
+		zap.L().Error("GetStripeConfig: failed to parse stripe config", zap.Int64("shop_id", shopID), zap.Error(err))
 		return nil, fmt.Errorf("failed to parse stripe config: %w", err)
 	}
 

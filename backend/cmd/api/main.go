@@ -42,7 +42,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	dbase, err := db.InitDB(env.DATABASE_URL, logger)
+	dbase, err := db.InitDB(env.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
@@ -181,18 +181,18 @@ func main() {
 
 	v1 := app.Group("/v1")
 	api := v1.Group("/", middleware.WebMiddlewareFiber())
-	routes.AuthRouter(v1, repo, logger, retryClient)
-	routes.ShopRouter(api, repo, logger, retryClient)
-	routes.ProductTypeRouter(api, repo, logger, retryClient)
-	routes.ProductRouter(api, repo, logger, retryClient)
-	routes.AttributeRouter(api, repo, logger, retryClient)
-	routes.UserRouter(api, repo, logger, retryClient)
-	routes.CheckoutRouter(api, repo, logger, retryClient, paymentProcessorFactory)
+	routes.AuthRouter(v1, repo, retryClient)
+	routes.ShopRouter(api, repo, retryClient)
+	routes.ProductTypeRouter(api, repo, retryClient)
+	routes.ProductRouter(api, repo, retryClient)
+	routes.AttributeRouter(api, repo, retryClient)
+	routes.UserRouter(api, repo, retryClient)
+	routes.CheckoutRouter(api, repo, retryClient, paymentProcessorFactory)
 	routes.PaymentRouter(api, repo, paymentProcessorFactory)
-	routes.PaymentMethodsRouter(api, repo, logger, retryClient)
-	routes.OrderRouter(api, repo, logger, retryClient)
-	routes.CustomerRouter(api, repo, logger, retryClient)
-	routes.InventoryRouter(api, repo, logger, retryClient)
+	routes.PaymentMethodsRouter(api, repo, retryClient)
+	routes.OrderRouter(api, repo, retryClient)
+	routes.CustomerRouter(api, repo, retryClient)
+	routes.InventoryRouter(api, repo, retryClient)
 	routes.AnalyticsRouter(api, repo)
 	routes.TemplateRouter(api, repo)
 	routes.WebhookRouter(v1, repo, paymentProcessorFactory)

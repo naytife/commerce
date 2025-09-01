@@ -5,10 +5,9 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
-	"go.uber.org/zap"
 )
 
-func OrderRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
+func OrderRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client) {
 	handler := handlers.NewHandler(repo, retryClient)
 
 	// Order management endpoints

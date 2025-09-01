@@ -13,5 +13,3 @@ import (
 type Resolver struct {
 	Repository db.Repository
 }
-
-

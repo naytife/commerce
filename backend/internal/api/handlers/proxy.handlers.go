@@ -597,4 +597,3 @@ func (h *ProxyHandler) ProxyWithTransform(c *fiber.Ctx, targetURL string, path s
 
 // Example transformer for adding metadata to template responses
 // (enhanceTemplateResponse removed — unused)
-
