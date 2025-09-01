@@ -112,7 +112,7 @@ func (h *Handler) AddProductImage(c *fiber.Ctx) error {
 	// Fetch shop for subdomain
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Image added, but failed to fetch shop for auto-publish", nil)
 	}
 
@@ -124,7 +124,7 @@ func (h *Handler) AddProductImage(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
-			h.Logger.Warn("auto-publish shop data failed",
+			zap.L().Warn("auto-publish shop data failed",
 				zap.Int64("shop_id", shopID),
 				zap.Error(err))
 		}
@@ -278,7 +278,7 @@ func (h *Handler) DeleteProductImage(c *fiber.Ctx) error {
 	// Fetch shop for subdomain
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Image deleted, but failed to fetch shop for auto-publish", nil)
 	}
 
@@ -290,7 +290,7 @@ func (h *Handler) DeleteProductImage(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
-			h.Logger.Warn("auto-publish shop data failed",
+			zap.L().Warn("auto-publish shop data failed",
 				zap.Int64("shop_id", shopID),
 				zap.Error(err))
 		}

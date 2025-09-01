@@ -508,14 +508,14 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 
 	var shop models.ShopUpdateParams
 	if err := c.BodyParser(&shop); err != nil {
-		h.Logger.Warn("invalid request body", zap.Error(err))
+		zap.L().Warn("UpdateShop: invalid request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&shop); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
-		h.Logger.Warn("validation failed", zap.String("errors", errMsgs))
+		zap.L().Warn("UpdateShop: validation failed", zap.String("errors", errMsgs))
 		return &fiber.Error{Code: fiber.ErrBadRequest.Code, Message: errMsgs}
 	}
 
@@ -542,7 +542,7 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		h.Logger.Error("failed to update shop",
+		zap.L().Error("UpdateShop: failed to update shop",
 			zap.Int64("shop_id", shopID),
 			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop", nil)
@@ -578,7 +578,7 @@ func (h *Handler) UpdateShop(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "shop"); err != nil {
-			h.Logger.Warn("auto-publish failed",
+			zap.L().Warn("auto-publish failed",
 				zap.Int64("shop_id", shopID),
 				zap.Error(err))
 		}
@@ -615,7 +615,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		h.Logger.Error("failed to get shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Error("UpdateShopImages: failed to get shop", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to verify shop", nil)
 	}
 
@@ -670,7 +670,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 		return nil
 	})
 	if err != nil {
-		h.Logger.Error("failed to update shop images", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Error("UpdateShopImages: failed to update shop images", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update shop images", nil)
 	}
 
@@ -693,7 +693,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "shop"); err != nil {
-			h.Logger.Warn("auto-publish failed",
+			zap.L().Warn("auto-publish failed",
 				zap.Int64("shop_id", shopID),
 				zap.Error(err))
 		}
