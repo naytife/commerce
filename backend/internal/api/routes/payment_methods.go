@@ -9,7 +9,7 @@ import (
 )
 
 func PaymentMethodsRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	// Payment methods endpoints
 	app.Get("/shops/:shop_id/payment-methods", handler.GetShopPaymentMethods)

@@ -10,7 +10,7 @@ import (
 )
 
 func CheckoutRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client, paymentProcessorFactory *services.PaymentProcessorFactory) {
-	handler := handlers.NewHandlerWithPaymentFactory(repo, logger, retryClient, paymentProcessorFactory)
+	handler := handlers.NewHandlerWithPaymentFactory(repo, retryClient, paymentProcessorFactory)
 
 	// Checkout endpoints
 	app.Post("/shops/:shop_id/checkout", handler.InitiateCheckout)

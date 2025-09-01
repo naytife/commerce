@@ -9,7 +9,7 @@ import (
 )
 
 func InventoryRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	// Inventory management endpoints
 	app.Get("/shops/:shop_id/inventory", handler.GetInventoryReport) // General inventory endpoint

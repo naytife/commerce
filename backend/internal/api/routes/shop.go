@@ -10,8 +10,8 @@ import (
 )
 
 func ShopRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	storeDeployerClient := services.NewStoreDeployerClient(retryClient, logger)
-	handler := handlers.NewHandlerWithStoreDeployerClient(repo, logger, retryClient, storeDeployerClient)
+	storeDeployerClient := services.NewStoreDeployerClient(retryClient)
+	handler := handlers.NewHandlerWithStoreDeployerClient(repo, retryClient, storeDeployerClient)
 
 	app.Post("/shops", handler.CreateShop)
 	app.Get("/shops", handler.GetShops)

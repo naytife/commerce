@@ -9,7 +9,7 @@ import (
 )
 
 func AttributeRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	app.Post("/shops/:shop_id/product-types/:product_type_id/attributes", handler.CreateAttribute)
 	app.Get("/shops/:shop_id/product-types/:product_type_id/attributes", handler.GetAttributes)

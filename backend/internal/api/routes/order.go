@@ -9,7 +9,7 @@ import (
 )
 
 func OrderRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	// Order management endpoints
 	app.Post("/shops/:shop_id/orders", handler.CreateOrder)

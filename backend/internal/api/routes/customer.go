@@ -9,7 +9,7 @@ import (
 )
 
 func CustomerRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	// Customer management endpoints
 	app.Get("/shops/:shop_id/customers", handler.GetCustomers)

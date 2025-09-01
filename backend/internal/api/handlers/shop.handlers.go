@@ -605,7 +605,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
-		h.Logger.Warn("invalid shop id", zap.String("shop_id", shopIDStr), zap.Error(err))
+		zap.L().Warn("UpdateShopImages: invalid shop id", zap.String("shop_id", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
@@ -622,7 +622,7 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	// Parse body
 	var imageParams models.ShopImagesUpdateParams
 	if err := c.BodyParser(&imageParams); err != nil {
-		h.Logger.Warn("invalid request body", zap.Error(err))
+		zap.L().Warn("UpdateShopImages: invalid request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 

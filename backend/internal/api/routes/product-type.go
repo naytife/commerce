@@ -9,7 +9,7 @@ import (
 )
 
 func ProductTypeRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 
 	// Predefined product type templates (public endpoints)
 	app.Get("/predefined-product-types", handler.GetPredefinedProductTypes)

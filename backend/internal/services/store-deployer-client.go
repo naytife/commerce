@@ -18,10 +18,9 @@ import (
 type StoreDeployerClient struct {
 	BaseURL    string
 	HTTPClient *retryablehttp.Client
-	Logger     *zap.Logger
 }
 
-func NewStoreDeployerClient(client *retryablehttp.Client, logger *zap.Logger) *StoreDeployerClient {
+func NewStoreDeployerClient(client *retryablehttp.Client) *StoreDeployerClient {
 	baseURL := os.Getenv("STORE_DEPLOYER_URL")
 	if baseURL == "" {
 		baseURL = "http://store-deployer:9003"
@@ -29,7 +28,6 @@ func NewStoreDeployerClient(client *retryablehttp.Client, logger *zap.Logger) *S
 	return &StoreDeployerClient{
 		BaseURL:    baseURL,
 		HTTPClient: client,
-		Logger:     logger,
 	}
 }
 
@@ -68,7 +66,7 @@ func (s *StoreDeployerClient) UpdateData(ctx context.Context, subdomain string, 
 		return fmt.Errorf("store-deployer returned status %d", resp.StatusCode)
 	}
 
-	s.Logger.Info("store-deployer update succeeded",
+	zap.L().Info("store-deployer update succeeded",
 		zap.Int64("shop_id", shopID),
 		zap.String("subdomain", subdomain),
 		zap.String("data_type", dataType))

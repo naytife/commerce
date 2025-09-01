@@ -9,7 +9,7 @@ import (
 )
 
 func AuthRouter(app fiber.Router, repo db.Repository, logger *zap.Logger, retryClient *retryablehttp.Client) {
-	handler := handlers.NewHandler(repo, logger, retryClient)
+	handler := handlers.NewHandler(repo, retryClient)
 	app.Post("/auth/register", handler.UpsertUser)
 	app.Post("/auth/register-customer", handler.UpsertCustomer)
 }
