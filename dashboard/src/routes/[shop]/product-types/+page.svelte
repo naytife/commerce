@@ -54,7 +54,7 @@
 	</div>
 
 	<!-- Enhanced Stats Cards -->
-	<div class="grid gap-6 md:grid-cols-3">
+	<!-- <div class="grid gap-6 md:grid-cols-3">
 		<div class="card-interactive text-center">
 			<div
 				class="from-primary to-accent shadow-brand mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br"
@@ -88,7 +88,7 @@
 			</div>
 			<div class="text-muted-foreground text-sm">Digital</div>
 		</div>
-	</div>
+	</div> -->
 
 	<!-- Enhanced Main Content -->
 	<Card.Root

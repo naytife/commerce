@@ -3,7 +3,7 @@ name: Build & Push Docker Images + Bump GitOps
 on:
   workflow_dispatch:
   push:
-    branches: [ "dev" ]
+    branches: [ "stage" ]
     paths:
       - "backend/**"
       - "auth/**"

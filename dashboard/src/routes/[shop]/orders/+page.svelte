@@ -199,43 +199,43 @@
 	</div>
 
 	<!-- Enhanced Summary Cards -->
-	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+	<!-- <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4"> -->
 		<!-- Total Orders -->
-		<div class="card-interactive text-center">
+		<!-- <div class="card-interactive text-center">
 			<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<ShoppingCart class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{orderStats.total}</div>
 			<div class="text-sm text-muted-foreground">Total Orders</div>
-		</div>
+		</div> -->
 		
 		<!-- Pending Orders -->
-		<div class="card-interactive text-center">
+		<!-- <div class="card-interactive text-center">
 			<div class="w-12 h-12 bg-gradient-to-br from-warning to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<Filter class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{orderStats.pending}</div>
 			<div class="text-sm text-muted-foreground">Pending Orders</div>
-		</div>
+		</div> -->
 		
 		<!-- Completed Orders -->
-		<div class="card-interactive text-center">
+		<!-- <div class="card-interactive text-center">
 			<div class="w-12 h-12 bg-gradient-to-br from-success to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<Eye class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{orderStats.completed}</div>
 			<div class="text-sm text-muted-foreground">Completed Orders</div>
-		</div>
+		</div> -->
 		
 		<!-- Total Revenue -->
-		<div class="card-interactive text-center">
+		<!-- <div class="card-interactive text-center">
 			<div class="w-12 h-12 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<ArrowUpDown class="w-6 h-6 text-white" />
 			</div>
 			<div class="text-2xl font-bold text-foreground mb-1">{formatCurrency(orderStats.totalRevenue)}</div>
 			<div class="text-sm text-muted-foreground">Total Revenue</div>
-		</div>
-	</div>
+		</div> -->
+	<!-- </div> -->
 
 	<!-- Orders Management -->
 	<div class="card-elevated">

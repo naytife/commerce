@@ -256,7 +256,7 @@
 	</div>
 
 	<!-- Enhanced Stats Cards -->
-	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+	<!-- <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 		<div class="card-interactive text-center">
 			<div class="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-brand">
 				<Users class="w-6 h-6 text-white" />
@@ -292,7 +292,7 @@
 			</div>
 			<div class="text-sm text-muted-foreground">Avg. Orders</div>
 		</div>
-	</div>
+	</div> -->
 
 	<!-- Customers Management -->
 	<div class="card-elevated">

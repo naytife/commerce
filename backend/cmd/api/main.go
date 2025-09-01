@@ -195,7 +195,6 @@ func main() {
 	routes.InventoryRouter(api, repo, logger, retryClient)
 	routes.AnalyticsRouter(api, repo)
 	routes.TemplateRouter(api, repo)
-	// routes.PublishRouter(api, repo, redisClient)
 	routes.WebhookRouter(v1, repo, paymentProcessorFactory)
 
 	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))

@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/observability"
+	"go.uber.org/zap"
 )
 
 // AddProductImage adds a new image to a product
@@ -101,6 +105,27 @@ func (h *Handler) AddProductImage(c *fiber.Ctx) error {
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to add product image", nil)
 	}
+
+	// Fetch shop for subdomain
+	shop, err := h.Repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Image added, but failed to fetch shop for auto-publish", nil)
+	}
+
+	// Auto-publish asynchronously via StoreDeployerClient
+	go func(shopID int64, subdomain string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "autoPublishProductImages", "store-deployer", "POST", "update-data")
+		defer finish(0, nil)
+
+		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
+			h.Logger.Warn("auto-publish shop data failed",
+				zap.Int64("shop_id", shopID),
+				zap.Error(err))
+		}
+	}(shopID, shop.Subdomain)
 
 	// Return success response
 	response := models.ProductImageResponse{
@@ -242,6 +267,27 @@ func (h *Handler) DeleteProductImage(c *fiber.Ctx) error {
 	if err != nil {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete product image", nil)
 	}
+
+	// Fetch shop for subdomain
+	shop, err := h.Repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Image deleted, but failed to fetch shop for auto-publish", nil)
+	}
+
+	// Auto-publish asynchronously via StoreDeployerClient
+	go func(shopID int64, subdomain string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "autoPublishProductImages", "store-deployer", "POST", "update-data")
+		defer finish(0, nil)
+
+		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
+			h.Logger.Warn("auto-publish shop data failed",
+				zap.Int64("shop_id", shopID),
+				zap.Error(err))
+		}
+	}(shopID, shop.Subdomain)
 
 	// Return success response
 	return api.SuccessResponse(c, fiber.StatusOK, nil, "Image deleted successfully")
