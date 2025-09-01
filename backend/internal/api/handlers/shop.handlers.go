@@ -48,14 +48,14 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	// Parse input
 	var shop models.ShopCreateParams
 	if err := c.BodyParser(&shop); err != nil {
-		h.Logger.Error("failed to parse request body", zap.Error(err))
+		zap.L().Error("CreateShop: failed to parse request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
 	// Validate user
 	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
-		h.Logger.Warn("failed to get user profile", zap.String("user_sub", userSub), zap.Error(err))
+		zap.L().Warn("CreateShop: failed to get user profile", zap.String("user_sub", userSub), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
 
@@ -86,12 +86,10 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 	objDB, err := h.Repository.CreateShop(c.Context(), param)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == errors.UniqueViolation {
-			h.Logger.Info("shop already exists",
-				zap.String("subdomain", shop.Subdomain),
-				zap.String("user_id", user.UserID.String()))
+			zap.L().Info("CreateShop: shop already exists", zap.String("subdomain", shop.Subdomain), zap.String("user_id", user.UserID.String()))
 			return api.ErrorResponse(c, fiber.StatusConflict, "Shop already exists", nil)
 		}
-		h.Logger.Error("failed to create shop", zap.Error(err))
+		zap.L().Error("CreateShop: failed to create shop", zap.Error(err), zap.String("subdomain", shop.Subdomain))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create shop", nil)
 	}
 
@@ -137,7 +135,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 			StartedAt:       startedAt,
 		})
 		if derr != nil {
-			h.Logger.Error("failed to create deployment record",
+			zap.L().Error("autoDeployNewShop: failed to create deployment record",
 				zap.Int64("shop_id", shopID),
 				zap.String("subdomain", subdomain),
 				zap.String("template", templateName),
@@ -154,7 +152,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 				Message:      &errMsg,
 			})
 
-			h.Logger.Warn("auto-deploy failed",
+			zap.L().Warn("autoDeployNewShop: auto-deploy failed",
 				zap.Int64("shop_id", shopID),
 				zap.String("subdomain", subdomain),
 				zap.String("template", templateName),
@@ -171,13 +169,13 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		// 	Message:      nil,
 		// })
 
-		h.Logger.Info("auto-deployment triggered",
+		zap.L().Info("autoDeployNewShop: auto-deployment triggered",
 			zap.Int64("shop_id", shopID),
 			zap.String("subdomain", subdomain),
 			zap.String("template", templateName))
 	}(objDB.ShopID, objDB.Subdomain, shop.Template)
 
-	h.Logger.Info("shop created successfully",
+	zap.L().Info("CreateShop: shop created successfully",
 		zap.Int64("shop_id", objDB.ShopID),
 		zap.String("subdomain", objDB.Subdomain),
 		zap.String("owner_id", user.UserID.String()))
@@ -202,10 +200,12 @@ func (h *Handler) GetShops(c *fiber.Ctx) error {
 	var err error
 	user, err = h.Repository.GetUserBySub(c.Context(), &userSub)
 	if err != nil {
+		zap.L().Warn("GetShops: failed to get user profile", zap.String("user_sub", userSub), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusUnauthorized, "Failed to get profile", nil)
 	}
 	objsDB, err := h.Repository.GetShopsByOwner(c.Context(), user.UserID)
 	if err != nil {
+		zap.L().Error("GetShops: failed to get shops for owner", zap.Error(err), zap.String("user_id", user.UserID.String()))
 		api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get shops", nil)
 	}
 	var shops []models.Shop
@@ -276,7 +276,7 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		h.Logger.Error("failed to retrieve shop before deletion",
+		zap.L().Error("DeleteShop: failed to retrieve shop before deletion",
 			zap.Int64("shop_id", shopIDInt),
 			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve shop", nil)
@@ -290,7 +290,7 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.Cleanup(ctx, subdomain, shopID); err != nil {
-			h.Logger.Warn("failed to cleanup store files",
+			zap.L().Warn("DeleteShop: failed to cleanup store files",
 				zap.Int64("shop_id", shopID),
 				zap.String("subdomain", subdomain),
 				zap.Error(err))
@@ -303,7 +303,7 @@ func (h *Handler) DeleteShop(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		h.Logger.Error("failed to delete shop",
+		zap.L().Error("DeleteShop: failed to delete shop",
 			zap.Int64("shop_id", shopIDInt),
 			zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to delete shop", nil)
@@ -329,9 +329,11 @@ func (h *Handler) GetShop(c *fiber.Ctx) error {
 	objDB, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("GetShop: shop not found", zap.Int64("shop_id", shopID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		zap.L().Error("GetShop: failed to fetch shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch shop", nil)
 	}
 	resp := models.Shop{
 		ID:                  objDB.ShopID,

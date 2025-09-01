@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	ic "github.com/petrejonn/naytife/internal/httpclient"
+	"go.uber.org/zap"
 )
 
 type ProxyHandler struct {
@@ -57,6 +59,7 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 	ctx := c.Context()
 	req, err := http.NewRequestWithContext(ctx, string(c.Method()), fullURL, reqBody)
 	if err != nil {
+		zap.L().Error("proxyRequest: failed to create http request", zap.String("url", fullURL), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create proxy request", nil)
 	}
 
@@ -96,6 +99,7 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 		resp, err = h.HttpClient.Do(req)
 	}
 	if err != nil {
+		zap.L().Error("proxyRequest: failed to perform http request", zap.String("url", fullURL), zap.String("method", req.Method), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadGateway, "Failed to reach service", nil)
 	}
 	defer resp.Body.Close()
@@ -109,6 +113,7 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		zap.L().Error("proxyRequest: failed to read response body", zap.String("url", fullURL), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to read service response", nil)
 	}
 
@@ -255,6 +260,7 @@ func (h *ProxyHandler) ProxyDeployStore(c *fiber.Ctx) error {
 	// Validate shop ownership before proxying
 	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)
 	if err != nil {
+		zap.L().Warn("ProxyDeployStore: invalid shop id param", zap.String("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
@@ -289,7 +295,12 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 	// Get shop details to extract subdomain for the proxy call
 	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
 	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		if err == pgx.ErrNoRows {
+			zap.L().Warn("ProxyDeployStore: shop not found", zap.Int64("shop_id", shopIDInt))
+			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+		}
+		zap.L().Error("ProxyDeployStore: failed to fetch shop", zap.Int64("shop_id", shopIDInt), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch shop", nil)
 	}
 
 	path := fmt.Sprintf("/redeploy/%s", shop.Subdomain)

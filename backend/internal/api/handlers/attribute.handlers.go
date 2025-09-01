@@ -12,6 +12,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+	"go.uber.org/zap"
 )
 
 // CreateAttribute Create a new attribute
@@ -115,6 +116,7 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("CreateAttribute: failed to create attribute", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Attribute already exists", nil)
@@ -175,6 +177,7 @@ func (h *Handler) GetAttributes(c *fiber.Ctx) error {
 
 	objsDB, err := h.Repository.GetAttributes(c.Context(), params)
 	if err != nil {
+		zap.L().Error("GetAttributes: failed to fetch attributes", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attributes", nil)
 	}
 
@@ -229,6 +232,7 @@ func (h *Handler) GetAttribute(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute not found", nil)
 		}
+		zap.L().Error("GetAttribute: failed to fetch attribute", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("attribute_id", attributeID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch attribute", nil)
 	}
 
@@ -365,6 +369,7 @@ func (h *Handler) UpdateAttribute(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("UpdateAttribute: failed to update attribute", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("attribute_id", attributeID))
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Attribute already exists", nil)
@@ -423,6 +428,7 @@ func (h *Handler) DeleteAttribute(c *fiber.Ctx) error {
 		if err == pgx.ErrNoRows {
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Attribute not found", nil)
 		}
+		zap.L().Error("DeleteAttribute: failed to delete attribute", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("attribute_id", attributeID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete attribute", nil)
 	}
 

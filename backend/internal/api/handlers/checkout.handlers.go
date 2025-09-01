@@ -10,6 +10,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // InitiateCheckout initiates the checkout process
@@ -28,11 +29,13 @@ import (
 func (h *Handler) InitiateCheckout(c *fiber.Ctx) error {
 	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
 	if err != nil {
+		zap.L().Warn("InitiateCheckout: invalid shop id", zap.String("param", c.Params("shop_id")))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
 	var req models.CheckoutRequest
 	if err := c.BodyParser(&req); err != nil {
+		zap.L().Warn("InitiateCheckout: failed to parse body", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
@@ -49,12 +52,14 @@ func (h *Handler) InitiateCheckout(c *fiber.Ctx) error {
 	// Verify shop exists and get payment methods
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("InitiateCheckout: shop not found", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
 	// Get available payment methods for the shop
 	paymentMethods, err := h.Repository.GetShopPaymentMethods(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("InitiateCheckout: failed to get payment methods", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get payment methods", nil)
 	}
 

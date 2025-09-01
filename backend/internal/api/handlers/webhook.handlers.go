@@ -3,13 +3,14 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/services"
+	"go.uber.org/zap"
 )
 
 // WebhookHandler handles webhook endpoints for all payment providers
@@ -86,6 +87,7 @@ func (h *WebhookHandler) FlutterwaveWebhook(c *fiber.Ctx) error {
 func (h *WebhookHandler) handleWebhook(c *fiber.Ctx, provider string) error {
 	shopID, err := strconv.ParseInt(c.Params("shop_id"), 10, 64)
 	if err != nil {
+		zap.L().Warn("handleWebhook: invalid shop id param", zap.String("shop_id_param", c.Params("shop_id")), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid shop ID",
@@ -96,17 +98,26 @@ func (h *WebhookHandler) handleWebhook(c *fiber.Ctx, provider string) error {
 	// Verify shop exists
 	_, err = h.repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{
+		if err == pgx.ErrNoRows {
+			zap.L().Warn("handleWebhook: shop not found", zap.Int64("shop_id", shopID))
+			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{
+				Status:  "error",
+				Message: "Shop not found",
+				Code:    fiber.StatusNotFound,
+			})
+		}
+		zap.L().Error("handleWebhook: failed to fetch shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Status:  "error",
-			Message: "Shop not found",
-			Code:    fiber.StatusNotFound,
+			Message: "Failed to fetch shop",
+			Code:    fiber.StatusInternalServerError,
 		})
 	}
 
 	// Get the appropriate payment processor
 	processor := h.paymentProcessorFactory.GetProcessor(provider)
 	if processor == nil {
-		log.Printf("Unsupported payment provider: %s", provider)
+		zap.L().Warn("handleWebhook: unsupported payment provider", zap.String("provider", provider))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Unsupported payment provider: %s", provider),
@@ -128,7 +139,7 @@ func (h *WebhookHandler) handleWebhook(c *fiber.Ctx, provider string) error {
 	// Process webhook with the appropriate processor
 	webhookPayload, err := processor.HandleWebhook(c.Context(), payload, signature)
 	if err != nil {
-		log.Printf("Failed to process %s webhook for shop %d: %v", provider, shopID, err)
+		zap.L().Error("handleWebhook: failed to process provider webhook", zap.String("provider", provider), zap.Int64("shop_id", shopID), zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("Failed to process webhook: %v", err),
@@ -139,13 +150,16 @@ func (h *WebhookHandler) handleWebhook(c *fiber.Ctx, provider string) error {
 	// Process the webhook payload and update payment/order status
 	err = h.processWebhookPayload(c.Context(), shopID, webhookPayload)
 	if err != nil {
-		log.Printf("Failed to process webhook payload for shop %d: %v", shopID, err)
+		zap.L().Error("handleWebhook: failed to process webhook payload", zap.Int64("shop_id", shopID), zap.Error(err))
 		// Still return 200 to acknowledge receipt to prevent retries
 		// but log the error for investigation
 	}
 
-	log.Printf("Successfully processed %s webhook for shop %d, event: %s, payment: %s",
-		provider, shopID, webhookPayload.EventType, webhookPayload.PaymentID)
+	zap.L().Info("handleWebhook: webhook processed",
+		zap.String("provider", provider),
+		zap.Int64("shop_id", shopID),
+		zap.String("event", webhookPayload.EventType),
+		zap.String("payment_id", webhookPayload.PaymentID))
 
 	return c.JSON(map[string]string{
 		"status": "received",
@@ -154,8 +168,13 @@ func (h *WebhookHandler) handleWebhook(c *fiber.Ctx, provider string) error {
 
 // processWebhookPayload processes the webhook payload and updates the system state
 func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64, payload *models.PaymentWebhookPayload) error {
-	log.Printf("Processing webhook for shop %d: provider=%s, event=%s, payment_id=%s, transaction_id=%s, status=%s",
-		shopID, payload.Provider, payload.EventType, payload.PaymentID, payload.TransactionID, payload.Status)
+	zap.L().Info("processWebhookPayload: processing webhook",
+		zap.Int64("shop_id", shopID),
+		zap.String("provider", payload.Provider),
+		zap.String("event", payload.EventType),
+		zap.String("payment_id", payload.PaymentID),
+		zap.String("transaction_id", payload.TransactionID),
+		zap.String("status", payload.Status))
 
 	// Convert payment status to database enum
 	var paymentStatus db.PaymentStatusType
@@ -171,7 +190,7 @@ func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64
 	case "pending", "processing":
 		paymentStatus = db.PaymentStatusTypePending
 	default:
-		log.Printf("Unknown payment status '%s', treating as pending", payload.Status)
+		zap.L().Warn("processWebhookPayload: unknown payment status, treating as pending", zap.String("status", payload.Status))
 		paymentStatus = db.PaymentStatusTypePending
 	}
 
@@ -187,7 +206,7 @@ func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64
 
 		if err == nil {
 			// Order found by transaction ID, update it
-			log.Printf("Found order %d by transaction ID %s", order.OrderID, payload.TransactionID)
+			zap.L().Info("processWebhookPayload: found order by transaction id", zap.Int64("order_id", order.OrderID), zap.String("transaction_id", payload.TransactionID))
 
 			// Determine order status based on payment status
 			var orderStatus db.OrderStatusType
@@ -211,23 +230,25 @@ func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64
 			})
 
 			if err != nil {
-				log.Printf("Failed to update order status by transaction ID %s: %v", payload.TransactionID, err)
+				zap.L().Error("processWebhookPayload: failed to update order status by transaction id", zap.String("transaction_id", payload.TransactionID), zap.Error(err))
 				return fmt.Errorf("failed to update order status: %w", err)
 			}
 
-			log.Printf("Successfully updated order %d: status=%s, payment_status=%s",
-				updatedOrder.OrderID, updatedOrder.Status, updatedOrder.PaymentStatus)
+			zap.L().Info("processWebhookPayload: successfully updated order status",
+				zap.Int64("order_id", updatedOrder.OrderID),
+				zap.String("status", string(updatedOrder.Status)),
+				zap.String("payment_status", string(updatedOrder.PaymentStatus)))
 
 			return nil
 		} else {
-			log.Printf("No order found with transaction ID %s: %v", payload.TransactionID, err)
+			zap.L().Warn("processWebhookPayload: no order found with transaction id", zap.String("transaction_id", payload.TransactionID), zap.Error(err))
 		}
 	}
 
 	// If we have a PaymentID (like Stripe payment intent ID), try to find order by metadata
 	// This is for cases where the transaction ID might not be set yet or differs from PaymentID
 	if payload.PaymentID != "" {
-		log.Printf("Attempting to find order by payment ID %s in metadata", payload.PaymentID)
+		zap.L().Info("processWebhookPayload: attempting to find order by payment id in metadata", zap.String("payment_id", payload.PaymentID))
 
 		// In a more sophisticated implementation, you might:
 		// 1. Store payment intent IDs in order metadata
@@ -235,8 +256,8 @@ func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64
 		// 3. Use a mapping table for external payment IDs
 
 		// For now, log the webhook data for manual investigation
-		log.Printf("Webhook received for payment ID %s but no order found by transaction ID", payload.PaymentID)
-		log.Printf("Payment details: amount=%.2f %s, provider=%s", payload.Amount, payload.Currency, payload.Provider)
+		zap.L().Warn("processWebhookPayload: webhook received for payment id but no order found", zap.String("payment_id", payload.PaymentID))
+		zap.L().Info("processWebhookPayload: payment details", zap.Float64("amount", payload.Amount), zap.String("currency", payload.Currency), zap.String("provider", payload.Provider))
 
 		// Store webhook data for later processing or investigation
 		// In a production system, you might want to store unmatched webhooks in a separate table
@@ -248,8 +269,8 @@ func (h *WebhookHandler) processWebhookPayload(ctx context.Context, shopID int64
 	// 1. Test payments that don't correspond to real orders
 	// 2. Webhooks arriving before the order is created (rare but possible)
 	// 3. Payment intents created but not yet associated with an order
-	log.Printf("Webhook processed but no matching order found for payment %s / transaction %s",
-		payload.PaymentID, payload.TransactionID)
+	zap.L().Info("processWebhookPayload: webhook processed but no matching order found",
+		zap.String("payment_id", payload.PaymentID), zap.String("transaction_id", payload.TransactionID))
 
 	return nil
 }

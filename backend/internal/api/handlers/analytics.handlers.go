@@ -10,6 +10,7 @@ import (
 	"github.com/petrejonn/naytife/internal/db"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 type AnalyticsHandler struct {
@@ -113,6 +114,7 @@ func (h *AnalyticsHandler) GetSalesSummary(c *fiber.Ctx) error {
 	}
 	row, err := h.Repository.GetSalesSummary(c.Context(), params)
 	if err != nil {
+		zap.L().Error("GetSalesSummary: failed to fetch sales summary", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, 500, "Failed to fetch sales summary", nil)
 	}
 
@@ -123,12 +125,14 @@ func (h *AnalyticsHandler) GetSalesSummary(c *fiber.Ctx) error {
 	}
 	prevRow, err := h.Repository.GetSalesSummary(c.Context(), prevParams)
 	if err != nil {
+		zap.L().Error("GetSalesSummary: failed to fetch previous sales summary", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, 500, "Failed to fetch previous sales summary", nil)
 	}
 
 	// Customers count
 	customers, err := h.Repository.GetCustomersCount(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("GetSalesSummary: failed to fetch customers count", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, 500, "Failed to fetch customers count", nil)
 	}
 	prevCustomers := customers // For now, as a placeholder (ideally, count for previous period)

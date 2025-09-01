@@ -10,6 +10,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // UpsertCustomer creates or updates a customer
@@ -24,6 +25,7 @@ import (
 func (h *Handler) UpsertCustomer(c *fiber.Ctx) error {
 	var param models.RegisterCustomerParams
 	if err := c.BodyParser(&param); err != nil {
+		zap.L().Warn("UpsertCustomer: failed to parse request body", zap.Error(err))
 		return api.BusinessLogicErrorResponse(c, "Failed to parse request body")
 	}
 
@@ -42,6 +44,7 @@ func (h *Handler) UpsertCustomer(c *fiber.Ctx) error {
 		AuthProviderID: param.AuthProviderID,
 	})
 	if err != nil {
+		zap.L().Error("UpsertCustomer: failed to upsert customer", zap.Error(err), zap.Int64("shop_id", param.ShopID))
 		return api.SystemErrorResponse(c, err, "Failed to create or update customer")
 	}
 	resp := models.CustomerResponse{
@@ -78,6 +81,7 @@ func (h *Handler) GetCustomerByEmail(c *fiber.Ctx) error {
 		Subdomain: subdomain,
 	})
 	if err != nil {
+		zap.L().Error("GetCustomerByEmail: failed to fetch customer", zap.String("email", email), zap.String("subdomain", subdomain), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get customer", nil)
 	}
 
@@ -125,11 +129,13 @@ func (h *Handler) GetCustomers(c *fiber.Ctx) error {
 		Offset: int32(offset),
 	})
 	if err != nil {
+		zap.L().Error("GetCustomers: failed to fetch customers", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.SystemErrorResponse(c, err, "Failed to fetch customers")
 	}
 
 	totalCount, err := h.Repository.GetCustomersCount(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("GetCustomers: failed to get customer count", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.SystemErrorResponse(c, err, "Failed to get customer count")
 	}
 
@@ -194,6 +200,7 @@ func (h *Handler) SearchCustomers(c *fiber.Ctx) error {
 		Offset: int32(offset),
 	})
 	if err != nil {
+		zap.L().Error("SearchCustomers: failed to search customers", zap.Int64("shop_id", shopID), zap.String("query", query), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to search customers", nil)
 	}
 
@@ -257,8 +264,10 @@ func (h *Handler) GetCustomerById(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("GetCustomerById: customer not found", zap.String("customer_id", customerIDStr))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Customer not found", nil)
 		}
+		zap.L().Error("GetCustomerById: failed to fetch customer", zap.String("customer_id", customerIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch customer", nil)
 	}
 
@@ -324,8 +333,10 @@ func (h *Handler) UpdateCustomer(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("UpdateCustomer: customer not found", zap.String("customer_id", customerIDStr))
 			return api.NotFoundErrorResponse(c, "Customer")
 		}
+		zap.L().Error("UpdateCustomer: failed to update customer", zap.String("customer_id", customerIDStr), zap.Error(err))
 		return api.SystemErrorResponse(c, err, "Failed to update customer")
 	}
 
@@ -377,6 +388,7 @@ func (h *Handler) DeleteCustomer(c *fiber.Ctx) error {
 		ShopID:         shopID,
 	})
 	if err != nil {
+		zap.L().Error("DeleteCustomer: failed to delete customer", zap.String("customer_id", customerIDStr), zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete customer", nil)
 	}
 

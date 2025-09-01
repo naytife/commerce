@@ -78,10 +78,12 @@ func (h *Handler) AddProductImage(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("AddProductImage: failed to verify product", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to verify product", nil)
 	}
 
 	if !productExists {
+		zap.L().Warn("AddProductImage: product not found", zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Product not found", nil)
 	}
 
@@ -103,6 +105,7 @@ func (h *Handler) AddProductImage(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("AddProductImage: failed to add product image", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to add product image", nil)
 	}
 
@@ -182,10 +185,12 @@ func (h *Handler) GetProductImages(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("GetProductImages: failed to verify product", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to verify product", nil)
 	}
 
 	if !productExists {
+		zap.L().Warn("GetProductImages: product not found", zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Product not found", nil)
 	}
 
@@ -205,6 +210,7 @@ func (h *Handler) GetProductImages(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("GetProductImages: failed to get product images", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_id", productID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product images", nil)
 	}
 
@@ -265,6 +271,7 @@ func (h *Handler) DeleteProductImage(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
+		zap.L().Error("DeleteProductImage: failed to delete product image", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("image_id", imageID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete product image", nil)
 	}
 

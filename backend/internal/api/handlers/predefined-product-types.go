@@ -249,12 +249,4 @@ func (h *Handler) CreateProductTypeFromTemplate(c *fiber.Ctx) error {
 	return api.SuccessResponse(c, fiber.StatusCreated, response, "Product type created from template successfully")
 }
 
-// Helper function to convert attribute unit to string
-func getAttributeUnitString(unit db.NullAttributeUnit) *string {
-	if !unit.Valid {
-		return nil
-	}
-
-	unitStr := string(unit.AttributeUnit)
-	return &unitStr
-}
+// helper functions removed: attribute unit conversion moved/unused in this handler

@@ -8,6 +8,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // UpsertUser creates or updates a user
@@ -22,6 +23,7 @@ import (
 func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 	var param models.RegisterUserParams
 	if err := c.BodyParser(&param); err != nil {
+		zap.L().Warn("UpsertUser: failed to parse request body", zap.Error(err))
 		return api.BusinessLogicErrorResponse(c, "Failed to parse request body")
 	}
 
@@ -40,6 +42,11 @@ func (h *Handler) UpsertUser(c *fiber.Ctx) error {
 		VerifiedEmail:  param.VerifiedEmail,
 	})
 	if err != nil {
+		userSub := ""
+		if param.Email != nil {
+			userSub = *param.Email
+		}
+		zap.L().Error("UpsertUser: failed to upsert user", zap.Error(err), zap.String("user_sub", userSub))
 		return api.SystemErrorResponse(c, err, "Failed to create or update user")
 	}
 	resp := models.UserResponse{
@@ -68,10 +75,12 @@ func (h *Handler) GetMe(c *fiber.Ctx) error {
 	userIDStr, _ := c.Locals("user_id").(string)
 	objDB, err := h.Repository.GetUserBySubWithShops(c.Context(), &userIDStr)
 	if err != nil {
+		zap.L().Error("GetMe: failed to get user by sub", zap.String("user_sub", userIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user", nil)
 	}
 	var shops []models.UserShopResponse
 	if err := json.Unmarshal(objDB.Shops, &shops); err != nil {
+		zap.L().Error("GetMe: failed to unmarshal user shops", zap.String("user_sub", userIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user shops", nil)
 	}
 	resp := models.UserResponse{
@@ -103,8 +112,10 @@ func (h *Handler) GetUser(c *fiber.Ctx) error {
 	objDB, err := h.Repository.GetUser(c.Context(), &email)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("GetUser: user not found", zap.String("email", email))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "User not found", nil)
 		}
+		zap.L().Error("GetUser: failed to get user", zap.String("email", email), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get user", nil)
 	}
 	resp := models.UserResponse{

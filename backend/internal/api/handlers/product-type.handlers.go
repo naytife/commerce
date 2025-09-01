@@ -11,6 +11,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/db/errors"
+	"go.uber.org/zap"
 )
 
 // CreateProductType Creeate a new product type
@@ -33,12 +34,14 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 
 	var productType models.ProductTypeCreateParams
 	if err := c.BodyParser(&productType); err != nil {
+		zap.L().Warn("CreateProductType: failed to parse request body", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&productType); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
+		zap.L().Warn("CreateProductType: validation failed", zap.Int64("shop_id", shopID), zap.String("errors", errMsgs))
 		return &fiber.Error{
 			Code:    fiber.ErrBadRequest.Code,
 			Message: errMsgs,
@@ -66,10 +69,12 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 	objDB, err := h.Repository.CreateProductType(c.Context(), param)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
+			zap.L().Error("CreateProductType: database error", zap.Int64("shop_id", shopID), zap.Error(err))
 			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Product type already exists", nil)
 			}
 		}
+		zap.L().Error("CreateProductType: failed to create product type", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create product type", nil)
 	}
 
@@ -99,6 +104,7 @@ func (h *Handler) GetProductTypes(c *fiber.Ctx) error {
 
 	objsDB, err := h.Repository.GetProductTypes(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("GetProductTypes: failed to get product types", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to get product types", nil)
 	}
 
@@ -141,8 +147,10 @@ func (h *Handler) GetProductType(c *fiber.Ctx) error {
 	objDB, err := h.Repository.GetProductType(c.Context(), param)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("GetProductType: product type not found", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Product type not found", nil)
 		}
+		zap.L().Error("GetProductType: failed to fetch product type", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product type", nil)
 	}
 
@@ -204,13 +212,16 @@ func (h *Handler) UpdateProductType(c *fiber.Ctx) error {
 	objDB, err := h.Repository.UpdateProductType(c.Context(), param)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("UpdateProductType: product type not found", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Product type not found", nil)
 		}
 		if pgErr, ok := err.(*pgconn.PgError); ok {
+			zap.L().Error("UpdateProductType: database error", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID), zap.Error(err))
 			if pgErr.Code == errors.UniqueViolation {
 				return api.ErrorResponse(c, fiber.StatusConflict, "Product type already exists", nil)
 			}
 		}
+		zap.L().Error("UpdateProductType: failed to update product type", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update product type", nil)
 	}
 
@@ -250,8 +261,10 @@ func (h *Handler) DeleteProductType(c *fiber.Ctx) error {
 	objDB, err := h.Repository.DeleteProductType(c.Context(), param)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("DeleteProductType: product type not found", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Product type not found", nil)
 		}
+		zap.L().Error("DeleteProductType: failed to delete product type", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to delete product type", nil)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // GetOrders fetches orders for a shop
@@ -52,12 +53,14 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 		Offset: int32(offset),
 	})
 	if err != nil {
+		zap.L().Error("GetOrders: failed to fetch orders", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.SystemErrorResponse(c, err, "Failed to fetch orders")
 	}
 
 	// Get total count for pagination
 	total, err := h.Repository.CountOrders(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("GetOrders: failed to count orders", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.SystemErrorResponse(c, err, "Failed to count orders")
 	}
 
@@ -70,6 +73,7 @@ func (h *Handler) GetOrders(c *fiber.Ctx) error {
 			ShopID:  shopID,
 		})
 		if err != nil {
+			zap.L().Error("GetOrders: failed to fetch order items", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("order_id", order.OrderID))
 			return api.SystemErrorResponse(c, err, "Failed to fetch order items")
 		}
 
@@ -162,8 +166,10 @@ func (h *Handler) GetOrder(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("GetOrder: order not found", zap.Int64("shop_id", shopID), zap.Int64("order_id", orderID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Order not found", nil)
 		}
+		zap.L().Error("GetOrder: failed to fetch order", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("order_id", orderID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order", nil)
 	}
 
@@ -173,6 +179,7 @@ func (h *Handler) GetOrder(c *fiber.Ctx) error {
 		ShopID:  shopID,
 	})
 	if err != nil {
+		zap.L().Error("GetOrder: failed to fetch order items", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("order_id", order.OrderID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch order items", nil)
 	}
 
@@ -305,6 +312,7 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 		for _, item := range orderReq.Items {
 			productVariationID, err := strconv.ParseInt(item.ProductVariationID, 10, 64)
 			if err != nil {
+				zap.L().Error("CreateOrder: invalid product variation ID", zap.String("product_variation_id", item.ProductVariationID), zap.Int64("shop_id", shopID))
 				return fmt.Errorf("invalid product variation ID: %s", item.ProductVariationID)
 			}
 
@@ -318,6 +326,7 @@ func (h *Handler) CreateOrder(c *fiber.Ctx) error {
 
 			orderItem, err := q.CreateOrderItem(c.Context(), createItemParams)
 			if err != nil {
+				zap.L().Error("CreateOrder: failed to create order item", zap.Error(err), zap.String("product_variation_id", item.ProductVariationID), zap.Int64("shop_id", shopID))
 				return fmt.Errorf("failed to create order item: %w", err)
 			}
 			orderItems = append(orderItems, orderItem)

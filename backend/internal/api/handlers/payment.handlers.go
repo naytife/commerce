@@ -11,6 +11,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/services"
+	"go.uber.org/zap"
 )
 
 var validate = validator.New()
@@ -66,6 +67,7 @@ type CreateCheckoutSessionResponse struct {
 func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	var req CreateCheckoutSessionRequest
 	if err := c.BodyParser(&req); err != nil {
+		zap.L().Warn("CreateCheckoutSession: invalid request body", zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid request body",
@@ -88,6 +90,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 		ShopID:  req.ShopID,
 	})
 	if err != nil {
+		zap.L().Error("CreateCheckoutSession: order not found", zap.Error(err), zap.Int64("order_id", req.OrderID), zap.Int64("shop_id", req.ShopID))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Order not found",
@@ -117,6 +120,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	// Get payment method configuration for the shop
 	paymentMethods, err := h.repository.GetShopPaymentMethods(c.Context(), req.ShopID)
 	if err != nil {
+		zap.L().Error("CreateCheckoutSession: failed to get shop payment methods", zap.Error(err), zap.Int64("shop_id", req.ShopID))
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to get payment method configuration",
@@ -133,6 +137,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	}
 
 	if paymentMethodConfig == nil {
+		zap.L().Warn("CreateCheckoutSession: payment method not enabled for shop", zap.String("payment_method", req.PaymentMethodType), zap.Int64("shop_id", req.ShopID))
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Payment method not enabled for this shop",
@@ -143,6 +148,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	// Get payment processor
 	processor := h.paymentFactory.GetProcessor(req.PaymentMethodType)
 	if processor == nil {
+		zap.L().Error("CreateCheckoutSession: payment processor not available", zap.String("payment_method", req.PaymentMethodType), zap.Int64("shop_id", req.ShopID))
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Payment processor not available",
@@ -171,6 +177,7 @@ func (h *PaymentHandler) CreateCheckoutSession(c *fiber.Ctx) error {
 	// Create payment intent
 	paymentResp, err := processor.CreatePaymentIntent(c.Context(), req.ShopID, paymentReq)
 	if err != nil {
+		zap.L().Error("CreateCheckoutSession: failed to create payment intent", zap.Error(err), zap.Int64("shop_id", req.ShopID), zap.Int64("order_id", req.OrderID), zap.String("payment_method", req.PaymentMethodType))
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to create payment intent",

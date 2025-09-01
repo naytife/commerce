@@ -47,12 +47,14 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	// Parse request body
 	var productArg models.ProductCreateParams
 	if err := c.BodyParser(&productArg); err != nil {
+		zap.L().Warn("CreateProduct: failed to parse request body", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 	// Validate input
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&productArg); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
+		zap.L().Warn("CreateProduct: request validation failed", zap.Int64("shop_id", shopID), zap.String("errors", errMsgs))
 		return &fiber.Error{
 			Code:    fiber.ErrBadRequest.Code,
 			Message: errMsgs,
@@ -60,12 +62,14 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	}
 
 	if len(productArg.Variants) == 0 {
+		zap.L().Warn("CreateProduct: missing variants", zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "At least one product variant is required", nil)
 	}
 
 	for i, variant := range productArg.Variants {
 		if errs := validator.Validate(&variant); len(errs) > 0 {
 			errMsgs := models.FormatValidationErrors(errs)
+			zap.L().Warn("CreateProduct: invalid variant", zap.Int64("shop_id", shopID), zap.Int("position", i+1), zap.String("errors", errMsgs))
 			return api.ErrorResponse(
 				c,
 				fiber.StatusBadRequest,
@@ -75,6 +79,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		}
 
 		if !variant.Price.Valid || variant.Price.Int == nil || variant.Price.Int.Sign() <= 0 {
+			zap.L().Warn("CreateProduct: invalid variant price", zap.Int64("shop_id", shopID), zap.Int("position", i+1))
 			return api.ErrorResponse(
 				c,
 				fiber.StatusBadRequest,
@@ -102,8 +107,10 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 	productType, err := h.Repository.GetProductType(c.Context(), productTypeParam)
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			zap.L().Warn("CreateProduct: product type not found", zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Product type not found", nil)
 		}
+		zap.L().Error("CreateProduct: failed to fetch product type", zap.Error(err), zap.Int64("shop_id", shopID), zap.Int64("product_type_id", productTypeID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch product type", nil)
 	}
 
@@ -155,6 +162,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			})
 
 			if batchErr != nil {
+				zap.L().Error("CreateProduct: failed to batch upsert attribute values", zap.Error(batchErr), zap.Int64("shop_id", shopID), zap.Int64("product_id", createdProduct.ProductID))
 				return batchErr
 			}
 
@@ -240,6 +248,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
+			zap.L().Error("CreateProduct: database error during product creation", zap.Error(err), zap.Int64("shop_id", shopID))
 			if pgErr.Code == errors.UniqueViolation {
 				if pgErr.ConstraintName == "products_title_shop_id_key" {
 					return api.ErrorResponse(c, fiber.StatusConflict, "A product with this title already exists in your shop", nil)
@@ -254,6 +263,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			}
 			return api.ErrorResponse(c, fiber.StatusInternalServerError, fmt.Sprintf("Database error: %s", pgErr.Message), nil)
 		}
+		zap.L().Error("CreateProduct: failed to create product", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create product", nil)
 	}
 
@@ -269,7 +279,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Warn("CreateProduct: auto-publish - failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Product created, but failed to fetch shop for auto-publish", nil)
 	}
 	// Auto-publish asynchronously via StoreDeployerClient
@@ -280,9 +290,7 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
-			h.Logger.Warn("auto-publish shop data failed",
-				zap.Int64("shop_id", shopID),
-				zap.Error(err))
+			zap.L().Warn("CreateProduct: auto-publish - update failed", zap.Int64("shop_id", shopID), zap.Error(err))
 		}
 	}(shopID, shop.Subdomain)
 
@@ -706,13 +714,14 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		if err.Error() == "Product not found" {
 			statusCode = fiber.StatusNotFound
 		}
+		zap.L().Error("UpdateProduct: transaction failed", zap.Int64("shop_id", shopID), zap.Int64("product_id", productID), zap.Error(err))
 		return api.ErrorResponse(c, statusCode, err.Error(), nil)
 	}
 
 	// Fetch shop for subdomain
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Warn("UpdateProduct: auto-publish - failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Product updated, but failed to fetch shop for auto-publish", nil)
 	}
 	// Auto-publish asynchronously via StoreDeployerClient
@@ -723,9 +732,7 @@ func (h *Handler) UpdateProduct(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
-			h.Logger.Warn("auto-publish shop data failed",
-				zap.Int64("shop_id", shopID),
-				zap.Error(err))
+			zap.L().Warn("UpdateProduct: auto-publish - update failed", zap.Int64("shop_id", shopID), zap.Error(err))
 		}
 	}(shopID, shop.Subdomain)
 
@@ -766,7 +773,7 @@ func (h *Handler) DeleteProduct(c *fiber.Ctx) error {
 	// Fetch shop for subdomain
 	shop, err := h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
-		h.Logger.Warn("Auto-publish: failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
+		zap.L().Warn("DeleteProduct: auto-publish - failed to get shop for auto-publish", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Product deleted, but failed to fetch shop for auto-publish", nil)
 	}
 	// Auto-publish asynchronously via StoreDeployerClient
@@ -777,9 +784,7 @@ func (h *Handler) DeleteProduct(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		if err := h.StoreDeployerClient.UpdateData(ctx, subdomain, shopID, "products"); err != nil {
-			h.Logger.Warn("auto-publish shop data failed",
-				zap.Int64("shop_id", shopID),
-				zap.Error(err))
+			zap.L().Warn("DeleteProduct: auto-publish - update failed", zap.Int64("shop_id", shopID), zap.Error(err))
 		}
 	}(shopID, shop.Subdomain)
 

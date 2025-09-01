@@ -8,6 +8,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // GetLowStockVariants fetches product variants with low stock
@@ -26,6 +27,7 @@ func (h *Handler) GetLowStockVariants(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("GetLowStockVariants: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
@@ -37,6 +39,7 @@ func (h *Handler) GetLowStockVariants(c *fiber.Ctx) error {
 		AvailableQuantity: threshold,
 	})
 	if err != nil {
+		zap.L().Error("GetLowStockVariants: failed to fetch low stock variants", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch low stock variants", nil)
 	}
 
@@ -77,24 +80,28 @@ func (h *Handler) UpdateVariantStock(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("UpdateVariantStock: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
 	variantIDStr := c.Params("variant_id")
 	variantID, err := strconv.ParseInt(variantIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("UpdateVariantStock: invalid variant id param", zap.String("variant_id_param", variantIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid variant ID", nil)
 	}
 
 	var param models.UpdateStockParams
 	err = c.BodyParser(&param)
 	if err != nil {
+		zap.L().Warn("UpdateVariantStock: failed to parse request body", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
 	}
 
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&param); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)
+		zap.L().Warn("UpdateVariantStock: validation failed", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.String("errors", errMsgs))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, errMsgs, nil)
 	}
 
@@ -104,6 +111,7 @@ func (h *Handler) UpdateVariantStock(c *fiber.Ctx) error {
 		ShopID:             shopID,
 	})
 	if err != nil {
+		zap.L().Warn("UpdateVariantStock: product variant not found", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Product variant not found", nil)
 	}
 
@@ -117,6 +125,7 @@ func (h *Handler) UpdateVariantStock(c *fiber.Ctx) error {
 		AvailableQuantity:  int64(param.Quantity),
 	})
 	if err != nil {
+		zap.L().Error("UpdateVariantStock: failed to update variant stock", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update stock", nil)
 	}
 
@@ -138,7 +147,7 @@ func (h *Handler) UpdateVariantStock(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		// Log error but don't fail the request since stock was already updated
-		// In production, you might want to use a proper logger
+		zap.L().Warn("UpdateVariantStock: failed to create stock movement record", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 	}
 
 	response := models.VariantStockResponse{
@@ -169,18 +178,21 @@ func (h *Handler) AddVariantStock(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("AddVariantStock: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
 	variantIDStr := c.Params("variant_id")
 	variantID, err := strconv.ParseInt(variantIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("AddVariantStock: invalid variant id param", zap.String("variant_id_param", variantIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid variant ID", nil)
 	}
 
 	var param models.AddStockParams
 	err = c.BodyParser(&param)
 	if err != nil {
+		zap.L().Warn("AddVariantStock: failed to parse request body", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
 	}
 
@@ -196,6 +208,7 @@ func (h *Handler) AddVariantStock(c *fiber.Ctx) error {
 		AvailableQuantity:  int64(param.Quantity),
 	})
 	if err != nil {
+		zap.L().Error("AddVariantStock: failed to add stock", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to add stock", nil)
 	}
 
@@ -230,18 +243,21 @@ func (h *Handler) DeductVariantStock(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("DeductVariantStock: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
 	variantIDStr := c.Params("variant_id")
 	variantID, err := strconv.ParseInt(variantIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("DeductVariantStock: invalid variant id param", zap.String("variant_id_param", variantIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid variant ID", nil)
 	}
 
 	var param models.DeductStockParams
 	err = c.BodyParser(&param)
 	if err != nil {
+		zap.L().Warn("DeductVariantStock: failed to parse request body", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Failed to parse request body", nil)
 	}
 
@@ -257,6 +273,7 @@ func (h *Handler) DeductVariantStock(c *fiber.Ctx) error {
 		AvailableQuantity:  int64(param.Quantity),
 	})
 	if err != nil {
+		zap.L().Error("DeductVariantStock: failed to deduct stock", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to deduct stock", nil)
 	}
 
@@ -280,8 +297,7 @@ func (h *Handler) DeductVariantStock(c *fiber.Ctx) error {
 		Notes:              &param.Reason,
 	})
 	if err != nil {
-		// Log error but don't fail the request
-		// In production, you might want to use a proper logger
+		zap.L().Warn("DeductVariantStock: failed to create stock movement record", zap.Int64("shop_id", shopID), zap.Int64("variant_id", variantID), zap.Error(err))
 	}
 
 	response := models.VariantStockResponse{
@@ -308,6 +324,7 @@ func (h *Handler) GetInventoryReport(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("GetInventoryReport: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
@@ -316,6 +333,7 @@ func (h *Handler) GetInventoryReport(c *fiber.Ctx) error {
 		AvailableQuantity: 10, // Default threshold for low stock
 	})
 	if err != nil {
+		zap.L().Error("GetInventoryReport: failed to generate inventory report", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to generate inventory report", nil)
 	}
 
@@ -385,6 +403,7 @@ func (h *Handler) GetStockMovements(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id", "0")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
 	if err != nil {
+		zap.L().Warn("GetStockMovements: invalid shop id param", zap.String("shop_id_param", shopIDStr), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
 	}
 
@@ -394,6 +413,7 @@ func (h *Handler) GetStockMovements(c *fiber.Ctx) error {
 	if variantIDStr != "" {
 		_, err := strconv.ParseInt(variantIDStr, 10, 64)
 		if err != nil {
+			zap.L().Warn("GetStockMovements: invalid variant id param", zap.String("variant_id_param", variantIDStr), zap.Error(err))
 			return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid variant ID", nil)
 		}
 		// TODO: Add variant filtering to the query

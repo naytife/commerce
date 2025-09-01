@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/db"
+	"go.uber.org/zap"
 )
 
 // PaymentMethodsRequest represents the request for updating payment methods
@@ -43,12 +44,14 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 	// Verify shop exists
 	_, err = h.Repository.GetShop(c.Context(), shopID)
 	if err != nil {
+		zap.L().Warn("GetShopPaymentMethods: shop not found", zap.Int64("shop_id", shopID))
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
 	// Get payment methods
 	paymentMethods, err := h.Repository.GetShopPaymentMethods(c.Context(), shopID)
 	if err != nil {
+		zap.L().Error("GetShopPaymentMethods: failed to get payment methods", zap.Error(err), zap.Int64("shop_id", shopID))
 		return api.SystemErrorResponse(c, err, "Failed to get payment methods")
 	}
 
