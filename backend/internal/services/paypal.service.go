@@ -19,7 +19,7 @@ import (
 )
 
 type PayPalService struct {
-	repository db.Repository
+	repository  db.Repository
 	RetryClient *retryablehttp.Client
 }
 

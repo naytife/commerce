@@ -20,7 +20,7 @@ import (
 )
 
 type FlutterwaveService struct {
-	repository db.Repository
+	repository  db.Repository
 	RetryClient *retryablehttp.Client
 }
 

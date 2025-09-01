@@ -11,16 +11,16 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/observability"
 	"go.uber.org/zap"
 )
 
 type TemplateHandler struct {
-	repository db.Repository
+	repository  db.Repository
 	RetryClient *retryablehttp.Client
 }
 

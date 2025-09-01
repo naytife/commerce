@@ -10,11 +10,11 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"go.uber.org/zap"
 )
 
