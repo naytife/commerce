@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -358,8 +357,4 @@ func (h *PaymentHandler) GetPaymentStatus(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// Helper function to marshal JSON without error handling (for metadata)
-func mustMarshalJSON(v interface{}) string {
-	data, _ := json.Marshal(v)
-	return string(data)
-}
+

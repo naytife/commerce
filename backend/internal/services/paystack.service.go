@@ -113,11 +113,11 @@ func (p *PaystackService) GetPaystackConfig(ctx context.Context, shopID int64) (
 		MethodType: db.PaymentMethodTypePaystack,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Paystack config: %w", err)
+		return nil, fmt.Errorf("failed to get paystack config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
-		return nil, fmt.Errorf("Paystack is not enabled for this shop")
+		return nil, fmt.Errorf("paystack is not enabled for this shop")
 	}
 
 	var config PaystackConfig
@@ -151,7 +151,7 @@ func (p *PaystackService) makePaystackRequest(ctx context.Context, method, url s
 
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	ctx, finish := observability.StartSpan(ctx, "makePaystackRequest", "paystack", method, url)
+	_, finish := observability.StartSpan(ctx, "makePaystackRequest", "paystack", method, url)
 	defer finish(0, nil)
 	start := time.Now()
 	resp, err := ic.DefaultClient.Do(req)
@@ -262,9 +262,9 @@ func (p *PaystackService) ProcessPayment(ctx context.Context, shopID int64, req 
 	if resp.StatusCode != http.StatusOK {
 		var errorResp PaystackErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Paystack API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("paystack api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Paystack API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("paystack api error: status %d", resp.StatusCode)
 	}
 
 	var initResp PaystackInitializeResponse
@@ -348,9 +348,9 @@ func (p *PaystackService) CreatePaymentIntent(ctx context.Context, shopID int64,
 	if resp.StatusCode != http.StatusOK {
 		var errorResp PaystackErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Paystack API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("paystack api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Paystack API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("paystack api error: status %d", resp.StatusCode)
 	}
 
 	var initResp PaystackInitializeResponse
@@ -413,9 +413,9 @@ func (p *PaystackService) GetPaymentStatus(ctx context.Context, shopID int64, pa
 	if resp.StatusCode != http.StatusOK {
 		var errorResp PaystackErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Paystack API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("paystack api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Paystack API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("paystack api error: status %d", resp.StatusCode)
 	}
 
 	var verifyResp PaystackVerifyResponse
@@ -497,9 +497,9 @@ func (p *PaystackService) RefundPayment(ctx context.Context, shopID int64, payme
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var errorResp PaystackErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Paystack API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("paystack api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Paystack API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("paystack api error: status %d", resp.StatusCode)
 	}
 
 	var refundResp PaystackRefundResponse

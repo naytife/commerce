@@ -39,16 +39,16 @@ func (s *StripeService) GetStripeConfig(ctx context.Context, shopID int64) (*Str
 		MethodType: db.PaymentMethodTypeStripe,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Stripe config: %w", err)
+		return nil, fmt.Errorf("failed to get stripe config: %w", err)
 	}
 
 	if !paymentMethod.IsEnabled {
-		return nil, fmt.Errorf("Stripe is not enabled for this shop")
+		return nil, fmt.Errorf("stripe is not enabled for this shop")
 	}
 
 	var config StripeConfig
 	if err := json.Unmarshal(paymentMethod.Attributes, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse Stripe config: %w", err)
+		return nil, fmt.Errorf("failed to parse stripe config: %w", err)
 	}
 
 	return &config, nil

@@ -167,7 +167,7 @@ func (f *FlutterwaveService) GetFlutterwaveConfig(ctx context.Context, shopID in
 	}
 
 	if !paymentMethod.IsEnabled {
-		return nil, fmt.Errorf("Flutterwave is not enabled for this shop")
+		return nil, fmt.Errorf("flutterwave is not enabled for this shop")
 	}
 
 	var config FlutterwaveConfig
@@ -201,7 +201,7 @@ func (f *FlutterwaveService) makeFlutterwaveRequest(ctx context.Context, method,
 
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	ctx, finish := observability.StartSpan(ctx, "makeFlutterwaveRequest", "flutterwave", method, url)
+	_, finish := observability.StartSpan(ctx, "makeFlutterwaveRequest", "flutterwave", method, url)
 	defer finish(0, nil)
 	start := time.Now()
 	resp, err := ic.DefaultClient.Do(req)
@@ -317,9 +317,9 @@ func (f *FlutterwaveService) ProcessPayment(ctx context.Context, shopID int64, r
 	if resp.StatusCode != http.StatusOK {
 		var errorResp FlutterwaveErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Flutterwave API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("flutterwave api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Flutterwave API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("flutterwave api error: status %d", resp.StatusCode)
 	}
 
 	var paymentResp FlutterwavePaymentResponse
@@ -405,9 +405,9 @@ func (f *FlutterwaveService) CreatePaymentIntent(ctx context.Context, shopID int
 	if resp.StatusCode != http.StatusOK {
 		var errorResp FlutterwaveErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Flutterwave API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("flutterwave api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Flutterwave API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("flutterwave api error: status %d", resp.StatusCode)
 	}
 
 	var paymentResp FlutterwavePaymentResponse
@@ -470,9 +470,9 @@ func (f *FlutterwaveService) GetPaymentStatus(ctx context.Context, shopID int64,
 	if resp.StatusCode != http.StatusOK {
 		var errorResp FlutterwaveErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Flutterwave API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("flutterwave api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Flutterwave API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("flutterwave api error: status %d", resp.StatusCode)
 	}
 
 	var verifyResp FlutterwaveVerifyResponse
@@ -559,9 +559,9 @@ func (f *FlutterwaveService) RefundPayment(ctx context.Context, shopID int64, pa
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var errorResp FlutterwaveErrorResponse
 		if jsonErr := json.Unmarshal(respBody, &errorResp); jsonErr == nil {
-			return nil, fmt.Errorf("Flutterwave API error: %s", errorResp.Message)
+			return nil, fmt.Errorf("flutterwave api error: %s", errorResp.Message)
 		}
-		return nil, fmt.Errorf("Flutterwave API error: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("flutterwave api error: status %d", resp.StatusCode)
 	}
 
 	var refundResp FlutterwaveRefundResponse

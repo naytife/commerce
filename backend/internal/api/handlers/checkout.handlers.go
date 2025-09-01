@@ -257,24 +257,7 @@ func (h *Handler) processPaymentWithFactory(c *fiber.Ctx, shopID int64, shop db.
 // 	return api.SuccessResponse(c, fiber.StatusOK, *response, "Payment processed successfully")
 // }
 
-// processPayPalPayment handles PayPal payment processing (placeholder)
-func (h *Handler) processPayPalPayment(c *fiber.Ctx, shopID int64, shop db.Shop, req models.PaymentRequest) error {
-	// TODO: Implement PayPal payment processing using legacy approach
-	transactionID := fmt.Sprintf("txn_%d_%d", shopID, time.Now().Unix())
-	response := models.PaymentResponse{
-		OrderID:        1, // Mock order ID
-		PaymentID:      fmt.Sprintf("pay_%d", time.Now().Unix()),
-		Status:         "completed",
-		Amount:         100.0, // This should come from the checkout session
-		CurrencyCode:   shop.CurrencyCode,
-		PaymentMethod:  req.PaymentMethod,
-		TransactionID:  transactionID,
-		ProcessedAt:    time.Now().Format(time.RFC3339),
-		PaymentDetails: req.PaymentDetails,
-	}
 
-	return api.SuccessResponse(c, fiber.StatusOK, response, "Payment processed successfully")
-}
 
 // getPaymentMethodDisplayName returns a user-friendly display name for payment methods
 func getPaymentMethodDisplayName(methodType db.PaymentMethodType) string {

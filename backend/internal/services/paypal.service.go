@@ -130,7 +130,7 @@ func (p *PayPalService) GetAccessToken(ctx context.Context, config *PayPalConfig
 
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	ctx, finish := observability.StartSpan(ctx, "GetAccessToken", "paypal", "POST", req.URL.String())
+	_, finish := observability.StartSpan(ctx, "GetAccessToken", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
 	start := time.Now()
 	resp, err := ic.DefaultClient.Do(req)
@@ -141,7 +141,7 @@ func (p *PayPalService) GetAccessToken(ctx context.Context, config *PayPalConfig
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("PayPal API error: %s", string(body))
+		return nil, fmt.Errorf("paypal api error: %s", string(body))
 	}
 
 	var tokenResp PayPalAccessTokenResponse
@@ -477,7 +477,7 @@ func (p *PayPalService) createPayPalOrder(ctx context.Context, config *PayPalCon
 
 	observability.InjectTraceHeaders(ctx, req)
 	var finish func(int, error)
-	ctx, finish = observability.StartSpan(ctx, "createPayPalOrder", "paypal", "POST", req.URL.String())
+	_, finish = observability.StartSpan(ctx, "createPayPalOrder", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
 	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
@@ -487,7 +487,7 @@ func (p *PayPalService) createPayPalOrder(ctx context.Context, config *PayPalCon
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("PayPal API error: %s", string(body))
+		return nil, fmt.Errorf("paypal api error: %s", string(body))
 	}
 
 	var orderResp PayPalOrderResponse
@@ -511,7 +511,7 @@ func (p *PayPalService) capturePayPalOrder(ctx context.Context, config *PayPalCo
 
 	observability.InjectTraceHeaders(ctx, req)
 	var finish func(int, error)
-	ctx, finish = observability.StartSpan(ctx, "capturePayPalOrder", "paypal", "POST", req.URL.String())
+	_, finish = observability.StartSpan(ctx, "capturePayPalOrder", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
 	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
@@ -521,7 +521,7 @@ func (p *PayPalService) capturePayPalOrder(ctx context.Context, config *PayPalCo
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("PayPal API error: %s", string(body))
+		return nil, fmt.Errorf("paypal api error: %s", string(body))
 	}
 
 	var captureResp PayPalOrderResponse
@@ -544,7 +544,7 @@ func (p *PayPalService) getPayPalOrder(ctx context.Context, config *PayPalConfig
 
 	observability.InjectTraceHeaders(ctx, req)
 	var finish func(int, error)
-	ctx, finish = observability.StartSpan(ctx, "getPayPalOrder", "paypal", "GET", req.URL.String())
+	_, finish = observability.StartSpan(ctx, "getPayPalOrder", "paypal", "GET", req.URL.String())
 	defer func() { finish(0, nil) }()
 	resp, err := ic.DefaultClient.Do(req)
 	if err != nil {
@@ -554,7 +554,7 @@ func (p *PayPalService) getPayPalOrder(ctx context.Context, config *PayPalConfig
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("PayPal API error: %s", string(body))
+		return nil, fmt.Errorf("paypal api error: %s", string(body))
 	}
 
 	var orderResp PayPalOrderResponse

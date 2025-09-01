@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -597,17 +596,5 @@ func (h *ProxyHandler) ProxyWithTransform(c *fiber.Ctx, targetURL string, path s
 }
 
 // Example transformer for adding metadata to template responses
-func (h *ProxyHandler) enhanceTemplateResponse(data []byte) ([]byte, error) {
-	var response map[string]interface{}
-	if err := json.Unmarshal(data, &response); err != nil {
-		return data, nil // Return original if not JSON
-	}
+// (enhanceTemplateResponse removed — unused)
 
-	// Add backend metadata
-	response["_meta"] = map[string]interface{}{
-		"proxied_by": "naytife-backend",
-		"timestamp":  time.Now().UTC().Format(time.RFC3339),
-	}
-
-	return json.Marshal(response)
-}

@@ -9,6 +9,9 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/db"
 	"go.uber.org/zap"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // PaymentMethodsRequest represents the request for updating payment methods
@@ -96,7 +99,7 @@ func (h *Handler) GetShopPaymentMethods(c *fiber.Ctx) error {
 			}
 		}
 
-		methodName := strings.Title(string(pm.MethodType))
+		methodName := cases.Title(language.Und).String(string(pm.MethodType))
 		response[i] = map[string]interface{}{
 			"id":       string(pm.MethodType),
 			"name":     methodName,

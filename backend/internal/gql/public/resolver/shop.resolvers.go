@@ -10,12 +10,14 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/gql/public/generated"
 	"github.com/petrejonn/naytife/internal/gql/public/model"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Shop is the resolver for the shop field.
@@ -207,7 +209,7 @@ func (r *shopResolver) PaymentMethods(ctx context.Context, obj *model.Shop) ([]m
 		}
 
 		provider := string(pm.MethodType)
-		name := strings.Title(provider)
+		name := cases.Title(language.Und).String(provider)
 
 		var (
 			publishableKey, clientID, publicKey, publicKeyFlutterwave    *string
