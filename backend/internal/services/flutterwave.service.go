@@ -14,14 +14,14 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 
-	ic "github.com/petrejonn/naytife/internal/httpclient"
-
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/observability"
 	"go.uber.org/zap"
 )
 
 type FlutterwaveService struct {
 	repository db.Repository
+	RetryClient *retryablehttp.Client
 }
 
 type FlutterwaveConfig struct {
@@ -209,7 +209,12 @@ func (f *FlutterwaveService) makeFlutterwaveRequest(ctx context.Context, method,
 	_, finish := observability.StartSpan(ctx, "makeFlutterwaveRequest", "flutterwave", method, url)
 	defer finish(0, nil)
 	start := time.Now()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if f.RetryClient != nil {
+		resp, err = f.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		zap.L().Error("makeFlutterwaveRequest: request failed", zap.String("method", method), zap.String("url", url), zap.Error(err))
 		return nil, fmt.Errorf("failed to make request: %w", err)

@@ -2,14 +2,18 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
 )
 
-func TemplateRouter(app fiber.Router, repo db.Repository) {
+func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client) {
 	// Create both handlers - proxy for microservices, template for local logic
 	proxyHandler := handlers.NewProxyHandler(repo)
+	// attach retry client to proxy and template handlers
+	proxyHandler.RetryClient = retryClient
 	templateHandler := handlers.NewTemplateHandler(repo)
+	// if template handler needs retry client in future, attach similarly
 
 	// Template management endpoints (proxied to template-registry)
 	app.Get("/templates", proxyHandler.ProxyListTemplates)

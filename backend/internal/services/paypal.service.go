@@ -13,14 +13,14 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 
-	ic "github.com/petrejonn/naytife/internal/httpclient"
-
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/observability"
 	"go.uber.org/zap"
 )
 
 type PayPalService struct {
 	repository db.Repository
+	RetryClient *retryablehttp.Client
 }
 
 type PayPalConfig struct {
@@ -137,7 +137,12 @@ func (p *PayPalService) GetAccessToken(ctx context.Context, config *PayPalConfig
 	_, finish := observability.StartSpan(ctx, "GetAccessToken", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
 	start := time.Now()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if p.RetryClient != nil {
+		resp, err = p.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -483,7 +488,12 @@ func (p *PayPalService) createPayPalOrder(ctx context.Context, config *PayPalCon
 	var finish func(int, error)
 	_, finish = observability.StartSpan(ctx, "createPayPalOrder", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if p.RetryClient != nil {
+		resp, err = p.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create PayPal order: %w", err)
 	}
@@ -517,7 +527,12 @@ func (p *PayPalService) capturePayPalOrder(ctx context.Context, config *PayPalCo
 	var finish func(int, error)
 	_, finish = observability.StartSpan(ctx, "capturePayPalOrder", "paypal", "POST", req.URL.String())
 	defer func() { finish(0, nil) }()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if p.RetryClient != nil {
+		resp, err = p.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to capture PayPal order: %w", err)
 	}
@@ -550,7 +565,12 @@ func (p *PayPalService) getPayPalOrder(ctx context.Context, config *PayPalConfig
 	var finish func(int, error)
 	_, finish = observability.StartSpan(ctx, "getPayPalOrder", "paypal", "GET", req.URL.String())
 	defer func() { finish(0, nil) }()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if p.RetryClient != nil {
+		resp, err = p.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get PayPal order: %w", err)
 	}

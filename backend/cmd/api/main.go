@@ -84,6 +84,11 @@ func main() {
 	paystackService := services.NewPaystackService(repo)
 	flutterwaveService := services.NewFlutterwaveService(repo)
 
+	// Wire retry client into services that perform outbound HTTP calls
+	paypalService.RetryClient = retryClient
+	paystackService.RetryClient = retryClient
+	flutterwaveService.RetryClient = retryClient
+
 	// Initialize payment processor factory
 	paymentProcessorFactory := services.NewPaymentProcessorFactory(
 		stripeService,
@@ -194,7 +199,7 @@ func main() {
 	routes.CustomerRouter(api, repo, retryClient)
 	routes.InventoryRouter(api, repo, retryClient)
 	routes.AnalyticsRouter(api, repo)
-	routes.TemplateRouter(api, repo)
+	routes.TemplateRouter(api, repo, retryClient)
 	routes.WebhookRouter(v1, repo, paymentProcessorFactory)
 
 	app.Get("/graph", publicgraph.NewPlaygroundHandler("/query"))

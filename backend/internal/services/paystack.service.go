@@ -14,14 +14,14 @@ import (
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 
-	ic "github.com/petrejonn/naytife/internal/httpclient"
-
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/observability"
 	"go.uber.org/zap"
 )
 
 type PaystackService struct {
 	repository db.Repository
+	RetryClient *retryablehttp.Client
 }
 
 type PaystackConfig struct {
@@ -158,7 +158,12 @@ func (p *PaystackService) makePaystackRequest(ctx context.Context, method, url s
 	_, finish := observability.StartSpan(ctx, "makePaystackRequest", "paystack", method, url)
 	defer finish(0, nil)
 	start := time.Now()
-	resp, err := ic.DefaultClient.Do(req)
+	var resp *http.Response
+	if p.RetryClient != nil {
+		resp, err = p.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}

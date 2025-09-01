@@ -14,13 +14,14 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
-	ic "github.com/petrejonn/naytife/internal/httpclient"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/observability"
 	"go.uber.org/zap"
 )
 
 type TemplateHandler struct {
 	repository db.Repository
+	RetryClient *retryablehttp.Client
 }
 
 func NewTemplateHandler(repo db.Repository) *TemplateHandler {
@@ -183,7 +184,13 @@ func (h *TemplateHandler) fetchTemplatesFromService(ctx context.Context) ([]mode
 	}
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	resp, err := ic.DoWithRetry(ctx, req, 3)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to template service: %w", err)
 	}
@@ -219,12 +226,17 @@ func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, 
 	}
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	resp, err := ic.DoWithRetry(ctx, req, 3)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
 	}
@@ -253,12 +265,17 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 	}
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	resp, err := ic.DoWithRetry(ctx, req, 3)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
 	}
@@ -290,7 +307,13 @@ func (h *TemplateHandler) triggerTemplateBuild(ctx context.Context, req models.T
 	reqHttp.Header.Set("Content-Type", "application/json")
 	observability.InjectTraceHeaders(ctx, reqHttp)
 	observability.EnsureRequestID(reqHttp)
-	resp, err := ic.DefaultClient.Do(reqHttp)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(reqHttp)
+	} else {
+		resp, err = http.DefaultClient.Do(reqHttp)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +348,13 @@ func (h *TemplateHandler) fetchDeploymentStatusFromService(ctx context.Context, 
 	}
 	observability.InjectTraceHeaders(ctx, req)
 	observability.EnsureRequestID(req)
-	resp, err := ic.DoWithRetry(ctx, req, 3)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
 	if err != nil {
 		return nil, err
 	}

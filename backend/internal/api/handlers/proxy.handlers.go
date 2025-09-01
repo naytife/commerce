@@ -14,7 +14,7 @@ import (
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
-	ic "github.com/petrejonn/naytife/internal/httpclient"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +23,7 @@ type ProxyHandler struct {
 	TemplateRegistryURL string
 	StoreDeployerURL    string
 	HttpClient          *http.Client
+	RetryClient         *retryablehttp.Client
 }
 
 func NewProxyHandler(repo db.Repository) *ProxyHandler {
@@ -41,7 +42,7 @@ func NewProxyHandler(repo db.Repository) *ProxyHandler {
 		Repository:          repo,
 		TemplateRegistryURL: templateRegistryURL,
 		StoreDeployerURL:    storeDeployerURL,
-		HttpClient:          ic.DefaultClient,
+		HttpClient:          &http.Client{},
 	}
 }
 
@@ -90,12 +91,20 @@ func (h *ProxyHandler) proxyRequest(c *fiber.Ctx, targetURL string, path string)
 	}
 	req.URL.RawQuery = query.Encode()
 
-	// For idempotent methods use retry helper, otherwise do a single request
+	// For idempotent methods use retry client if configured, otherwise do a single request
 	var resp *http.Response
 	if req.Method == http.MethodGet || req.Method == http.MethodHead {
-		resp, err = ic.DoWithRetry(ctx, req, 3)
+		if h.RetryClient != nil {
+			resp, err = h.RetryClient.StandardClient().Do(req)
+		} else {
+			resp, err = http.DefaultClient.Do(req)
+		}
 	} else {
-		resp, err = h.HttpClient.Do(req)
+		if h.HttpClient != nil {
+			resp, err = h.HttpClient.Do(req)
+		} else {
+			resp, err = http.DefaultClient.Do(req)
+		}
 	}
 	if err != nil {
 		zap.L().Error("proxyRequest: failed to perform http request", zap.String("url", fullURL), zap.String("method", req.Method), zap.Error(err))
