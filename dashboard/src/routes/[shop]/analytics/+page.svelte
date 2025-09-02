@@ -118,18 +118,19 @@ async function loadAnalytics() {
   loading = true;
   error = '';
   try {
-    const [sales, orders, products, customers, lowStock] = await Promise.all([
-      analyticsApi.getSalesSummary(data.shopId, { period }),
-      analyticsApi.getOrdersOverTime(data.shopId, { interval, period }),
-      analyticsApi.getTopProducts(data.shopId, { period }),
-      analyticsApi.getCustomerSummary(data.shopId, { period }),
-      analyticsApi.getLowStockVariants(data.shopId, { threshold })
+    // The api client returns the data directly (not wrapped in `.data`) — accept any and map accordingly.
+    const [sales, orders, products, customers, lowStock]: any = await Promise.all([
+      analyticsApi.getSalesSummary({ period }),
+      analyticsApi.getOrdersOverTime({ interval, period }),
+      analyticsApi.getTopProducts({ period }),
+      analyticsApi.getCustomerSummary({ period }),
+      analyticsApi.getLowStockVariants({ threshold })
     ]);
-    salesSummary = sales.data;
-    ordersOverTime = orders.data;
-    topProducts = products.data;
-    customerSummary = customers.data;
-    lowStockVariants = lowStock.data;
+    salesSummary = sales;
+    ordersOverTime = orders;
+    topProducts = products;
+    customerSummary = customers;
+    lowStockVariants = lowStock;
   } catch (e: any) {
     error = e.message || 'Failed to load analytics data';
   } finally {

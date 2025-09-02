@@ -26,7 +26,8 @@
 		return `${diffDays}d ago`;
 	}
 	
-	function goToShop(url: string) {
+	function goToShop(url?: string) {
+		if (!url) return;
 		window.open(url, '_blank');
 	}
 	

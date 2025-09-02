@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { api, currentShopId } from '$lib/api';
 	import type { 
 		InventoryItem, 
@@ -682,7 +683,16 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell colspan={6} class="text-muted-foreground text-xs">
-										{isExpanded ? 'Click to collapse variants' : 'Click to expand variants'}
+										<div class="flex items-center justify-between">
+											<div>{isExpanded ? 'Click to collapse variants' : 'Click to expand variants'}</div>
+											<Button
+												variant="outline"
+												size="sm"
+												on:click={(e) => { e.stopPropagation(); goto(`/${$page.params.shop}/products/${productGroup.product_id}`); }}
+											>
+												Edit Product
+											</Button>
+										</div>
 									</Table.Cell>
 								</Table.Row>
 								

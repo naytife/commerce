@@ -16,7 +16,8 @@ export const load: PageLoad = async ({ parent, fetch, params }) => {
   const { session } = await parent()
   const accessToken = (session as CustomSession)?.access_token
   const productId = parseInt(params.productId)
-  const productTypeId = parseInt(params.type)
+  // `type` may not exist on RouteParams — access defensively
+  const productTypeId = (params as any).type ? parseInt((params as any).type) : undefined
 
   // Create a custom fetch function with the Authorization header
   const customFetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -36,16 +37,19 @@ export const load: PageLoad = async ({ parent, fetch, params }) => {
     queryKey: [`shop-${params.shop}-product`, params.productId],
     queryFn: () => api(customFetch as any).getProductById(parseInt(params.productId)),
   })
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: [`shop-${params.shop}-product-type`, productTypeId],
-      queryFn: () => api(customFetch as any).getProductTypeById(productTypeId),
-    }),
-    queryClient.prefetchQuery({
-      queryKey: [`shop-${params.shop}-product-type-attributes`, productTypeId],
-      queryFn: () => api(customFetch as any).getProductTypeAttributes(productTypeId),
-    })
-  ])
+  // Only prefetch product type data when we actually have a productTypeId
+  if (productTypeId) {
+    await Promise.all([
+      queryClient.prefetchQuery({
+        queryKey: [`shop-${params.shop}-product-type`, productTypeId],
+        queryFn: () => api(customFetch as any).getProductTypeById(productTypeId),
+      }),
+      queryClient.prefetchQuery({
+        queryKey: [`shop-${params.shop}-product-type-attributes`, productTypeId],
+        queryFn: () => api(customFetch as any).getProductTypeAttributes(productTypeId),
+      })
+    ])
+  }
 
   return { productId, productTypeId }
 }

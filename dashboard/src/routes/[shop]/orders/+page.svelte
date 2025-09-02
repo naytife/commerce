@@ -34,12 +34,19 @@
 	// Orders query with pagination (reactive)
 	let ordersQuery;
 	$: ordersQuery = createQuery<PaginatedResponse<Order>, Error>({
-	    queryKey: [`shop-${shopParam}-orders`, $currentPage, $limit],
-	    queryFn: () => api(authFetch).getOrders({ page: $currentPage, limit: $limit })
+		queryKey: [`shop-${shopParam}-orders`, $currentPage, $limit],
+		// API client returns a shape that is not statically modeled here; use any to avoid svelte-check type complaints
+		queryFn: () => api(authFetch).getOrders({ page: $currentPage, limit: $limit }) as any
 	});
+    
+		$: ordersData = ($ordersQuery as any)?.data?.data ?? [];
+		$: pagination = ($ordersQuery as any)?.data?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
 
-	$: ordersData = $ordersQuery?.data?.data ?? [];
-	$: pagination = $ordersQuery?.data?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
+		// Expose a typed-any value of the query to the template to avoid inline casts in markup
+		$: ordersQueryValue = $ordersQuery as any;
+		$: ordersIsLoading = ordersQueryValue?.isLoading;
+		$: ordersIsError = ordersQueryValue?.isError;
+		$: ordersErrorMessage = ordersQueryValue?.error?.message;
 	$: total = pagination.total;
 	$: totalPages = pagination.total_pages;
 
@@ -239,7 +246,7 @@
 
 	<!-- Orders Management -->
 	<div class="card-elevated">
-		{#if $ordersQuery?.isLoading}
+	{#if ordersIsLoading}
 			<!-- Enhanced Loading State -->
 			<div class="space-y-6">
 				<div class="flex flex-col lg:flex-row gap-4">
@@ -271,7 +278,7 @@
 					{/each}
 				</div>
 			</div>
-		{:else if $ordersQuery?.isError}
+	{:else if ordersIsError}
 			<!-- Enhanced Error State -->
 			<div class="flex flex-col items-center justify-center py-20">
 				<div class="w-16 h-16 bg-gradient-to-br from-destructive to-red-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
@@ -279,7 +286,7 @@
 				</div>
 				<h3 class="text-xl font-semibold mb-2 text-foreground">Failed to load orders</h3>
 				<p class="text-muted-foreground mb-6 text-center max-w-md">
-					{$ordersQuery.error.message || 'Unable to fetch order data. Please try again.'}
+					{ordersErrorMessage || 'Unable to fetch order data. Please try again.'}
 				</p>
 				<Button 
 					on:click={() => queryClient.invalidateQueries({ queryKey: [`shop-${shopParam}-orders`] })} 

@@ -158,7 +158,7 @@
 	const navItems = [
 		{ href: '', icon: Home, label: 'Dashboard' },
 		{ href: 'orders', icon: ShoppingCart, label: 'Orders' },
-		{ href: 'product-types', icon: Boxes, label: 'Products' },
+		{ href: 'product-types', icon: Boxes, label: 'Product Types' },
 		{ href: 'customers', icon: UsersRound, label: 'Customers' },
 		{ href: 'inventory', icon: Package, label: 'Inventory' },
 		// { href: 'categories', icon: Workflow, label: 'Categories' },
