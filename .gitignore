@@ -101,7 +101,3 @@ build/
 .output/
 .vercel/
 .netlify/
-
-# Ensure the repository build cache directory is tracked (do not ignore)
-!.build-cache/
-!.build-cache/**
