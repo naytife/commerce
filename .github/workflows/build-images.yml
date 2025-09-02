@@ -1,4 +1,4 @@
-name: Build & Push Docker Images + Bump GitOps
+name: Build & Push Docker Images (Flux will update manifests via Image Automation)
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   REPO_PATH: ${{ github.repository }}                 # owner/repo
-  IMAGE_TAG: ${{ github.sha }}                        # immutable tag used in GitOps bump
+  # IMAGE_TAG is computed per-build in each job as: <branch>-<short-sha>-<timestamp>
 
 jobs:
   changes:
@@ -59,6 +59,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: tag
+        run: |
+          # Compute tag: <branch>-<short-sha>-<timestamp>
+          GIT_BRANCH=${GITHUB_REF#refs/heads/}
+          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -79,17 +87,23 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:${{ steps.tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-auth-handler:
     needs: changes
-    if: needs.changes.outputs.store == 'true'
+    if: needs.changes.outputs.auth == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+      - id: tag
+        run: |
+          GIT_BRANCH=${GITHUB_REF#refs/heads/}
+          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -106,7 +120,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:${{ steps.tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -117,6 +131,12 @@ jobs:
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+      - id: tag
+        run: |
+          GIT_BRANCH=${GITHUB_REF#refs/heads/}
+          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -133,7 +153,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:${{ steps.tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -144,6 +164,12 @@ jobs:
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+      - id: tag
+        run: |
+          GIT_BRANCH=${GITHUB_REF#refs/heads/}
+          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -160,7 +186,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ steps.tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -171,6 +197,12 @@ jobs:
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+      - id: tag
+        run: |
+          GIT_BRANCH=${GITHUB_REF#refs/heads/}
+          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -187,70 +219,8 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:${{ steps.tag.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  gitops-bump:
-    name: Update kustomization.yaml with new tag & commit once
-    runs-on: ubuntu-latest
-    needs:
-      - build-backend
-      - build-auth-handler
-      - build-store-deployer
-      - build-template-registry
-      - build-migrations
-    permissions:
-      contents: write         # needed to push back to the repo
-    steps:
-      # --- Same-repo GitOps (default) ---
-      - name: Checkout repo (manifests live here)
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITOPS_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
-      # --- Separate GitOps repo (optional) ---
-      # - name: Checkout GitOps repo
-      #   if: env.GITOPS_REPO != ''
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: ${{ env.GITOPS_REPO }}            # e.g. your-org/your-gitops-repo
-      #     token: ${{ secrets.GITOPS_PUSH_TOKEN }}        # classic PAT with repo write
-      #     ref: ${{ env.GITOPS_BRANCH || 'main' }}
-      #     fetch-depth: 0
-
-      - name: Install kustomize manually
-        run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-          sudo mv kustomize /usr/local/bin/
-          kustomize version
-
-      - name: Bump images in staging overlays
-        working-directory: deploy/overlays/staging
-        run: |
-          set -euo pipefail
-          echo "Using IMAGE_TAG=${IMAGE_TAG}"
-          # Map base image names -> canonical GHCR newName and tag
-          kustomize edit set image naytife/backend=${REGISTRY}/${REPO_PATH}/backend:${IMAGE_TAG}
-          kustomize edit set image naytife/auth-handler=${REGISTRY}/${REPO_PATH}/auth-handler:${IMAGE_TAG}
-          kustomize edit set image template-registry=${REGISTRY}/${REPO_PATH}/template-registry:${IMAGE_TAG}
-          kustomize edit set image docker.io/library/store-deployer=${REGISTRY}/${REPO_PATH}/store-deployer:${IMAGE_TAG}
-
-      - name: Show diff
-        run: |
-          git status
-          git --no-pager diff || true
-
-      - name: Commit & push (single commit)
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            echo "No manifest changes to commit."
-            exit 0
-          fi
-          git config user.name  "gitops-bot"
-          git config user.email "gitops-bot@users.noreply.github.com"
-          git add deploy/overlays/staging/kustomization.yaml
-          git commit -m "gitops: bump staging images to ${IMAGE_TAG} [skip-ci]"
-          git push
