@@ -14,43 +14,15 @@ COPY . .
 # Install Atlas for database migrations
 RUN curl -sSf https://atlasgo.sh | sh -s -- --yes --version v0.35.0
 
+# Verify Atlas installation location
+RUN which atlas && atlas version
+
 # Generate Swagger documentation
 RUN go install github.com/swaggo/swag/v2/cmd/swag@latest
 RUN swag init -g main.go -o docs -d cmd/api,internal/api/handlers,internal/api/models,internal/db --v3.1
 
 # Build the Go application with optimization flags
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
-
-# Create entrypoint script
-RUN cat > entrypoint.sh << 'EOF'
-#!/bin/sh
-set -e
-
-echo "🔍 Checking database connectivity..."
-
-# Wait for database to be ready
-until atlas migrate status --dir file://migrations --url "${DATABASE_URL}" --revisions-schema atlas_schema_revisions >/dev/null 2>&1; do
-    echo "⏳ Waiting for database to be ready..."
-    sleep 2
-done
-
-echo "✅ Database is ready!"
-
-echo "🚀 Running database migrations..."
-atlas migrate apply \
-    --dir file://migrations \
-    --url "${DATABASE_URL}" \
-    --revisions-schema atlas_schema_revisions \
-    --tx-mode none \
-    --allow-dirty
-
-echo "✅ Migrations completed successfully!"
-
-echo "🚀 Starting backend service..."
-exec /app/bin/api
-EOF
-
-RUN chmod +x entrypoint.sh
 
 # Use Alpine Linux for shell support and minimal footprint
 FROM alpine:3.19
@@ -66,7 +38,7 @@ WORKDIR /app
 # Copy the binary, docs, atlas binary, and migration files
 COPY --from=builder /app/bin/api /app/bin/api
 COPY --from=builder /app/docs /app/docs
-COPY --from=builder /root/bin/atlas /usr/local/bin/atlas
+COPY --from=builder /usr/local/bin/atlas /usr/local/bin/atlas
 COPY --from=builder /app/atlas.hcl /app/atlas.hcl
 COPY --from=builder /app/internal/db/migrations /app/migrations
 
