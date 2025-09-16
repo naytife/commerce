@@ -152,7 +152,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9001"
+		port = "8002"
 	}
 
 	log.Printf("Template Registry starting on port %s", port)
