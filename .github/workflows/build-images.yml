@@ -336,12 +336,16 @@ jobs:
         if: ${{ env.INFRA_PUSH_TOKEN != '' }}
         run: |
           set -euo pipefail
-          if git diff --quiet; then
+          FILE="docker-compose.apps.${INFRA_BRANCH}.yml"
+
+          # Detect changes including new/untracked file (git diff ignores untracked files)
+          if ! git status --porcelain -- "$FILE" | grep -q .; then
             echo "No infra changes to commit."
             exit 0
           fi
+
           git config user.name  "gitops-bot"
           git config user.email "gitops-bot@users.noreply.github.com"
-          git add "docker-compose.apps.${INFRA_BRANCH}.yml"
+          git add "$FILE"
           git commit -m "infra: generate docker-compose.apps.${INFRA_BRANCH}.yml with images pinned to ${IMAGE_TAG} digests [skip-ci]"
           git push origin "${INFRA_BRANCH}"
