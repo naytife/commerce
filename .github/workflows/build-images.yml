@@ -87,20 +87,27 @@ jobs:
 
   build-auth-handler:
     needs: changes
-    if: needs.changes.outputs.auth == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip note (no auth changes)
+        if: needs.changes.outputs.auth != 'true'
+        run: echo "No changes in auth/**. Skipping auth-handler image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.auth == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.auth == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push auth-handler
+        if: needs.changes.outputs.auth == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./auth/authentication-handler
@@ -114,20 +121,27 @@ jobs:
 
   build-store-deployer:
     needs: changes
-    if: needs.changes.outputs.store == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip note (no store-deployer changes)
+        if: needs.changes.outputs.store != 'true'
+        run: echo "No changes in services/store-deployer/**. Skipping store-deployer image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.store == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.store == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push store-deployer
+        if: needs.changes.outputs.store == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./services/store-deployer
@@ -141,20 +155,27 @@ jobs:
 
   build-template-registry:
     needs: changes
-    if: needs.changes.outputs.registry == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip note (no template-registry changes)
+        if: needs.changes.outputs.registry != 'true'
+        run: echo "No changes in services/template-registry/**. Skipping template-registry image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.registry == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.registry == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push template-registry
+        if: needs.changes.outputs.registry == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./services/template-registry
@@ -168,20 +189,27 @@ jobs:
 
   build-migrations:
     needs: changes
-    if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
+
+      - name: Skip note (no migrations changes)
+        if: needs.changes.outputs.migrations != 'true'
+        run: echo "No changes in backend/migrations.Dockerfile. Skipping migrations image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.migrations == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.migrations == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push migrations
+        if: needs.changes.outputs.migrations == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -193,66 +221,135 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  gitops-bump:
-    name: Update kustomization.yaml with new tag & commit once
-    runs-on: ubuntu-latest
+  infra-bump:
+    name: Update commerce-infra compose per-branch with digests
     needs:
+      - changes
       - build-backend
       - build-auth-handler
       - build-store-deployer
       - build-template-registry
-      - build-migrations
+    runs-on: ubuntu-latest
+    # Requires a repo-scoped Fine-Grained PAT in this repo secrets as INFRA_PUSH_TOKEN with contents:write to naytife/commerce-infra
     permissions:
-      contents: write         # needed to push back to the repo
+      contents: read
+    env:
+      INFRA_REPO: naytife/commerce-infra
+      INFRA_BRANCH: ${{ github.ref_name }}
+      INFRA_PUSH_TOKEN: ${{ secrets.INFRA_PUSH_TOKEN }}
     steps:
-      # --- Same-repo GitOps (default) ---
-      - name: Checkout repo (manifests live here)
+      - name: Skip note (no INFRA_PUSH_TOKEN configured)
+        if: ${{ env.INFRA_PUSH_TOKEN == '' }}
+        run: echo "Secret INFRA_PUSH_TOKEN not configured. Skipping infra bump."
+
+      - name: Checkout commerce-infra repo
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ env.INFRA_REPO }}
+          token: ${{ env.INFRA_PUSH_TOKEN }}
+          ref: ${{ env.INFRA_BRANCH }}
           fetch-depth: 0
 
-      # --- Separate GitOps repo (optional) ---
-      # - name: Checkout GitOps repo
-      #   if: env.GITOPS_REPO != ''
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: ${{ env.GITOPS_REPO }}            # e.g. your-org/your-gitops-repo
-      #     token: ${{ secrets.GITOPS_PUSH_TOKEN }}        # classic PAT with repo write
-      #     ref: ${{ env.GITOPS_BRANCH || 'main' }}
-      #     fetch-depth: 0
-
-      - name: Install kustomize manually
-        run: |
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-          sudo mv kustomize /usr/local/bin/
-          kustomize version
-
-      - name: Bump images in production overlays
-        working-directory: deploy/overlays/production
+      - name: Install yq, jq, skopeo
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
         run: |
           set -euo pipefail
-          echo "Using IMAGE_TAG=${IMAGE_TAG}"
-          # Map base image names -> canonical GHCR newName and tag
-          kustomize edit set image naytife/backend=${REGISTRY}/${REPO_PATH}/backend:${IMAGE_TAG}
-          kustomize edit set image naytife/auth-handler=${REGISTRY}/${REPO_PATH}/auth-handler:${IMAGE_TAG}
-          kustomize edit set image template-registry=${REGISTRY}/${REPO_PATH}/template-registry:${IMAGE_TAG}
-          kustomize edit set image docker.io/library/store-deployer=${REGISTRY}/${REPO_PATH}/store-deployer:${IMAGE_TAG}
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+          sudo chmod +x /usr/local/bin/yq
+          sudo apt-get update -y
+          sudo apt-get install -y jq skopeo
+          yq --version
+          jq --version
+          skopeo --version
 
-      - name: Show diff
-        run: |
-          git status
-          git --no-pager diff || true
-
-      - name: Commit & push (single commit)
+      - name: Login to GHCR (for digest lookup)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
         run: |
           set -euo pipefail
-          if git diff --quiet; then
-            echo "No manifest changes to commit."
+          echo "Logging into ${REGISTRY} as ${GITHUB_ACTOR} for digest inspection"
+          skopeo login ${REGISTRY} -u "${GITHUB_ACTOR}" -p "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Generate docker-compose.apps.{branch}.yml (full, pinned)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          BASE="docker-compose.apps.yml"
+          FILE="docker-compose.apps.${INFRA_BRANCH}.yml"
+          echo "Using IMAGE_TAG=${IMAGE_TAG} to generate ${FILE} from ${BASE} in ${INFRA_REPO} (${INFRA_BRANCH})"
+
+          # Ensure base compose exists
+          if [ ! -s "$BASE" ]; then
+            echo "ERROR: $BASE not found or empty in ${INFRA_REPO}. Aborting."
+            exit 1
+          fi
+          # If a per-branch compose already exists, keep it to preserve previous pinned digests.
+          # Otherwise, initialize it from the base compose file.
+          if [ -s "$FILE" ]; then
+            echo "Detected existing $FILE, updating in place to preserve prior pinned digests."
+          else
+            cp -f "$BASE" "$FILE"
+          fi
+
+          # Update only images that were rebuilt in this run
+          backend_changed='${{ needs.changes.outputs.backend }}'
+          auth_changed='${{ needs.changes.outputs.auth }}'
+          store_changed='${{ needs.changes.outputs.store }}'
+          registry_changed='${{ needs.changes.outputs.registry }}'
+
+          if [ "${backend_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/backend"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            BACKEND_IMG="${IMAGE_NAME}@${DIGEST}"
+            export BACKEND_IMG
+            yq -i '.services.backend.image = env(BACKEND_IMG)' "$FILE"
+          else
+            echo "Skip backend (no backend changes)"
+          fi
+          if [ "${auth_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/auth-handler"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            AUTH_IMG="${IMAGE_NAME}@${DIGEST}"
+            export AUTH_IMG
+            yq -i '.services["auth-handler"].image = env(AUTH_IMG)' "$FILE"
+          else
+            echo "Skip auth-handler (no auth changes)"
+          fi
+          if [ "${registry_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/template-registry"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            TEMPLATE_IMG="${IMAGE_NAME}@${DIGEST}"
+            export TEMPLATE_IMG
+            yq -i '.services["template-registry"].image = env(TEMPLATE_IMG)' "$FILE"
+          else
+            echo "Skip template-registry (no template-registry changes)"
+          fi
+          if [ "${store_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/store-deployer"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            STORE_IMG="${IMAGE_NAME}@${DIGEST}"
+            export STORE_IMG
+            yq -i '.services["store-deployer"].image = env(STORE_IMG)' "$FILE"
+          else
+            echo "Skip store-deployer (no store-deployer changes)"
+          fi
+          echo "Preview changes:"
+          git --no-pager diff "$FILE" || true
+
+      - name: Commit & push infra changes (if any)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          FILE="docker-compose.apps.${INFRA_BRANCH}.yml"
+
+          # Detect changes including new/untracked file (git diff ignores untracked files)
+          if ! git status --porcelain -- "$FILE" | grep -q .; then
+            echo "No infra changes to commit."
             exit 0
           fi
+
           git config user.name  "gitops-bot"
           git config user.email "gitops-bot@users.noreply.github.com"
-          git add deploy/overlays/production/kustomization.yaml
-          git commit -m "gitops: bump production images to ${IMAGE_TAG} [skip-ci]"
-          git push
+          git add "$FILE"
+          git commit -m "infra: generate docker-compose.apps.${INFRA_BRANCH}.yml with images pinned to ${IMAGE_TAG} digests [skip-ci]"
+          git push origin "${INFRA_BRANCH}"

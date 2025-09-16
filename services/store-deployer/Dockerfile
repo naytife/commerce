@@ -34,7 +34,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 USER nonroot:nonroot
 
 # Expose port
-EXPOSE 9003
+EXPOSE 8001
 
 # Run the service
 ENTRYPOINT ["./store-deployer"]

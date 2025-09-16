@@ -25,7 +25,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifi
 # Copy the binary from the builder stage
 COPY --from=builder /app/app /app
 
-EXPOSE 3000
+EXPOSE 8003
 
 # Command to run the executable
 ENTRYPOINT ["/app"]

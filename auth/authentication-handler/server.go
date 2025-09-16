@@ -101,7 +101,7 @@ func main() {
 	app.Get("/login", handleLogin)
 	app.Get("/callback", handleCallback)
 	app.Get("/consent", handleConsent)
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":8003"))
 }
 
 func handleLogin(c *fiber.Ctx) error {

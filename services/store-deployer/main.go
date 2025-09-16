@@ -158,7 +158,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9003"
+		port = "8001"
 	}
 
 	log.Printf("Store deployer service starting on port %s", port)
