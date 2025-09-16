@@ -6,6 +6,7 @@ echo "🔍 Checking database connectivity..."
 # Wait for database to be ready
 until atlas migrate status --dir file://migrations --url "${DATABASE_URL}" --revisions-schema atlas_schema_revisions >/dev/null 2>&1; do
     echo "⏳ Waiting for database to be ready..."
+    echo "DB: ${DATABASE_URL}"
     sleep 2
 done
 
