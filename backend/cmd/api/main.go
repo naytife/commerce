@@ -77,7 +77,7 @@ func main() {
 				logger.Warn("Failed to connect to Redis", zap.Error(err))
 				redisClient = nil
 			} else {
-				logger.Info("✅ Connected to Redis successfully")
+				logger.Info("✅ Connected to Redis successfully!")
 			}
 		}
 	}

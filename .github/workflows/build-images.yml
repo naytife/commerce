@@ -301,7 +301,8 @@ jobs:
             IMAGE_NAME="${REGISTRY}/${REPO_PATH}/backend"
             DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
             BACKEND_IMG="${IMAGE_NAME}@${DIGEST}"
-            yq -i '.services.backend.image = strenv(BACKEND_IMG)' "$FILE"
+            export BACKEND_IMG
+            yq -i '.services.backend.image = env(BACKEND_IMG)' "$FILE"
           else
             echo "Skip backend (no backend changes)"
           fi
@@ -309,7 +310,8 @@ jobs:
             IMAGE_NAME="${REGISTRY}/${REPO_PATH}/auth-handler"
             DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
             AUTH_IMG="${IMAGE_NAME}@${DIGEST}"
-            yq -i '.services["auth-handler"].image = strenv(AUTH_IMG)' "$FILE"
+            export AUTH_IMG
+            yq -i '.services["auth-handler"].image = env(AUTH_IMG)' "$FILE"
           else
             echo "Skip auth-handler (no auth changes)"
           fi
@@ -317,7 +319,8 @@ jobs:
             IMAGE_NAME="${REGISTRY}/${REPO_PATH}/template-registry"
             DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
             TEMPLATE_IMG="${IMAGE_NAME}@${DIGEST}"
-            yq -i '.services["template-registry"].image = strenv(TEMPLATE_IMG)' "$FILE"
+            export TEMPLATE_IMG
+            yq -i '.services["template-registry"].image = env(TEMPLATE_IMG)' "$FILE"
           else
             echo "Skip template-registry (no template-registry changes)"
           fi
@@ -325,7 +328,8 @@ jobs:
             IMAGE_NAME="${REGISTRY}/${REPO_PATH}/store-deployer"
             DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
             STORE_IMG="${IMAGE_NAME}@${DIGEST}"
-            yq -i '.services["store-deployer"].image = strenv(STORE_IMG)' "$FILE"
+            export STORE_IMG
+            yq -i '.services["store-deployer"].image = env(STORE_IMG)' "$FILE"
           else
             echo "Skip store-deployer (no store-deployer changes)"
           fi
