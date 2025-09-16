@@ -11,6 +11,9 @@ RUN go mod download
 # Copy the entire backend directory
 COPY . .
 
+# Install Atlas for database migrations
+RUN curl -sSf https://atlasgo.sh | sh -s -- --yes --version v0.35.0
+
 # Generate Swagger documentation
 RUN go install github.com/swaggo/swag/v2/cmd/swag@latest
 RUN swag init -g main.go -o docs -d cmd/api,internal/api/handlers,internal/api/models,internal/db --v3.1
@@ -18,21 +21,67 @@ RUN swag init -g main.go -o docs -d cmd/api,internal/api/handlers,internal/api/m
 # Build the Go application with optimization flags
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
 
-# Use scratch - the smallest possible base image (empty filesystem)
-FROM scratch
+# Create entrypoint script
+RUN cat > entrypoint.sh << 'EOF'
+#!/bin/sh
+set -e
 
-# Copy CA certificates from builder stage for HTTPS support
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+echo "🔍 Checking database connectivity..."
+
+# Wait for database to be ready
+until atlas migrate status --dir file://migrations --url "${DATABASE_URL}" --revisions-schema atlas_schema_revisions >/dev/null 2>&1; do
+    echo "⏳ Waiting for database to be ready..."
+    sleep 2
+done
+
+echo "✅ Database is ready!"
+
+echo "🚀 Running database migrations..."
+atlas migrate apply \
+    --dir file://migrations \
+    --url "${DATABASE_URL}" \
+    --revisions-schema atlas_schema_revisions \
+    --tx-mode none \
+    --allow-dirty
+
+echo "✅ Migrations completed successfully!"
+
+echo "🚀 Starting backend service..."
+exec /app/bin/api
+EOF
+
+RUN chmod +x entrypoint.sh
+
+# Use Alpine Linux for shell support and minimal footprint
+FROM alpine:3.19
+
+# Install CA certificates and create app user
+RUN apk --no-cache add ca-certificates && \
+    addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
 
 # Set working directory
 WORKDIR /app
 
-# Copy the binary and docs
+# Copy the binary, docs, atlas binary, and migration files
 COPY --from=builder /app/bin/api /app/bin/api
 COPY --from=builder /app/docs /app/docs
+COPY --from=builder /root/bin/atlas /usr/local/bin/atlas
+COPY --from=builder /app/atlas.hcl /app/atlas.hcl
+COPY --from=builder /app/internal/db/migrations /app/migrations
+
+# Change ownership to app user
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose the port
 EXPOSE 8000
 
-# Run the binary (note: no shell available in scratch, so use exec form)
-ENTRYPOINT ["/app/bin/api"]
+# Create entrypoint script that runs migrations then starts the app
+COPY --from=builder --chown=appuser:appgroup /app/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Use the entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
