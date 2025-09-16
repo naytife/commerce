@@ -24,7 +24,6 @@ jobs:
       auth: ${{ steps.filter.outputs.auth }}
       store: ${{ steps.filter.outputs.store }}
       registry: ${{ steps.filter.outputs.registry }}
-      migrations: ${{ steps.filter.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,8 +43,6 @@ jobs:
               - 'services/store-deployer/**'
             registry:
               - 'services/template-registry/**'
-            migrations:
-              - 'backend/migrations.Dockerfile'
 
   build-backend:
     needs: changes
@@ -184,40 +181,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:latest
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ env.IMAGE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-migrations:
-    needs: changes
-    runs-on: ubuntu-latest
-    permissions: { contents: read, packages: write }
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Skip note (no migrations changes)
-        if: needs.changes.outputs.migrations != 'true'
-        run: echo "No changes in backend/migrations.Dockerfile. Skipping migrations image build."
-
-      - uses: docker/login-action@v3
-        if: needs.changes.outputs.migrations == 'true'
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v3
-        if: needs.changes.outputs.migrations == 'true'
-        with:
-          driver-opts: image=moby/buildkit:latest
-      - name: Build & Push migrations
-        if: needs.changes.outputs.migrations == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/migrations.Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
