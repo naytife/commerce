@@ -13,6 +13,8 @@ type EnvVars struct {
 	DATABASE_URL   string `mapstructure:"DATABASE_URL"`
 	API_URL        string `mapstructure:"API_URL"`
 	REDIS_URL      string `mapstructure:"REDIS_URL"`
+	AUTH_URL       string `mapstructure:"AUTH_URL"`
+	ENV            string `mapstructure:"ENV"`
 }
 
 func LoadConfig() (config EnvVars, err error) {
@@ -23,6 +25,8 @@ func LoadConfig() (config EnvVars, err error) {
 	viper.BindEnv("DATABASE_URL")
 	viper.BindEnv("API_URL")
 	viper.BindEnv("REDIS_URL")
+	viper.BindEnv("AUTH_URL")
+	viper.BindEnv("ENV")
 
 	if _, err := os.Stat(".env.local"); err == nil {
 		viper.AddConfigPath(".")
