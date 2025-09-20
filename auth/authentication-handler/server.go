@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -81,6 +82,25 @@ func generateStateOauthCookie() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// generateCodeVerifier generates a cryptographically random code_verifier
+// according to RFC 7636 specification
+func generateCodeVerifier() (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	// Use base64url encoding without padding
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// generateCodeChallenge generates a code_challenge from a code_verifier
+// using SHA256 method as specified in RFC 7636
+func generateCodeChallenge(codeVerifier string) string {
+	hash := sha256.Sum256([]byte(codeVerifier))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
 
 func main() {
@@ -185,6 +205,24 @@ func handleLogin(c *fiber.Ctx) error {
 
 	log.Printf("Generated OAuth state: %s", state)
 
+	// Generate PKCE parameters
+	codeVerifier, err := generateCodeVerifier()
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString("Failed to generate code verifier")
+	}
+	
+	codeChallenge := generateCodeChallenge(codeVerifier)
+
+	// Store the code_verifier in a secure cookie for later use in callback
+	c.Cookie(&fiber.Cookie{
+		Name:     "code_verifier",
+		Value:    codeVerifier,
+		Expires:  time.Now().Add(10 * time.Minute),
+		Secure:   true,
+		SameSite: "None",
+		HTTPOnly: true,
+	})
+
 	// Store the OAuth2 state in a secure cookie for CSRF protection
 	c.Cookie(&fiber.Cookie{
 		Name:     "oauthstate",
@@ -195,8 +233,12 @@ func handleLogin(c *fiber.Ctx) error {
 		HTTPOnly: true,
 	})
 
-	// Append shop_id to the auth URL
-	authURL := oauthProvider.OAuth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	// Create OAuth URL with PKCE parameters
+	authURL := oauthProvider.OAuth2Config.AuthCodeURL(state, 
+		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
 	authURL += "&shop_id=" + url.QueryEscape(shopID)
 	if prompt != "" {
 		authURL += "&prompt=" + url.QueryEscape(prompt)
@@ -211,6 +253,12 @@ func handleCallback(c *fiber.Ctx) error {
 	state := c.Cookies("oauthstate")
 	if state != c.Query("state") {
 		return c.Status(http.StatusUnauthorized).SendString("Invalid OAuth state")
+	}
+
+	// Retrieve code_verifier from cookie
+	codeVerifier := c.Cookies("code_verifier")
+	if codeVerifier == "" {
+		return c.Status(http.StatusBadRequest).SendString("Missing code verifier")
 	}
 
 	// Retrieve app_type and shop_id from cookies
@@ -240,7 +288,8 @@ func handleCallback(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 15*time.Second)
 	defer cancel()
 
-	token, err := oauthProvider.OAuth2Config.Exchange(ctx, code)
+	// Exchange code for token with PKCE
+	token, err := oauthProvider.OAuth2Config.Exchange(ctx, code, oauth2.SetAuthURLParam("code_verifier", codeVerifier))
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Token exchange failed: " + err.Error())
 	}
