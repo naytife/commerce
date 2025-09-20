@@ -244,7 +244,7 @@ func handleLogin(c *fiber.Ctx) error {
 			Value:    shopID,
 			Expires:  time.Now().Add(10 * time.Minute),
 			Secure:   true,
-			SameSite: "Lax",
+			SameSite: "None", // Changed to None for cross-site OAuth compatibility
 			HTTPOnly: true,
 		})
 	}
@@ -259,7 +259,7 @@ func handleLogin(c *fiber.Ctx) error {
 		Value:    loginChallenge,
 		Expires:  time.Now().Add(10 * time.Minute),
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "None", // Changed to None for cross-site OAuth compatibility
 		HTTPOnly: true,
 	})
 	c.Cookie(&fiber.Cookie{
@@ -267,7 +267,7 @@ func handleLogin(c *fiber.Ctx) error {
 		Value:    appType,
 		Expires:  time.Now().Add(10 * time.Minute),
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "None", // Changed to None for cross-site OAuth compatibility
 		HTTPOnly: true,
 	})
 
@@ -357,6 +357,15 @@ func handleCallback(c *fiber.Ctx) error {
 		zap.String("query_state", queryState),
 	)
 
+	// Check if state values are empty - could indicate callback reuse
+	if state == "" || queryState == "" {
+		logger.Error("OAuth state missing - possible callback reuse or invalid request",
+			zap.String("cookie_state", state),
+			zap.String("query_state", queryState),
+		)
+		return c.Status(http.StatusBadRequest).SendString("Missing OAuth state - callback already processed or invalid request")
+	}
+
 	if state != queryState {
 		logger.Error("OAuth state mismatch - possible CSRF attack",
 			zap.String("cookie_state", state),
@@ -440,6 +449,25 @@ func handleCallback(c *fiber.Ctx) error {
 		zap.Bool("has_refresh_token", token.RefreshToken != ""),
 		zap.Time("expires_at", token.Expiry),
 	)
+
+	// Clear OAuth-related cookies immediately after successful token exchange to prevent reuse
+	logger.Debug("Clearing OAuth cookies to prevent code reuse")
+	c.Cookie(&fiber.Cookie{
+		Name:     "code_verifier",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		Secure:   true,
+		SameSite: "None",
+		HTTPOnly: true,
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "oauthstate",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		Secure:   true,
+		SameSite: "None",
+		HTTPOnly: true,
+	})
 
 	client := oauthProvider.OAuth2Config.Client(ctx, token)
 
