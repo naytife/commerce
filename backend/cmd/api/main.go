@@ -239,10 +239,14 @@ func main() {
 		// Expand ("list") or Collapse ("none") tag groups by default
 		DocExpansion: "list",
 		// Prefill OAuth ClientId on Authorize popup
+		// Do NOT pass a client secret here. The OAuth client in Hydra is configured
+		// with `token_endpoint_auth_method=none` (a public client). If we pass a
+		// secret the Swagger UI may attempt `client_secret_post` which Hydra will
+		// reject with "invalid_client". By omitting the secret and enabling PKCE
+		// the browser-based Swagger UI will use the public client flow.
 		OAuth: &swagger.OAuthConfig{
 			AppName:                           "Naytife API",
 			ClientId:                          "d39beaaa-9c53-48e7-b82a-37ff52127473",
-			ClientSecret:                      "-tzS7OuCyHjTZUxtfx5TxGR1f.",
 			Scopes:                            []string{"openid", "offline", "profile", "email", "offline_access"},
 			UsePkceWithAuthorizationCodeGrant: true,
 			AdditionalQueryStringParams: map[string]string{
