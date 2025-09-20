@@ -240,11 +240,11 @@ func main() {
 		DocExpansion: "list",
 		// Prefill OAuth ClientId on Authorize popup
 		OAuth: &swagger.OAuthConfig{
-			AppName:      "Naytife API",
-			ClientId:     "d39beaaa-9c53-48e7-b82a-37ff52127473",
-			ClientSecret: "-tzS7OuCyHjTZUxtfx5TxGR1f.",
-			Scopes:       []string{"openid", "offline", "profile", "email", "offline_access"},
-			UseBasicAuthenticationWithAccessCodeGrant: true,
+			AppName:                           "Naytife API",
+			ClientId:                          "d39beaaa-9c53-48e7-b82a-37ff52127473",
+			ClientSecret:                      "-tzS7OuCyHjTZUxtfx5TxGR1f.",
+			Scopes:                            []string{"openid", "offline", "profile", "email", "offline_access"},
+			UsePkceWithAuthorizationCodeGrant: true,
 			AdditionalQueryStringParams: map[string]string{
 				"app_type": "dashboard",
 			},
