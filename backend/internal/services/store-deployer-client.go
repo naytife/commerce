@@ -23,7 +23,7 @@ type StoreDeployerClient struct {
 func NewStoreDeployerClient(client *retryablehttp.Client) *StoreDeployerClient {
 	baseURL := os.Getenv("STORE_DEPLOYER_URL")
 	if baseURL == "" {
-		baseURL = "http://store-deployer:9003"
+		baseURL = "http://store-deployer:8001"
 	}
 	return &StoreDeployerClient{
 		BaseURL:    baseURL,

@@ -145,9 +145,15 @@ func main() {
 	app.Get("/consent", handleConsent)
 
 	logger.Info("Routes registered successfully")
-	logger.Info("Server listening on port 8003")
 
-	err := app.Listen(":8003")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8003"
+	}
+
+	logger.Info("Server listening on port " + port)
+
+	err := app.Listen(":" + port)
 	if err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}

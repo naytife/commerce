@@ -75,11 +75,11 @@ type HealthResponse struct {
 // @description Service health response object
 // @property service {string} "template-registry" "The name of the service"
 // @property status {string} "healthy" "The health status of the service"
-// @property url {string} "http://template-registry:9001" "The URL of the service"
+// @property url {string} "http://template-registry:8002" "The URL of the service"
 // @property error {string} "Connection timeout" "The error message if the service is unhealthy"
 type ServiceHealth struct {
 	Service string `json:"service" example:"template-registry"`
 	Status  string `json:"status" example:"healthy"`
-	URL     string `json:"url,omitempty" example:"http://template-registry:9001"`
+	URL     string `json:"url,omitempty" example:"http://template-registry:8002"`
 	Error   string `json:"error,omitempty" example:"Connection timeout"`
 }
