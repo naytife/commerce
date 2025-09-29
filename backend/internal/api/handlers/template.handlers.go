@@ -171,7 +171,7 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 // Service integration methods
 
 func (h *TemplateHandler) fetchTemplatesFromService(ctx context.Context) ([]models.Template, error) {
-	serviceURL := getServiceURL("store-deployer", "9003")
+	serviceURL := getServiceURL("store-deployer", "8001")
 	// TODO: This helper should accept a caller-provided ctx so cancellation and tracing propagate.
 	// If caller passed a background/TODO context, we still create a short timeout as a safeguard.
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -214,7 +214,7 @@ func (h *TemplateHandler) fetchTemplatesFromService(ctx context.Context) ([]mode
 // Template version and build service methods
 
 func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, templateName string) ([]models.TemplateVersion, error) {
-	serviceURL := getServiceURL("template-registry", "9001")
+	serviceURL := getServiceURL("template-registry", "8002")
 	// TODO: Accept caller ctx to preserve cancellation/tracing.
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
@@ -253,7 +253,7 @@ func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, 
 }
 
 func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Context, templateName string) (*models.TemplateVersion, error) {
-	serviceURL := getServiceURL("template-registry", "9001")
+	serviceURL := getServiceURL("template-registry", "8002")
 	// TODO: Accept caller ctx to preserve cancellation/tracing.
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
@@ -289,7 +289,7 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 }
 
 func (h *TemplateHandler) triggerTemplateBuild(ctx context.Context, req models.TemplateBuildRequest) (*models.BuildResponse, error) {
-	serviceURL := getServiceURL("template-registry", "9001")
+	serviceURL := getServiceURL("template-registry", "8002")
 
 	payload, err := json.Marshal(req)
 	if err != nil {
@@ -336,7 +336,7 @@ func (h *TemplateHandler) triggerTemplateBuild(ctx context.Context, req models.T
 // NOTE: Data update functionality is now handled by proxy handlers which proxy to store-deployer service
 
 func (h *TemplateHandler) fetchDeploymentStatusFromService(ctx context.Context, subdomain string) (*models.DeploymentStatus, error) {
-	serviceURL := getServiceURL("store-deployer", "9003")
+	serviceURL := getServiceURL("store-deployer", "8001")
 	// TODO: Accept caller ctx to preserve cancellation/tracing.
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
@@ -377,8 +377,8 @@ var serviceConfig = map[string]struct {
 	envVar      string
 	defaultPort string
 }{
-	"template-registry": {"TEMPLATE_REGISTRY_URL", "9001"},
-	"store-deployer":    {"STORE_DEPLOYER_URL", "9003"},
+	"template-registry": {"TEMPLATE_REGISTRY_URL", "8002"},
+	"store-deployer":    {"STORE_DEPLOYER_URL", "8001"},
 }
 
 func getServiceURL(serviceName, defaultPort string) string {

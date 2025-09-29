@@ -228,7 +228,7 @@ func (sd *StoreDeployer) resolveTemplateVersion() (string, error) {
 	// Get latest version from template registry
 	templateRegistryURL := os.Getenv("TEMPLATE_REGISTRY_URL")
 	if templateRegistryURL == "" {
-		templateRegistryURL = "http://template-registry:9001"
+		templateRegistryURL = "http://template-registry:8002"
 	}
 
 	reqURL := fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, sd.TemplateName)

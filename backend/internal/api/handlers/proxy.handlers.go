@@ -30,12 +30,12 @@ func NewProxyHandler(repo db.Repository) *ProxyHandler {
 	// Get service URLs from environment variables with fallback defaults
 	templateRegistryURL := os.Getenv("TEMPLATE_REGISTRY_URL")
 	if templateRegistryURL == "" {
-		templateRegistryURL = "http://template-registry:9001" // Default for Kubernetes
+		templateRegistryURL = "http://template-registry:8002" // Default for Kubernetes
 	}
 
 	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
 	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003" // Default for Kubernetes
+		storeDeployerURL = "http://store-deployer:8001" // Default for Kubernetes
 	}
 
 	return &ProxyHandler{
