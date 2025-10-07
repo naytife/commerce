@@ -366,6 +366,14 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 			Status:      prod.Status,
 		}
 
+		// Add product type info if available
+		if prod.ProductTypeID != nil && prod.ProductTypeTitle != nil {
+			products[i].ProductType = &models.ProductTypeInfo{
+				ID:    *prod.ProductTypeID,
+				Title: *prod.ProductTypeTitle,
+			}
+		}
+
 		// Only set DefaultVariant if the variants array isn't empty
 		if len(variants) > 0 {
 			products[i].DefaultVariant = variants[0]
@@ -436,8 +444,7 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 		return api.SystemErrorResponse(c, err, "Failed to get product images")
 	}
 
-	// Return the single query result directly
-	return api.SuccessResponse(c, fiber.StatusOK, models.Product{
+	product := models.Product{
 		ID:          objDB.ProductID,
 		Title:       objDB.Title,
 		Description: objDB.Description,
@@ -448,7 +455,18 @@ func (h *Handler) GetProduct(c *fiber.Ctx) error {
 		Images:     images,
 		UpdatedAt:  objDB.UpdatedAt,
 		CreatedAt:  objDB.CreatedAt,
-	}, "Product fetched successfully")
+	}
+
+	// Add product type info if available
+	if objDB.ProductTypeID != nil && objDB.ProductTypeTitle != nil {
+		product.ProductType = &models.ProductTypeInfo{
+			ID:    *objDB.ProductTypeID,
+			Title: *objDB.ProductTypeTitle,
+		}
+	}
+
+	// Return the single query result directly
+	return api.SuccessResponse(c, fiber.StatusOK, product, "Product fetched successfully")
 }
 
 // UpdateProduct updates a product
@@ -876,6 +894,14 @@ func (h *Handler) GetProductsByType(c *fiber.Ctx) error {
 			Variants:    variants,
 			Images:      images,
 			Status:      prod.Status,
+		}
+
+		// Add product type info if available
+		if prod.ProductTypeID != nil && prod.ProductTypeTitle != nil {
+			products[i].ProductType = &models.ProductTypeInfo{
+				ID:    *prod.ProductTypeID,
+				Title: *prod.ProductTypeTitle,
+			}
 		}
 
 		// Only set DefaultVariant if the variants array isn't empty

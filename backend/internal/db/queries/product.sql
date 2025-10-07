@@ -76,6 +76,10 @@ SELECT
     p.updated_at,
     p.created_at,
 
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
+
     -- Aggregate attributes separately to prevent duplication
     (
         SELECT COALESCE(
@@ -148,6 +152,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.product_id = $1 AND p.shop_id = $2;
 
 -- name: GetProducts :many
@@ -160,6 +165,10 @@ SELECT
     p.category_id,
     p.updated_at,
     p.created_at,
+
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
 
     -- Product attributes
     (
@@ -233,6 +242,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.shop_id = sqlc.arg('shop_id') 
 AND p.product_id > sqlc.arg('after')
 ORDER BY p.product_id
@@ -248,6 +258,10 @@ SELECT
     p.category_id,
     p.updated_at,
     p.created_at,
+
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
 
     -- Aggregate attributes separately
     (
@@ -321,6 +335,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.shop_id = sqlc.arg('shop_id') 
 AND p.product_type_id = sqlc.arg('product_type_id')
 AND p.product_id > sqlc.arg('after')
