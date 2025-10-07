@@ -11,12 +11,18 @@ type Product struct {
 	Description    string                 `json:"description"`
 	Status         db.ProductStatus       `json:"status"`
 	CategoryID     int64                  `json:"category_id"`
+	ProductType    *ProductTypeInfo       `json:"product_type,omitempty"`
 	Attributes     []ProductAttribute     `json:"attributes"`
 	Variants       []ProductVariant       `json:"variants"`
 	DefaultVariant ProductVariant         `json:"default_variant"`
 	Images         []ProductImageResponse `json:"images"`
 	UpdatedAt      pgtype.Timestamptz     `json:"updated_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
 	CreatedAt      pgtype.Timestamptz     `json:"created_at" swaggertype:"primitive,string" format:"date-time" example:"2025-02-09T09:38:25Z"`
+}
+
+type ProductTypeInfo struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
 }
 
 type ProductAttribute struct {
