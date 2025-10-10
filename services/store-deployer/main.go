@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 var (
@@ -28,6 +28,7 @@ var (
 	imagesBucketName    string
 	httpClient          = &http.Client{Timeout: 15 * time.Second}
 	rootCtx             = context.TODO()
+	logger              *zap.Logger
 )
 
 type StoreDeployer struct {
@@ -112,9 +113,20 @@ type Asset struct {
 }
 
 func init() {
-	// Load environment variables
+	// Initialize zap logger (production vs development)
+	var err error
+	if os.Getenv("ENVIRONMENT") == "production" {
+		logger, err = zap.NewProduction()
+	} else {
+		logger, err = zap.NewDevelopment()
+	}
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize logger: %v", err))
+	}
+
+	// Load environment variables (non-fatal if missing .env)
 	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: No .env file found, using system environment variables")
+		logger.Info(".env file not found, proceeding with existing environment")
 	}
 
 	// Initialize R2 client
@@ -126,7 +138,14 @@ func init() {
 	imagesBucketName = strings.TrimSpace(os.Getenv("CLOUDFLARE_R2_IMAGES_BUCKET_NAME"))
 
 	if accessKey == "" || secretKey == "" || endpoint == "" || storesBucketName == "" || templatesBucketName == "" || imagesBucketName == "" {
-		log.Fatal("Missing required R2 environment variables")
+		logger.Fatal("missing required R2 environment variables",
+			zap.Bool("has_access_key", accessKey != ""),
+			zap.Bool("has_secret", secretKey != ""),
+			zap.Bool("has_endpoint", endpoint != ""),
+			zap.Bool("has_stores_bucket", storesBucketName != ""),
+			zap.Bool("has_templates_bucket", templatesBucketName != ""),
+			zap.Bool("has_images_bucket", imagesBucketName != ""),
+		)
 	}
 
 	cfg, err := config.LoadDefaultConfig(rootCtx,
@@ -134,7 +153,7 @@ func init() {
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
 	if err != nil {
-		log.Fatalf("Failed to load AWS config: %v", err)
+		logger.Fatal("failed to load AWS config", zap.Error(err))
 	}
 
 	s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -142,11 +161,36 @@ func init() {
 		o.UsePathStyle = true
 	})
 
-	log.Printf("Store deployer initialized with stores bucket: %s, templates bucket: %s", storesBucketName, templatesBucketName)
+	logger.Info("store deployer initialized",
+		zap.String("stores_bucket", storesBucketName),
+		zap.String("templates_bucket", templatesBucketName),
+		zap.String("images_bucket", imagesBucketName),
+	)
 }
 
 func main() {
+	defer func() { _ = logger.Sync() }()
+
 	r := mux.NewRouter()
+
+	// Basic request logging middleware
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			start := time.Now()
+			// Wrap ResponseWriter to capture status
+			rw := &statusRecorder{ResponseWriter: w, status: 200}
+			next.ServeHTTP(rw, req)
+			latency := time.Since(start)
+			logger.Info("http_request",
+				zap.String("method", req.Method),
+				zap.String("path", req.URL.Path),
+				zap.Int("status", rw.status),
+				zap.Duration("latency", latency),
+				zap.String("remote_ip", req.RemoteAddr),
+				zap.String("user_agent", req.UserAgent()),
+			)
+		})
+	})
 
 	// Store deployment endpoints
 	r.HandleFunc("/deploy", deployStoreHandler).Methods("POST")
@@ -161,13 +205,26 @@ func main() {
 		port = "8001"
 	}
 
-	log.Printf("Store deployer service starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	logger.Info("starting store deployer service", zap.String("port", port))
+	if err := http.ListenAndServe(":"+port, r); err != nil {
+		logger.Fatal("server exited", zap.Error(err))
+	}
+}
+
+// statusRecorder helps capture HTTP status codes for logging
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	sr.status = code
+	sr.ResponseWriter.WriteHeader(code)
 }
 
 func (sd *StoreDeployer) DeployStore() (*DeploymentResponse, error) {
 	startTime := time.Now()
-	log.Printf("Starting deployment for shop %s (%s) using template %s", sd.ShopID, sd.Subdomain, sd.TemplateName)
+	logger.Info("starting deployment", zap.String("shop_id", sd.ShopID), zap.String("subdomain", sd.Subdomain), zap.String("template", sd.TemplateName))
 
 	// 1. Get template version to use
 	version, err := sd.resolveTemplateVersion()
@@ -215,7 +272,7 @@ func (sd *StoreDeployer) DeployStore() (*DeploymentResponse, error) {
 		DeployTime: deployTime.String(),
 	}
 
-	log.Printf("Successfully deployed store %s in %v", sd.Subdomain, deployTime)
+	logger.Info("deployment complete", zap.String("subdomain", sd.Subdomain), zap.Duration("deploy_time", deployTime), zap.String("shop_id", sd.ShopID))
 	return response, nil
 }
 
@@ -301,7 +358,7 @@ func (sd *StoreDeployer) fetchStoreData() (map[string]interface{}, error) {
 	// Shop query goroutine
 	go func() {
 		defer wg.Done()
-		log.Printf("[DEBUG] About to send shop GraphQL request to %s", backendURL)
+		logger.Debug("sending shop GraphQL request", zap.String("backend_url", backendURL), zap.String("subdomain", sd.Subdomain))
 		shopQuery := `query GetShop { shop { id title defaultDomain contactPhone contactEmail address { address } whatsAppNumber whatsAppLink facebookLink instagramLink images { siteLogo { url altText } siteLogoDark { url altText } favicon { url altText } banner { url altText } bannerDark { url altText } coverImage { url altText } coverImageDark { url altText } } currencyCode about shopProductsCategory seoDescription seoKeywords seoTitle paymentMethods { id name provider enabled config { publishableKey testMode } } categories(first: 100) { edges { node { id slug title description images { banner { url altText } } } } } } }`
 		shopReq := map[string]interface{}{
 			"query":     shopQuery,
@@ -309,16 +366,16 @@ func (sd *StoreDeployer) fetchStoreData() (map[string]interface{}, error) {
 		}
 		shopResp, shopErr = doGraphQLRequest(backendURL, shopReq, sd.Subdomain)
 		if shopErr != nil {
-			log.Printf("[ERROR] shop GraphQL request failed: %v", shopErr)
+			logger.Error("shop GraphQL request failed", zap.Error(shopErr), zap.String("subdomain", sd.Subdomain))
 		} else {
-			log.Printf("[DEBUG] shop GraphQL request succeeded")
+			logger.Debug("shop GraphQL request succeeded", zap.String("subdomain", sd.Subdomain))
 		}
 	}()
 
 	// Products query goroutine
 	go func() {
 		defer wg.Done()
-		log.Printf("[DEBUG] About to send products GraphQL request to %s", backendURL)
+		logger.Debug("sending products GraphQL request", zap.String("backend_url", backendURL), zap.String("subdomain", sd.Subdomain))
 		productsQuery := `query GetProducts($first: Int) { products(first: $first) { edges { node { id productId slug title description attributes { title value } defaultVariant { id variationId price availableQuantity description isDefault attributes { title value } stockStatus } variants { id variationId price availableQuantity description isDefault attributes { title value } stockStatus } images { url altText } updatedAt createdAt } } pageInfo { hasNextPage endCursor } totalCount } }`
 		productsReq := map[string]interface{}{
 			"query":     productsQuery,
@@ -326,9 +383,9 @@ func (sd *StoreDeployer) fetchStoreData() (map[string]interface{}, error) {
 		}
 		productsResp, productsErr = doGraphQLRequest(backendURL, productsReq, sd.Subdomain)
 		if productsErr != nil {
-			log.Printf("[ERROR] products GraphQL request failed: %v", productsErr)
+			logger.Error("products GraphQL request failed", zap.Error(productsErr), zap.String("subdomain", sd.Subdomain))
 		} else {
-			log.Printf("[DEBUG] products GraphQL request succeeded")
+			logger.Debug("products GraphQL request succeeded", zap.String("subdomain", sd.Subdomain))
 		}
 	}()
 
@@ -388,7 +445,7 @@ func doGraphQLRequest(url string, reqBody map[string]interface{}, subdomain stri
 }
 
 func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
-	log.Printf("Copying %d template assets for store %s", len(manifest.Assets), sd.Subdomain)
+	logger.Info("copying template assets", zap.Int("count", len(manifest.Assets)), zap.String("subdomain", sd.Subdomain))
 
 	templatePath := fmt.Sprintf("%s/%s", sd.TemplateName, sd.Version)
 	storePath := sd.Subdomain
@@ -412,16 +469,16 @@ func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
 			return fmt.Errorf("failed to copy asset %s: %v", asset.Path, err)
 		}
 
-		log.Printf("Copied asset: %s -> %s", sourceKey, destKey)
+		logger.Debug("copied asset", zap.String("source", sourceKey), zap.String("dest", destKey))
 	}
 
-	log.Printf("Successfully copied template assets to store path")
+	logger.Info("template assets copied", zap.String("subdomain", sd.Subdomain))
 	return nil
 }
 
 // Update uploadStoreData to accept map[string]interface{} and write raw data files
 func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error {
-	log.Printf("Uploading store data for %s", sd.Subdomain)
+	logger.Info("uploading store data", zap.String("subdomain", sd.Subdomain))
 
 	// Write raw data files as expected by the frontend
 	dataFiles := map[string]interface{}{
@@ -443,7 +500,7 @@ func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error
 		}
 	}
 
-	log.Printf("Successfully uploaded store data files")
+	logger.Info("store data files uploaded", zap.String("subdomain", sd.Subdomain))
 	return nil
 }
 
@@ -463,16 +520,16 @@ func (sd *StoreDeployer) uploadDataFile(filename string, data interface{}) error
 		CacheControl: aws.String("no-cache, no-store, must-revalidate"), // Data files should not be cached
 	})
 	if err != nil {
-		log.Printf("[ERROR] Failed to upload %s to R2: %v", key, err)
+		logger.Error("failed to upload data file", zap.String("key", key), zap.Error(err))
 	} else {
-		log.Printf("[DEBUG] Successfully uploaded %s to R2", key)
+		logger.Debug("uploaded data file", zap.String("key", key))
 	}
 	return err
 }
 
 // updateSelectiveData updates only specific data files based on the data type
 func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
-	log.Printf("Updating selective data for %s (type: %s)", sd.Subdomain, dataType)
+	logger.Info("updating selective data", zap.String("subdomain", sd.Subdomain), zap.String("data_type", dataType))
 
 	// Fetch store data based on the specific type
 	var dataToUpdate interface{}
@@ -514,10 +571,10 @@ func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 		"last_update_type": dataType,
 	}
 	if err := sd.uploadDataFile("metadata.json", metadata); err != nil {
-		log.Printf("Warning: failed to update metadata: %v", err)
+		logger.Warn("failed to update metadata", zap.Error(err), zap.String("subdomain", sd.Subdomain))
 	}
 
-	log.Printf("Successfully updated %s data", dataType)
+	logger.Info("selective data updated", zap.String("data_type", dataType), zap.String("subdomain", sd.Subdomain))
 	return nil
 }
 
@@ -529,7 +586,7 @@ func (sd *StoreDeployer) fetchShopDataOnly() (interface{}, error) {
 	}
 	backendURL = strings.TrimRight(backendURL, "/") + "/query"
 
-	log.Printf("[DEBUG] About to send shop GraphQL request to %s (fetchShopDataOnly)", backendURL)
+	logger.Debug("fetching shop data only", zap.String("backend_url", backendURL), zap.String("subdomain", sd.Subdomain))
 
 	shopQuery := map[string]interface{}{
 		"query": `
@@ -590,10 +647,10 @@ func (sd *StoreDeployer) fetchShopDataOnly() (interface{}, error) {
 
 	result, err := doGraphQLRequest(backendURL, shopQuery, sd.Subdomain)
 	if err != nil {
-		log.Printf("[ERROR] shop GraphQL request failed (fetchShopDataOnly): %v", err)
+		logger.Error("shop GraphQL request failed", zap.Error(err), zap.String("subdomain", sd.Subdomain))
 		return nil, err
 	}
-	log.Printf("[DEBUG] shop GraphQL request succeeded (fetchShopDataOnly)")
+	logger.Debug("shop GraphQL request succeeded", zap.String("subdomain", sd.Subdomain))
 
 	return result["shop"], nil
 }
@@ -605,7 +662,7 @@ func (sd *StoreDeployer) fetchProductsDataOnly() (interface{}, error) {
 	}
 	backendURL = strings.TrimRight(backendURL, "/") + "/query"
 
-	log.Printf("[DEBUG] About to send products GraphQL request to %s (fetchProductsDataOnly)", backendURL)
+	logger.Debug("fetching products data only", zap.String("backend_url", backendURL), zap.String("subdomain", sd.Subdomain))
 
 	productsQuery := map[string]interface{}{
 		"query": `
@@ -671,10 +728,10 @@ func (sd *StoreDeployer) fetchProductsDataOnly() (interface{}, error) {
 
 	result, err := doGraphQLRequest(backendURL, productsQuery, sd.Subdomain)
 	if err != nil {
-		log.Printf("[ERROR] products GraphQL request failed (fetchProductsDataOnly): %v", err)
+		logger.Error("products GraphQL request failed", zap.Error(err), zap.String("subdomain", sd.Subdomain))
 		return nil, err
 	}
-	log.Printf("[DEBUG] products GraphQL request succeeded (fetchProductsDataOnly)")
+	logger.Debug("products GraphQL request succeeded", zap.String("subdomain", sd.Subdomain))
 
 	return result, nil
 }
@@ -702,7 +759,7 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := deployer.DeployStore()
 	if err != nil {
-		log.Printf("Deployment failed: %v", err)
+		logger.Error("deployment failed", zap.Error(err), zap.String("subdomain", req.Subdomain), zap.String("shop_id", req.ShopID))
 		http.Error(w, fmt.Sprintf("Deployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -749,7 +806,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	response, err := deployer.DeployStore()
 	if err != nil {
-		log.Printf("Redeployment failed: %v", err)
+		logger.Error("redeployment failed", zap.Error(err), zap.String("subdomain", subdomain), zap.String("shop_id", req.ShopID))
 		http.Error(w, fmt.Sprintf("Redeployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -878,12 +935,12 @@ func cleanupStoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Starting cleanup for shop %s (subdomain: %s)", req.ShopID, subdomain)
+	logger.Info("starting cleanup", zap.String("shop_id", req.ShopID), zap.String("subdomain", subdomain))
 
 	// Perform the cleanup
 	err := cleanupStoreFiles(subdomain, req.ShopID)
 	if err != nil {
-		log.Printf("Cleanup failed for shop %s: %v", req.ShopID, err)
+		logger.Error("cleanup failed", zap.Error(err), zap.String("shop_id", req.ShopID), zap.String("subdomain", subdomain))
 		// Don't return error - log it but continue
 		// This ensures that database deletion isn't blocked by R2 issues
 		writeJSONResponse(w, map[string]interface{}{
@@ -911,7 +968,7 @@ func cleanupStoreFiles(subdomain, shopID string) error {
 
 	// 1. Delete deployed store files (stored under subdomain/ in stores bucket)
 	if subdomain != "" {
-		log.Printf("Cleaning up store files for subdomain: %s", subdomain)
+		logger.Info("cleaning up store files", zap.String("subdomain", subdomain))
 		if err := deleteDirectoryInBucket(storesBucketName, subdomain+"/"); err != nil {
 			errors = append(errors, fmt.Sprintf("failed to delete store files for subdomain %s: %v", subdomain, err))
 		}
@@ -919,13 +976,13 @@ func cleanupStoreFiles(subdomain, shopID string) error {
 
 	// 2. Delete shop images (stored under shops/{shopID}/images/ in images bucket)
 	shopImagesPrefix := fmt.Sprintf("shops/%s/images/", shopID)
-	log.Printf("Cleaning up shop images for shop: %s", shopID)
+	logger.Info("cleaning up shop images", zap.String("shop_id", shopID))
 	if err := deleteDirectoryInBucket(imagesBucketName, shopImagesPrefix); err != nil {
 		errors = append(errors, fmt.Sprintf("failed to delete shop images: %v", err))
 	}
 
 	// 3. Delete product images for this shop (stored under products/shop_{shopId}/ in images bucket)
-	log.Printf("Cleaning up product images for shop: %s", shopID)
+	logger.Info("cleaning up product images", zap.String("shop_id", shopID))
 	if err := cleanupProductImagesByShop(shopID); err != nil {
 		errors = append(errors, fmt.Sprintf("failed to delete product images: %v", err))
 	}
@@ -934,7 +991,7 @@ func cleanupStoreFiles(subdomain, shopID string) error {
 		return fmt.Errorf("cleanup errors: %s", strings.Join(errors, "; "))
 	}
 
-	log.Printf("Successfully cleaned up R2 files for shop %s (subdomain: %s)", shopID, subdomain)
+	logger.Info("cleanup complete", zap.String("shop_id", shopID), zap.String("subdomain", subdomain))
 	return nil
 }
 
@@ -947,7 +1004,7 @@ func deleteDirectoryInBucket(bucketName, prefix string) error {
 	}
 
 	if len(objects) == 0 {
-		log.Printf("No objects found with prefix: %s in bucket: %s", prefix, bucketName)
+		logger.Debug("no objects found", zap.String("prefix", prefix), zap.String("bucket", bucketName))
 		return nil
 	}
 
@@ -964,10 +1021,10 @@ func deleteDirectoryInBucket(bucketName, prefix string) error {
 			return fmt.Errorf("failed to delete batch in bucket %s: %v", bucketName, err)
 		}
 
-		log.Printf("Deleted %d objects from R2 bucket %s", len(batch), bucketName)
+		logger.Debug("deleted batch", zap.Int("count", len(batch)), zap.String("bucket", bucketName))
 	}
 
-	log.Printf("Successfully deleted %d objects with prefix: %s from bucket: %s", len(objects), prefix, bucketName)
+	logger.Info("objects deleted", zap.Int("count", len(objects)), zap.String("prefix", prefix), zap.String("bucket", bucketName))
 	return nil
 }
 
@@ -1022,17 +1079,17 @@ func deleteObjectsBatchInBucket(bucketName string, keys []string) error {
 // cleanupProductImagesByShop removes product images that belong to a specific shop
 // Uses the new shop-aware pattern: products/shop_{shopId}/
 func cleanupProductImagesByShop(shopID string) error {
-	log.Printf("Starting product image cleanup for shop %s", shopID)
+	logger.Info("starting product image cleanup", zap.String("shop_id", shopID))
 
 	// Delete shop-aware product images: products/shop_{shopId}/
 	shopProductsPrefix := fmt.Sprintf("products/shop_%s/", shopID)
 	err := deleteDirectoryInBucket(imagesBucketName, shopProductsPrefix)
 	if err != nil {
-		log.Printf("Failed to delete product images for shop %s: %v", shopID, err)
-		return fmt.Errorf("failed to delete product images for shop %s: %v", shopID, err)
+		logger.Error("failed to delete product images", zap.Error(err), zap.String("shop_id", shopID))
+		return fmt.Errorf("failed to delete product images for shop %s: %w", shopID, err)
 	}
 
-	log.Printf("Successfully cleaned up product images for shop %s", shopID)
+	logger.Info("product image cleanup complete", zap.String("shop_id", shopID))
 	return nil
 }
 
