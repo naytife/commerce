@@ -20,14 +20,14 @@ type Template struct {
 
 // TemplateUploadRequest represents a request to upload a new template
 type TemplateUploadRequest struct {
-	TemplateName string   `form:"template_name" validate:"required" json:"template_name"`
-	Version      string   `form:"version" json:"version,omitempty"`
-	Description  string   `form:"description" json:"description,omitempty"`
-	Category     string   `form:"category" json:"category,omitempty"`
-	Features     string   `form:"features" json:"features,omitempty"` // Comma-separated list
-	Force        bool     `form:"force" json:"force,omitempty"`
-	Assets       string   `form:"assets" swaggertype:"string" format:"binary" json:"assets"` // File upload
-	PreviewImage string   `form:"preview_image" swaggertype:"string" format:"binary" json:"preview_image,omitempty"` // Optional file upload
+	TemplateName string `form:"template_name" validate:"required" json:"template_name"`
+	Version      string `form:"version" json:"version,omitempty"`
+	Description  string `form:"description" json:"description,omitempty"`
+	Category     string `form:"category" json:"category,omitempty"`
+	Features     string `form:"features" json:"features,omitempty"` // Comma-separated list
+	Force        bool   `form:"force" json:"force,omitempty"`
+	Assets       string `form:"assets" swaggertype:"string" format:"binary" json:"assets"`                         // File upload
+	PreviewImage string `form:"preview_image" swaggertype:"string" format:"binary" json:"preview_image,omitempty"` // Optional file upload
 }
 
 // TemplateVersion represents a specific version of a template
