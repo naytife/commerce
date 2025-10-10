@@ -237,10 +237,18 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 
 // ProxyUploadTemplate proxies template uploads to the template-registry
 // @Summary Upload a new template
-// @Description Proxy upload requests to template-registry
+// @Description Upload a new template with assets and optional preview image. The assets should be a tar.gz archive containing the template files.
 // @Tags templates
 // @Accept multipart/form-data
 // @Produce json
+// @Param template_name formData string true "Template name"
+// @Param version formData string false "Template version (auto-generated if not provided)"
+// @Param description formData string false "Template description"
+// @Param category formData string false "Template category"
+// @Param features formData string false "Comma-separated list of features"
+// @Param force formData boolean false "Force upload even if version exists"
+// @Param assets formData file true "Template assets archive (tar.gz)"
+// @Param preview_image formData file false "Preview image for the template"
 // @Success 200 {object} models.SuccessResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
