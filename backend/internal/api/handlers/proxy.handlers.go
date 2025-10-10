@@ -248,7 +248,7 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 // @Security     OAuth2AccessCode
 // @Router       /templates/upload [post]
 func (h *ProxyHandler) ProxyUploadTemplate(c *fiber.Ctx) error {
-	return h.proxyRequest(c, h.TemplateRegistryURL, "/upload")
+	return h.proxyRequest(c, h.TemplateRegistryURL, "/templates/upload")
 }
 
 // @Summary      Deploy a store
