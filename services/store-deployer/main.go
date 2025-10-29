@@ -486,8 +486,21 @@ func (sd *StoreDeployer) copyTemplateAssets(manifest *TemplateManifest) error {
 func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error {
 	logger.Info("uploading store data", zap.String("subdomain", sd.Subdomain))
 
-	// Transform products data to optimized format
-	optimizedProducts := transformProductsForStatic(storeData["products"])
+	// Extract and transform products data to optimized format
+	var optimizedProducts interface{}
+	productsData := storeData["products"]
+	if productsMap, ok := productsData.(map[string]interface{}); ok {
+		// Extract the nested products object from GraphQL response
+		if productsObj := productsMap["products"]; productsObj != nil {
+			optimizedProducts = transformProductsForStatic(productsObj)
+		} else {
+			logger.Warn("products field not found in GraphQL response", zap.String("subdomain", sd.Subdomain))
+			optimizedProducts = map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
+		}
+	} else {
+		logger.Warn("products data is not a map", zap.String("subdomain", sd.Subdomain))
+		optimizedProducts = map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
+	}
 
 	// Write raw data files as expected by the frontend
 	dataFiles := map[string]interface{}{
@@ -541,13 +554,20 @@ func (sd *StoreDeployer) uploadDataFile(filename string, data interface{}) error
 func transformProductsForStatic(productsData interface{}) map[string]interface{} {
 	productsMap, ok := productsData.(map[string]interface{})
 	if !ok {
-		logger.Warn("products data is not a map, returning as-is")
+		logger.Warn("products data is not a map, returning empty", zap.String("type", fmt.Sprintf("%T", productsData)))
 		return map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
 	}
 
-	edges, _ := productsMap["edges"].([]interface{})
+	edges, ok := productsMap["edges"].([]interface{})
+	if !ok {
+		logger.Warn("edges field not found or invalid in products data", zap.Any("available_keys", getMapKeys(productsMap)))
+		return map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
+	}
+	
 	pageInfo, _ := productsMap["pageInfo"].(map[string]interface{})
 	totalCount, _ := productsMap["totalCount"].(float64)
+
+	logger.Debug("transforming products", zap.Int("edge_count", len(edges)), zap.Float64("total_count", totalCount))
 
 	optimizedItems := make([]interface{}, 0, len(edges))
 
@@ -744,8 +764,22 @@ func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 		if err != nil {
 			return fmt.Errorf("failed to fetch products data: %v", err)
 		}
-		// Transform products to optimized format
-		dataToUpdate = transformProductsForStatic(productsData)
+		
+		// Extract the products object from the GraphQL response
+		productsResult, ok := productsData.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("invalid products data format")
+		}
+		
+		productsObj := productsResult["products"]
+		if productsObj == nil {
+			logger.Warn("products field not found in GraphQL response", zap.String("subdomain", sd.Subdomain))
+			// Return empty products structure
+			dataToUpdate = map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
+		} else {
+			// Transform products to optimized format
+			dataToUpdate = transformProductsForStatic(productsObj)
+		}
 		filename = "products.json"
 
 	default:
@@ -1288,6 +1322,14 @@ func cleanupProductImagesByShop(shopID string) error {
 }
 
 // Helper functions
+
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
 
 func getCurrentDeploymentInfo(subdomain string) (map[string]interface{}, error) {
 	metadataKey := fmt.Sprintf("%s/data/metadata.json", subdomain)
