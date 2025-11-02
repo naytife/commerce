@@ -30,12 +30,12 @@ func NewProxyHandler(repo db.Repository) *ProxyHandler {
 	// Get service URLs from environment variables with fallback defaults
 	templateRegistryURL := os.Getenv("TEMPLATE_REGISTRY_URL")
 	if templateRegistryURL == "" {
-		templateRegistryURL = "http://template-registry:9001" // Default for Kubernetes
+		templateRegistryURL = "http://template-registry:8002" // Default for Kubernetes
 	}
 
 	storeDeployerURL := os.Getenv("STORE_DEPLOYER_URL")
 	if storeDeployerURL == "" {
-		storeDeployerURL = "http://store-deployer:9003" // Default for Kubernetes
+		storeDeployerURL = "http://store-deployer:8001" // Default for Kubernetes
 	}
 
 	return &ProxyHandler{
@@ -236,18 +236,19 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 }
 
 // ProxyUploadTemplate proxies template uploads to the template-registry
-// @Summary Upload a new template
-// @Description Proxy upload requests to template-registry
-// @Tags templates
-// @Accept multipart/form-data
-// @Produce json
-// @Success 200 {object} models.SuccessResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-// @Security OAuth2AccessCode
-// @Router /templates/upload [post]
+// @Summary      Upload a new template
+// @Description  Upload a new template with assets and optional preview image. The assets should be a tar.gz archive containing the template files.
+// @Tags         templates
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file  formData  models.TemplateUploadRequest  true  "Template upload data"
+// @Success      200  {object}  models.SuccessResponse
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Security     OAuth2AccessCode
+// @Router       /templates/upload [post]
 func (h *ProxyHandler) ProxyUploadTemplate(c *fiber.Ctx) error {
-	return h.proxyRequest(c, h.TemplateRegistryURL, "/upload")
+	return h.proxyRequest(c, h.TemplateRegistryURL, "/templates/upload")
 }
 
 // @Summary      Deploy a store

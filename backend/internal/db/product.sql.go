@@ -154,6 +154,10 @@ SELECT
     p.updated_at,
     p.created_at,
 
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
+
     -- Aggregate attributes separately to prevent duplication
     (
         SELECT COALESCE(
@@ -226,6 +230,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.product_id = $1 AND p.shop_id = $2
 `
 
@@ -235,17 +240,19 @@ type GetProductParams struct {
 }
 
 type GetProductRow struct {
-	ProductID   int64              `json:"product_id"`
-	Title       string             `json:"title"`
-	Slug        string             `json:"slug"`
-	Description string             `json:"description"`
-	Status      ProductStatus      `json:"status"`
-	CategoryID  *int64             `json:"category_id"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  []byte             `json:"attributes"`
-	Variants    []byte             `json:"variants"`
-	Images      []byte             `json:"images"`
+	ProductID        int64              `json:"product_id"`
+	Title            string             `json:"title"`
+	Slug             string             `json:"slug"`
+	Description      string             `json:"description"`
+	Status           ProductStatus      `json:"status"`
+	CategoryID       *int64             `json:"category_id"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ProductTypeID    *int64             `json:"product_type_id"`
+	ProductTypeTitle *string            `json:"product_type_title"`
+	Attributes       []byte             `json:"attributes"`
+	Variants         []byte             `json:"variants"`
+	Images           []byte             `json:"images"`
 }
 
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
@@ -260,6 +267,8 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.CategoryID,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.ProductTypeID,
+		&i.ProductTypeTitle,
 		&i.Attributes,
 		&i.Variants,
 		&i.Images,
@@ -377,6 +386,10 @@ SELECT
     p.updated_at,
     p.created_at,
 
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
+
     -- Product attributes
     (
         SELECT COALESCE(
@@ -449,6 +462,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.shop_id = $1 
 AND p.product_id > $2
 ORDER BY p.product_id
@@ -462,17 +476,19 @@ type GetProductsParams struct {
 }
 
 type GetProductsRow struct {
-	ProductID   int64              `json:"product_id"`
-	Slug        string             `json:"slug"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Status      ProductStatus      `json:"status"`
-	CategoryID  *int64             `json:"category_id"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  []byte             `json:"attributes"`
-	Variants    []byte             `json:"variants"`
-	Images      []byte             `json:"images"`
+	ProductID        int64              `json:"product_id"`
+	Slug             string             `json:"slug"`
+	Title            string             `json:"title"`
+	Description      string             `json:"description"`
+	Status           ProductStatus      `json:"status"`
+	CategoryID       *int64             `json:"category_id"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ProductTypeID    *int64             `json:"product_type_id"`
+	ProductTypeTitle *string            `json:"product_type_title"`
+	Attributes       []byte             `json:"attributes"`
+	Variants         []byte             `json:"variants"`
+	Images           []byte             `json:"images"`
 }
 
 func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]GetProductsRow, error) {
@@ -493,6 +509,8 @@ func (q *Queries) GetProducts(ctx context.Context, arg GetProductsParams) ([]Get
 			&i.CategoryID,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.ProductTypeID,
+			&i.ProductTypeTitle,
 			&i.Attributes,
 			&i.Variants,
 			&i.Images,
@@ -578,6 +596,10 @@ SELECT
     p.updated_at,
     p.created_at,
 
+    -- Product type info
+    pt.product_type_id AS product_type_id,
+    pt.title AS product_type_title,
+
     -- Aggregate attributes separately
     (
         SELECT COALESCE(
@@ -650,6 +672,7 @@ SELECT
     )::jsonb AS images
 
 FROM products p
+LEFT JOIN product_types pt ON p.product_type_id = pt.product_type_id
 WHERE p.shop_id = $1 
 AND p.product_type_id = $2
 AND p.product_id > $3
@@ -665,17 +688,19 @@ type GetProductsByTypeParams struct {
 }
 
 type GetProductsByTypeRow struct {
-	ProductID   int64              `json:"product_id"`
-	Slug        string             `json:"slug"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Status      ProductStatus      `json:"status"`
-	CategoryID  *int64             `json:"category_id"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	Attributes  interface{}        `json:"attributes"`
-	Variants    []byte             `json:"variants"`
-	Images      []byte             `json:"images"`
+	ProductID        int64              `json:"product_id"`
+	Slug             string             `json:"slug"`
+	Title            string             `json:"title"`
+	Description      string             `json:"description"`
+	Status           ProductStatus      `json:"status"`
+	CategoryID       *int64             `json:"category_id"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ProductTypeID    *int64             `json:"product_type_id"`
+	ProductTypeTitle *string            `json:"product_type_title"`
+	Attributes       interface{}        `json:"attributes"`
+	Variants         []byte             `json:"variants"`
+	Images           []byte             `json:"images"`
 }
 
 func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypeParams) ([]GetProductsByTypeRow, error) {
@@ -701,6 +726,8 @@ func (q *Queries) GetProductsByType(ctx context.Context, arg GetProductsByTypePa
 			&i.CategoryID,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.ProductTypeID,
+			&i.ProductTypeTitle,
 			&i.Attributes,
 			&i.Variants,
 			&i.Images,

@@ -1,17 +1,11 @@
-name: Build & Push Docker Images (Flux will update manifests via Image Automation)
+name: Build & Push Docker Images + Bump GitOps
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "staging" ]
-    paths:
-      - "backend/**"
-      - "auth/**"
-      - "services/store-deployer/**"
-      - "services/template-registry/**"
-      - "migrations.Dockerfile"
-      - ".github/workflows/*.yml"
-      - ".github/workflows/*.yaml"
+    branches:
+      - staging
+      - dev
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +14,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   REPO_PATH: ${{ github.repository }}                 # owner/repo
-  # IMAGE_TAG is computed per-build in each job as: <branch>-<short-sha>-<timestamp>
+  IMAGE_TAG: ${{ github.sha }}                        # immutable tag used in GitOps bump
 
 jobs:
   changes:
@@ -30,13 +24,16 @@ jobs:
       auth: ${{ steps.filter.outputs.auth }}
       store: ${{ steps.filter.outputs.store }}
       registry: ${{ steps.filter.outputs.registry }}
-      migrations: ${{ steps.filter.outputs.migrations }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.event.before }}
+          ref: ${{ github.sha }}
           filters: |
             backend:
               - 'backend/**'
@@ -46,28 +43,20 @@ jobs:
               - 'services/store-deployer/**'
             registry:
               - 'services/template-registry/**'
-            migrations:
-              - 'backend/migrations.Dockerfile'
 
   build-backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true' && contains(github.event.head_commit.message, '[skip-ci]') == false
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
 
-      - id: tag
-        run: |
-          # Compute tag: <branch>-<short-sha>-<timestamp>
-          GIT_BRANCH=${GITHUB_REF#refs/heads/}
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+      - name: Skip note (no backend changes)
+        if: needs.changes.outputs.backend != 'true'
+        run: echo "No changes in backend/**. Skipping backend image build."
 
       - name: Log in to GitHub Container Registry
+        if: needs.changes.outputs.backend == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -75,11 +64,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
+        if: needs.changes.outputs.backend == 'true'
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: image=moby/buildkit:latest
 
       - name: Build & Push backend
+        if: needs.changes.outputs.backend == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -87,32 +78,33 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:${{ steps.tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-auth-handler:
     needs: changes
-    if: needs.changes.outputs.auth == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
-      - id: tag
-        run: |
-          GIT_BRANCH=${GITHUB_REF#refs/heads/}
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Skip note (no auth changes)
+        if: needs.changes.outputs.auth != 'true'
+        run: echo "No changes in auth/**. Skipping auth-handler image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.auth == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.auth == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push auth-handler
+        if: needs.changes.outputs.auth == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./auth/authentication-handler
@@ -120,32 +112,33 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:${{ steps.tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/auth-handler:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-store-deployer:
     needs: changes
-    if: needs.changes.outputs.store == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
-      - id: tag
-        run: |
-          GIT_BRANCH=${GITHUB_REF#refs/heads/}
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Skip note (no store-deployer changes)
+        if: needs.changes.outputs.store != 'true'
+        run: echo "No changes in services/store-deployer/**. Skipping store-deployer image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.store == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.store == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push store-deployer
+        if: needs.changes.outputs.store == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./services/store-deployer
@@ -153,32 +146,33 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:${{ steps.tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/store-deployer:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   build-template-registry:
     needs: changes
-    if: needs.changes.outputs.registry == 'true'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
-      - id: tag
-        run: |
-          GIT_BRANCH=${GITHUB_REF#refs/heads/}
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Skip note (no template-registry changes)
+        if: needs.changes.outputs.registry != 'true'
+        run: echo "No changes in services/template-registry/**. Skipping template-registry image build."
+
       - uses: docker/login-action@v3
+        if: needs.changes.outputs.registry == 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+        if: needs.changes.outputs.registry == 'true'
         with:
           driver-opts: image=moby/buildkit:latest
       - name: Build & Push template-registry
+        if: needs.changes.outputs.registry == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./services/template-registry
@@ -186,41 +180,139 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ steps.tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/template-registry:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-migrations:
-    needs: changes
-    if: needs.changes.outputs.migrations == 'true'
+  infra-bump:
+    name: Update commerce-infra compose per-branch with digests
+    needs:
+      - changes
+      - build-backend
+      - build-auth-handler
+      - build-store-deployer
+      - build-template-registry
     runs-on: ubuntu-latest
-    permissions: { contents: read, packages: write }
+    # Requires a repo-scoped Fine-Grained PAT in this repo secrets as INFRA_PUSH_TOKEN with contents:write to naytife/commerce-infra
+    permissions:
+      contents: read
+    env:
+      INFRA_REPO: naytife/commerce-infra
+      INFRA_BRANCH: ${{ github.ref_name }}
+      INFRA_PUSH_TOKEN: ${{ secrets.INFRA_PUSH_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - id: tag
+      - name: Skip note (no INFRA_PUSH_TOKEN configured)
+        if: ${{ env.INFRA_PUSH_TOKEN == '' }}
+        run: echo "Secret INFRA_PUSH_TOKEN not configured. Skipping infra bump."
+
+      - name: Checkout commerce-infra repo
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.INFRA_REPO }}
+          token: ${{ env.INFRA_PUSH_TOKEN }}
+          ref: ${{ env.INFRA_BRANCH }}
+          fetch-depth: 0
+
+      - name: Install yq, jq, skopeo
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
         run: |
-          GIT_BRANCH=${GITHUB_REF#refs/heads/}
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          IMAGE_TAG="${GIT_BRANCH}-${GIT_SHA_SHORT}-$(date +%s)"
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: image=moby/buildkit:latest
-      - name: Build & Push migrations
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/migrations.Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:latest
-            ${{ env.REGISTRY }}/${{ env.REPO_PATH }}/backend-migrations:${{ steps.tag.outputs.image_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          set -euo pipefail
+          sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+          sudo chmod +x /usr/local/bin/yq
+          sudo apt-get update -y
+          sudo apt-get install -y jq skopeo
+          yq --version
+          jq --version
+          skopeo --version
 
+      - name: Login to GHCR (for digest lookup)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          echo "Logging into ${REGISTRY} as ${GITHUB_ACTOR} for digest inspection"
+          skopeo login ${REGISTRY} -u "${GITHUB_ACTOR}" -p "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Generate docker-compose.apps.{branch}.yml (full, pinned)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          BASE="docker-compose.apps.yml"
+          FILE="docker-compose.apps.${INFRA_BRANCH}.yml"
+          echo "Using IMAGE_TAG=${IMAGE_TAG} to generate ${FILE} from ${BASE} in ${INFRA_REPO} (${INFRA_BRANCH})"
+
+          # Ensure base compose exists
+          if [ ! -s "$BASE" ]; then
+            echo "ERROR: $BASE not found or empty in ${INFRA_REPO}. Aborting."
+            exit 1
+          fi
+          # If a per-branch compose already exists, keep it to preserve previous pinned digests.
+          # Otherwise, initialize it from the base compose file.
+          if [ -s "$FILE" ]; then
+            echo "Detected existing $FILE, updating in place to preserve prior pinned digests."
+          else
+            cp -f "$BASE" "$FILE"
+          fi
+
+          # Update only images that were rebuilt in this run
+          backend_changed='${{ needs.changes.outputs.backend }}'
+          auth_changed='${{ needs.changes.outputs.auth }}'
+          store_changed='${{ needs.changes.outputs.store }}'
+          registry_changed='${{ needs.changes.outputs.registry }}'
+
+          if [ "${backend_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/backend"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            BACKEND_IMG="${IMAGE_NAME}@${DIGEST}"
+            export BACKEND_IMG
+            yq -i '.services.backend.image = env(BACKEND_IMG)' "$FILE"
+          else
+            echo "Skip backend (no backend changes)"
+          fi
+          if [ "${auth_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/auth-handler"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            AUTH_IMG="${IMAGE_NAME}@${DIGEST}"
+            export AUTH_IMG
+            yq -i '.services["auth-handler"].image = env(AUTH_IMG)' "$FILE"
+          else
+            echo "Skip auth-handler (no auth changes)"
+          fi
+          if [ "${registry_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/template-registry"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            TEMPLATE_IMG="${IMAGE_NAME}@${DIGEST}"
+            export TEMPLATE_IMG
+            yq -i '.services["template-registry"].image = env(TEMPLATE_IMG)' "$FILE"
+          else
+            echo "Skip template-registry (no template-registry changes)"
+          fi
+          if [ "${store_changed}" = "true" ]; then
+            IMAGE_NAME="${REGISTRY}/${REPO_PATH}/store-deployer"
+            DIGEST=$(skopeo inspect docker://"${IMAGE_NAME}:${IMAGE_TAG}" | jq -r '.Digest')
+            STORE_IMG="${IMAGE_NAME}@${DIGEST}"
+            export STORE_IMG
+            yq -i '.services["store-deployer"].image = env(STORE_IMG)' "$FILE"
+          else
+            echo "Skip store-deployer (no store-deployer changes)"
+          fi
+          echo "Preview changes:"
+          git --no-pager diff "$FILE" || true
+
+      - name: Commit & push infra changes (if any)
+        if: ${{ env.INFRA_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          FILE="docker-compose.apps.${INFRA_BRANCH}.yml"
+
+          # Detect changes including new/untracked file (git diff ignores untracked files)
+          if ! git status --porcelain -- "$FILE" | grep -q .; then
+            echo "No infra changes to commit."
+            exit 0
+          fi
+
+          git config user.name  "gitops-bot"
+          git config user.email "gitops-bot@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "infra: generate docker-compose.apps.${INFRA_BRANCH}.yml with images pinned to ${IMAGE_TAG} digests [skip-ci]"
+          git push origin "${INFRA_BRANCH}"

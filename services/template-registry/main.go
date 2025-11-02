@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -24,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 var (
@@ -31,6 +31,7 @@ var (
 	bucketName string
 	publicURL  string
 	rootCtx    = context.TODO()
+	logger     *zap.Logger
 )
 
 // TemplateRegistry manages pre-built template assets and metadata
@@ -105,9 +106,20 @@ type Template struct {
 }
 
 func init() {
-	// Load environment variables
+	// Initialize zap logger (production vs development)
+	var err error
+	if os.Getenv("ENVIRONMENT") == "production" {
+		logger, err = zap.NewProduction()
+	} else {
+		logger, err = zap.NewDevelopment()
+	}
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize logger: %v", err))
+	}
+
+	// Load environment variables (non-fatal if missing .env)
 	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: No .env file found, using system environment variables")
+		logger.Info(".env file not found, proceeding with existing environment")
 	}
 
 	accessKeyID := os.Getenv("CLOUDFLARE_R2_ACCESS_KEY_ID")
@@ -117,7 +129,13 @@ func init() {
 	publicURL = os.Getenv("CLOUDFLARE_R2_PUBLIC_URL")
 
 	if accessKeyID == "" || secretAccessKey == "" || endpoint == "" || bucketName == "" || publicURL == "" {
-		log.Fatal("Missing required Cloudflare R2 environment variables")
+		logger.Fatal("missing required Cloudflare R2 environment variables",
+			zap.Bool("has_access_key", accessKeyID != ""),
+			zap.Bool("has_secret", secretAccessKey != ""),
+			zap.Bool("has_endpoint", endpoint != ""),
+			zap.Bool("has_bucket", bucketName != ""),
+			zap.Bool("has_public_url", publicURL != ""),
+		)
 	}
 
 	cfg, err := config.LoadDefaultConfig(rootCtx,
@@ -126,7 +144,7 @@ func init() {
 		config.WithRegion("auto"),
 	)
 	if err != nil {
-		log.Fatalf("Failed to load AWS config: %v", err)
+		logger.Fatal("failed to load AWS config", zap.Error(err))
 	}
 
 	s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -134,11 +152,32 @@ func init() {
 		o.UsePathStyle = true
 	})
 
-	log.Printf("Template Registry initialized with R2 bucket: %s", bucketName)
+	logger.Info("template registry initialized", zap.String("bucket", bucketName))
 }
 
 func main() {
+	defer func() { _ = logger.Sync() }()
+
 	r := mux.NewRouter()
+
+	// Basic request logging middleware
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			start := time.Now()
+			// Wrap ResponseWriter to capture status
+			rw := &statusRecorder{ResponseWriter: w, status: 200}
+			next.ServeHTTP(rw, req)
+			latency := time.Since(start)
+			logger.Info("http_request",
+				zap.String("method", req.Method),
+				zap.String("path", req.URL.Path),
+				zap.Int("status", rw.status),
+				zap.Duration("latency", latency),
+				zap.String("remote_ip", req.RemoteAddr),
+				zap.String("user_agent", req.UserAgent()),
+			)
+		})
+	})
 
 	// Template registry endpoints
 	r.HandleFunc("/templates", listTemplatesHandler).Methods("GET")
@@ -152,11 +191,24 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "9001"
+		port = "8002"
 	}
 
-	log.Printf("Template Registry starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	logger.Info("starting template registry service", zap.String("port", port))
+	if err := http.ListenAndServe(":"+port, r); err != nil {
+		logger.Fatal("server exited", zap.Error(err))
+	}
+}
+
+// statusRecorder helps capture HTTP status codes for logging
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sr *statusRecorder) WriteHeader(code int) {
+	sr.status = code
+	sr.ResponseWriter.WriteHeader(code)
 }
 
 // uploadTemplateHandler handles template upload requests
@@ -233,16 +285,16 @@ func uploadTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		defer previewImageFile.Close()
 	}
 
-	log.Printf("Uploading template: %s version %s (%s)", templateName, version, handler.Filename)
+	logger.Info("uploading template", zap.String("template", templateName), zap.String("version", version), zap.String("filename", handler.Filename), zap.Bool("force", force))
 	if hasPreviewImage {
-		log.Printf("Preview image included: %s", previewImageHandler.Filename)
+		logger.Info("preview image included", zap.String("file", previewImageHandler.Filename))
 	}
 
 	// Check if template version already exists (unless forced)
 	if !force {
 		exists, err := templateVersionExists(templateName, version)
 		if err != nil {
-			log.Printf("Error checking template version: %v", err)
+			logger.Warn("failed to check existing template version", zap.Error(err), zap.String("template", templateName), zap.String("version", version))
 		} else if exists {
 			writeJSONResponse(w, map[string]interface{}{
 				"status":  "skipped",
@@ -263,14 +315,14 @@ func uploadTemplateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := registry.UploadTemplate(file, handler.Size, previewImageFile, previewImageHandler); err != nil {
-		log.Printf("Upload failed: %v", err)
+		logger.Error("template upload failed", zap.Error(err), zap.String("template", templateName), zap.String("version", version))
 		http.Error(w, fmt.Sprintf("Upload failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Update latest pointer
 	if err := updateLatestPointer(templateName, version); err != nil {
-		log.Printf("Failed to update latest pointer: %v", err)
+		logger.Warn("failed to update latest version pointer", zap.Error(err), zap.String("template", templateName), zap.String("version", version))
 		// Don't fail the upload for this
 	}
 
@@ -285,7 +337,7 @@ func uploadTemplateHandler(w http.ResponseWriter, r *http.Request) {
 
 // UploadTemplate uploads a template archive to R2
 func (tr *TemplateRegistry) UploadTemplate(file io.Reader, size int64, previewImageFile multipart.File, previewImageHandler *multipart.FileHeader) error {
-	log.Printf("Starting upload for template %s version %s", tr.TemplateName, tr.Version)
+	logger.Info("starting template upload", zap.String("template", tr.TemplateName), zap.String("version", tr.Version))
 
 	// Create temporary directory for extraction
 	tempDir, err := os.MkdirTemp("", "template_upload_*")
@@ -308,27 +360,27 @@ func (tr *TemplateRegistry) UploadTemplate(file io.Reader, size int64, previewIm
 	// Generate manifest
 	manifest, err := tr.generateManifest(buildDir)
 	if err != nil {
-		return fmt.Errorf("failed to generate manifest: %v", err)
+		return fmt.Errorf("failed to generate manifest: %w", err)
 	}
 
 	// Upload preview image if provided
 	if previewImageFile != nil && previewImageHandler != nil {
 		thumbnailURL, err := tr.uploadPreviewImage(previewImageFile, previewImageHandler)
 		if err != nil {
-			log.Printf("Failed to upload preview image: %v", err)
+			logger.Warn("failed to upload preview image", zap.Error(err), zap.String("template", tr.TemplateName), zap.String("version", tr.Version))
 			// Don't fail the whole upload for preview image issues
 		} else {
 			manifest.ThumbnailURL = thumbnailURL
-			log.Printf("Preview image uploaded successfully: %s", thumbnailURL)
+			logger.Info("preview image uploaded", zap.String("url", thumbnailURL), zap.String("template", tr.TemplateName), zap.String("version", tr.Version))
 		}
 	}
 
 	// Upload assets to R2
 	if err := tr.uploadAssetsToR2(buildDir, manifest); err != nil {
-		return fmt.Errorf("failed to upload assets to R2: %v", err)
+		return fmt.Errorf("failed to upload assets to R2: %w", err)
 	}
 
-	log.Printf("Successfully uploaded template %s version %s", tr.TemplateName, tr.Version)
+	logger.Info("template upload complete", zap.String("template", tr.TemplateName), zap.String("version", tr.Version))
 	return nil
 }
 
@@ -503,7 +555,7 @@ func (tr *TemplateRegistry) uploadAssetsToR2(buildDir string, manifest *Template
 			return fmt.Errorf("failed to upload asset %s: %v", asset.Path, err)
 		}
 
-		log.Printf("Uploaded asset: %s", s3Key)
+		logger.Debug("uploaded asset", zap.String("key", s3Key))
 	}
 
 	// Upload manifest
@@ -521,7 +573,7 @@ func (tr *TemplateRegistry) uploadAssetsToR2(buildDir string, manifest *Template
 		return fmt.Errorf("failed to upload manifest: %v", err)
 	}
 
-	log.Printf("Uploaded manifest: %s", manifestKey)
+	logger.Info("manifest uploaded", zap.String("key", manifestKey), zap.String("template", tr.TemplateName), zap.String("version", tr.Version))
 	return nil
 }
 
@@ -564,7 +616,7 @@ func (tr *TemplateRegistry) uploadPreviewImage(previewImageFile multipart.File, 
 	// Use the public CDN URL directly
 	publicPreviewURL := fmt.Sprintf("%s/%s", publicURL, s3Key)
 
-	log.Printf("Uploaded preview image: %s", s3Key)
+	logger.Info("uploaded preview image", zap.String("key", s3Key))
 	return publicPreviewURL, nil
 }
 

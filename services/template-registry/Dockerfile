@@ -28,7 +28,7 @@ WORKDIR /root/
 COPY --from=builder /app/template-registry .
 
 # Expose port
-EXPOSE 9001
+EXPOSE 8002
 
 # Run the binary
 CMD ["./template-registry"]

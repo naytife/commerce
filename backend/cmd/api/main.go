@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,9 @@ import (
 	"github.com/petrejonn/naytife/internal/middleware"
 	"github.com/petrejonn/naytife/internal/services"
 	"go.uber.org/zap"
+
+	// Import generated swagger docs package if present
+	docs "github.com/petrejonn/naytife/docs"
 )
 
 // @title Naytife API Docs
@@ -73,7 +77,7 @@ func main() {
 				logger.Warn("Failed to connect to Redis", zap.Error(err))
 				redisClient = nil
 			} else {
-				logger.Info("✅ Connected to Redis successfully")
+				logger.Info("✅ Connected to Redis successfully!")
 			}
 		}
 	}
@@ -161,7 +165,73 @@ func main() {
 	})
 
 	app.Get("/v1/docs/swagger.json", func(c *fiber.Ctx) error {
-		return c.SendFile("docs/swagger.json")
+		// Start from generated swagger (by swag init)
+		raw := docs.SwaggerInfo.ReadDoc()
+		var spec map[string]any
+		if err := json.Unmarshal([]byte(raw), &spec); err != nil {
+			// Fallback to serving the static file if parsing fails
+			return c.SendFile("docs/swagger.json")
+		}
+
+		// Ensure servers reflect current environment
+		serverURL := fmt.Sprintf("%s/v1", env.API_URL)
+		envName := env.ENV
+		if envName == "" {
+			envName = "default"
+		}
+		spec["servers"] = []map[string]string{{
+			"url":         serverURL,
+			"description": envName,
+		}}
+
+		// Update OAuth2 authorization/token URLs if available
+		authBase := env.AUTH_URL
+		if authBase == "" {
+			// sensible default: use API_URL root if AUTH_URL not provided
+			authBase = env.API_URL
+		}
+
+		// Navigate to components.securitySchemes to adjust OAuth flows
+		if compAny, ok := spec["components"]; ok {
+			if comp, ok := compAny.(map[string]any); ok {
+				if secAny, ok := comp["securitySchemes"]; ok {
+					if sec, ok := secAny.(map[string]any); ok {
+						// Try common keys produced by swag for oauth2 accessCode/authorizationCode
+						for _, key := range []string{"OAuth2AccessCode", "OAuth2", "oauth2"} {
+							if schemeAny, ok := sec[key]; ok {
+								if scheme, ok := schemeAny.(map[string]any); ok {
+									if flowsAny, ok := scheme["flows"]; ok {
+										if flows, ok := flowsAny.(map[string]any); ok {
+											// authorizationCode flow is typical for access code
+											if acAny, ok := flows["authorizationCode"]; ok {
+												if ac, ok := acAny.(map[string]any); ok {
+													ac["authorizationUrl"] = fmt.Sprintf("%s/oauth2/auth", authBase)
+													ac["tokenUrl"] = fmt.Sprintf("%s/oauth2/token", authBase)
+												}
+											}
+											// legacy accessCode (OpenAPI v2) mapping sometimes appears
+											if acAny, ok := flows["accessCode"]; ok {
+												if ac, ok := acAny.(map[string]any); ok {
+													ac["authorizationUrl"] = fmt.Sprintf("%s/oauth2/auth", authBase)
+													ac["tokenUrl"] = fmt.Sprintf("%s/oauth2/token", authBase)
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		out, err := json.MarshalIndent(spec, "", "  ")
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("failed to encode swagger spec")
+		}
+		c.Set("Content-Type", "application/json")
+		return c.Send(out)
 	})
 	app.Get("/v1/docs/*", swagger.New(swagger.Config{
 		URL:         fmt.Sprintf("%s/v1/docs/swagger.json", env.API_URL),
@@ -169,12 +239,16 @@ func main() {
 		// Expand ("list") or Collapse ("none") tag groups by default
 		DocExpansion: "list",
 		// Prefill OAuth ClientId on Authorize popup
+		// Do NOT pass a client secret here. The OAuth client in Hydra is configured
+		// with `token_endpoint_auth_method=none` (a public client). If we pass a
+		// secret the Swagger UI may attempt `client_secret_post` which Hydra will
+		// reject with "invalid_client". By omitting the secret and enabling PKCE
+		// the browser-based Swagger UI will use the public client flow.
 		OAuth: &swagger.OAuthConfig{
-			AppName:      "Naytife API",
-			ClientId:     "d39beaaa-9c53-48e7-b82a-37ff52127473",
-			ClientSecret: "-tzS7OuCyHjTZUxtfx5TxGR1f.",
-			Scopes:       []string{"openid", "offline", "profile", "email", "offline_access"},
-			UseBasicAuthenticationWithAccessCodeGrant: true,
+			AppName:                           "Naytife API",
+			ClientId:                          "d39beaaa-9c53-48e7-b82a-37ff52127473",
+			Scopes:                            []string{"openid", "offline", "profile", "email", "offline_access"},
+			UsePkceWithAuthorizationCodeGrant: true,
 			AdditionalQueryStringParams: map[string]string{
 				"app_type": "dashboard",
 			},

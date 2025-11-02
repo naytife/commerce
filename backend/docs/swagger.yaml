@@ -40,6 +40,7 @@ components:
       - PaymentMethodTypePaystack
       - PaymentMethodTypePaypal
       - PaymentMethodTypeStripe
+      - PaymentMethodTypePayOnDelivery
     db.PaymentStatusType:
       type: string
       x-enum-varnames:
@@ -62,89 +63,16 @@ components:
       - ShippingStatusTypeDelivered
       - ShippingStatusTypeCancelled
       - ShippingStatusTypeReturned
-    handlers.ChangeRecord:
-      properties:
-        description:
-          type: string
-        entity:
-          type: string
-        id:
-          type: string
-        timestamp:
-          type: string
-        type:
-          type: string
-      type: object
-    handlers.CheckoutAddress:
-      properties:
-        city:
-          type: string
-        country:
-          type: string
-        line1:
-          type: string
-        line2:
-          type: string
-        postal_code:
-          type: string
-        state:
-          type: string
-      required:
-      - city
-      - country
-      - line1
-      - postal_code
-      type: object
-    handlers.CheckoutCustomer:
-      properties:
-        email:
-          type: string
-        name:
-          type: string
-        phone:
-          type: string
-      type: object
-    handlers.CheckoutItem:
-      properties:
-        amount:
-          description: Amount in cents
-          minimum: 1
-          type: integer
-        currency:
-          type: string
-        description:
-          type: string
-        name:
-          type: string
-        product_id:
-          type: string
-        quantity:
-          minimum: 1
-          type: integer
-      required:
-      - amount
-      - currency
-      - name
-      - product_id
-      - quantity
-      type: object
-    handlers.CheckoutShipping:
-      properties:
-        address:
-          $ref: '#/components/schemas/handlers.CheckoutAddress'
-        name:
-          type: string
-      required:
-      - address
-      - name
-      type: object
     handlers.ConfirmPaymentRequest:
       properties:
+        order_id:
+          type: integer
         payment_intent_id:
           type: string
         payment_method_id:
           type: string
       required:
+      - order_id
       - payment_intent_id
       type: object
     handlers.ConfirmPaymentResponse:
@@ -158,22 +86,8 @@ components:
       type: object
     handlers.CreateCheckoutSessionRequest:
       properties:
-        cancel_url:
-          type: string
-        currency:
-          type: string
-        customer:
-          $ref: '#/components/schemas/handlers.CheckoutCustomer'
-        items:
-          items:
-            $ref: '#/components/schemas/handlers.CheckoutItem'
-          minItems: 1
-          type: array
-          uniqueItems: false
-        metadata:
-          additionalProperties:
-            type: string
-          type: object
+        order_id:
+          type: integer
         payment_method_type:
           enum:
           - stripe
@@ -182,19 +96,12 @@ components:
           - paypal
           - pay_on_delivery
           type: string
-        shipping:
-          $ref: '#/components/schemas/handlers.CheckoutShipping'
         shop_id:
           type: integer
-        success_url:
-          type: string
       required:
-      - cancel_url
-      - currency
-      - items
+      - order_id
       - payment_method_type
       - shop_id
-      - success_url
       type: object
     handlers.CreateCheckoutSessionResponse:
       properties:
@@ -224,57 +131,6 @@ components:
       required:
       - method_type
       type: object
-    handlers.PublishRequest:
-      properties:
-        changes:
-          items:
-            $ref: '#/components/schemas/handlers.ChangeRecord'
-          type: array
-          uniqueItems: false
-        template_name:
-          type: string
-      required:
-      - template_name
-      type: object
-    handlers.PublishResponse:
-      properties:
-        job_id:
-          type: string
-        queue_position:
-          type: integer
-        status:
-          type: string
-        timestamp:
-          type: string
-      type: object
-    handlers.TemplateUploadRequest:
-      properties:
-        assets:
-          form: assets
-          format: binary
-          type: string
-        description:
-          example: Template description
-          form: description
-          type: string
-        preview_image:
-          description: Optional preview image for the template
-          form: preview_image
-          format: binary
-          type: string
-        template_name:
-          example: my-template
-          form: template_name
-          type: string
-        version:
-          example: 1.0.0
-          form: version
-          type: string
-      required:
-      - assets
-      - template_name
-      - version
-      type: object
     models.AddStockParams:
       properties:
         quantity:
@@ -292,28 +148,6 @@ components:
       - quantity
       - reason
       - reference_type
-      type: object
-    models.AddToCartRequest:
-      properties:
-        image:
-          type: string
-        price:
-          minimum: 0
-          type: number
-        product_variation_id:
-          type: string
-        quantity:
-          minimum: 1
-          type: integer
-        slug:
-          type: string
-        title:
-          type: string
-      required:
-      - price
-      - product_variation_id
-      - quantity
-      - title
       type: object
     models.Attribute:
       properties:
@@ -451,37 +285,6 @@ components:
         status:
           type: string
       type: object
-    models.Cart:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/models.CartItem'
-          type: array
-          uniqueItems: false
-        total:
-          type: number
-      type: object
-    models.CartItem:
-      properties:
-        created_at:
-          type: string
-        id:
-          type: string
-        image:
-          type: string
-        price:
-          type: number
-        product_variation_id:
-          type: string
-        quantity:
-          type: integer
-        slug:
-          type: string
-        title:
-          type: string
-        updated_at:
-          type: string
-      type: object
     models.CheckoutRequest:
       properties:
         billing_address:
@@ -493,12 +296,6 @@ components:
         discount:
           minimum: 0
           type: number
-        items:
-          items:
-            $ref: '#/components/schemas/models.CartItem'
-          minItems: 1
-          type: array
-          uniqueItems: false
         notes:
           type: string
         shipping_address:
@@ -512,7 +309,6 @@ components:
           type: number
       required:
       - customer_info
-      - items
       - shipping_address
       type: object
     models.CheckoutResponse:
@@ -527,11 +323,6 @@ components:
           type: number
         expires_at:
           type: string
-        items:
-          items:
-            $ref: '#/components/schemas/models.CartItem'
-          type: array
-          uniqueItems: false
         payment_methods:
           items:
             $ref: '#/components/schemas/models.PaymentMethodInfo'
@@ -553,6 +344,15 @@ components:
           type: number
         total:
           type: number
+      type: object
+    models.CleanupRequest:
+      properties:
+        shop_id:
+          type: string
+        subdomain:
+          type: string
+      required:
+      - shop_id
       type: object
     models.CreateOrderRequest:
       properties:
@@ -720,17 +520,6 @@ components:
       - reason
       - reference_type
       type: object
-    models.DeploymentResponse:
-      properties:
-        deployment_id:
-          type: string
-        message:
-          type: string
-        started_at:
-          type: string
-        status:
-          type: string
-      type: object
     models.DeploymentStatus:
       properties:
         assets_url:
@@ -801,10 +590,40 @@ components:
           example: healthy
           type: string
       type: object
+    models.InventoryItemResponse:
+      properties:
+        available_stock:
+          type: integer
+        current_stock:
+          type: integer
+        last_updated:
+          type: string
+        location:
+          type: string
+        low_stock_threshold:
+          type: integer
+        product_id:
+          type: integer
+        product_title:
+          type: string
+        reserved_stock:
+          type: integer
+        sku:
+          type: string
+        variant_id:
+          type: integer
+        variant_title:
+          type: string
+      type: object
     models.InventoryReportResponse:
       properties:
         generated_at:
           type: string
+        items:
+          items:
+            $ref: '#/components/schemas/models.InventoryItemResponse'
+          type: array
+          uniqueItems: false
         low_stock_count:
           type: integer
         out_of_stock_count:
@@ -1161,6 +980,8 @@ components:
           uniqueItems: false
         product_id:
           type: integer
+        product_type:
+          $ref: '#/components/schemas/models.ProductTypeInfo'
         status:
           $ref: '#/components/schemas/db.ProductStatus'
         title:
@@ -1269,6 +1090,13 @@ components:
           type: string
         title:
           example: Book
+          type: string
+      type: object
+    models.ProductTypeInfo:
+      properties:
+        id:
+          type: integer
+        title:
           type: string
       type: object
     models.ProductTypeUpdateParams:
@@ -1478,7 +1306,7 @@ components:
           example: healthy
           type: string
         url:
-          example: http://template-registry:9001
+          example: http://template-registry:8002
           type: string
       type: object
     models.ShippingAddress:
@@ -1684,6 +1512,8 @@ components:
           type: string
         reference_type:
           type: string
+        sku:
+          type: string
         variant_id:
           type: integer
         variant_title:
@@ -1816,6 +1646,40 @@ components:
         version:
           type: string
       type: object
+    models.TemplateUploadRequest:
+      properties:
+        assets:
+          description: File upload
+          form: assets
+          format: binary
+          type: string
+        category:
+          form: category
+          type: string
+        description:
+          form: description
+          type: string
+        features:
+          description: Comma-separated list
+          form: features
+          type: string
+        force:
+          form: force
+          type: boolean
+        preview_image:
+          description: Optional file upload
+          form: preview_image
+          format: binary
+          type: string
+        template_name:
+          form: template_name
+          type: string
+        version:
+          form: version
+          type: string
+      required:
+      - template_name
+      type: object
     models.TemplateVersion:
       properties:
         build_id:
@@ -1834,14 +1698,6 @@ components:
           type: string
         version:
           type: string
-      type: object
-    models.UpdateCartItemRequest:
-      properties:
-        quantity:
-          minimum: 1
-          type: integer
-      required:
-      - quantity
       type: object
     models.UpdateCustomerParams:
       properties:
@@ -1876,6 +1732,7 @@ components:
           - PaymentMethodTypePaystack
           - PaymentMethodTypePaypal
           - PaymentMethodTypeStripe
+          - PaymentMethodTypePayOnDelivery
         payment_status:
           type: string
           x-enum-varnames:
@@ -1937,21 +1794,26 @@ components:
       type: object
     models.UpdateStockParams:
       properties:
+        cost_price:
+          minimum: 0
+          type: number
+        movement_type:
+          enum:
+          - adjustment
+          - purchase
+          - damage
+          - transfer
+          type: string
+        quantity:
+          minimum: 0
+          type: integer
         reason:
           maxLength: 255
           minLength: 3
           type: string
-        reference_id:
-          type: string
-        reference_type:
-          type: string
-        stock:
-          minimum: 0
-          type: integer
       required:
-      - reason
-      - reference_type
-      - stock
+      - movement_type
+      - quantity
       type: object
     models.UserResponse:
       properties:
@@ -2101,229 +1963,6 @@ paths:
       summary: Create or update a customer
       tags:
       - customer
-  /cart:
-    delete:
-      description: Remove all items from the cart
-      parameters:
-      - description: Session ID for anonymous users
-        in: query
-        name: session_id
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.SuccessResponse'
-          description: Cart cleared successfully
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      summary: Clear cart
-      tags:
-      - cart
-    get:
-      description: Get cart items for the current session
-      parameters:
-      - description: Session ID for anonymous users
-        in: query
-        name: session_id
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Cart retrieved successfully
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      summary: Get cart items
-      tags:
-      - cart
-  /cart/items:
-    post:
-      description: Add a product variant to the cart
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/models.AddToCartRequest'
-        description: Cart item to add
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Item added to cart successfully
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request body
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Product not found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      summary: Add item to cart
-      tags:
-      - cart
-  /cart/items/{item_id}:
-    delete:
-      description: Remove an item from the cart
-      parameters:
-      - description: Cart Item ID
-        in: path
-        name: item_id
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.SuccessResponse'
-          description: Item removed from cart successfully
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid item ID
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Cart item not found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      summary: Remove item from cart
-      tags:
-      - cart
-    put:
-      description: Update the quantity of an item in the cart
-      parameters:
-      - description: Cart Item ID
-        in: path
-        name: item_id
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/models.UpdateCartItemRequest'
-        description: Updated quantity
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Cart item updated successfully
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Cart item not found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      summary: Update cart item quantity
-      tags:
-      - cart
   /health/services:
     get:
       description: Aggregate health check for template-registry and store-deployer
@@ -2802,6 +2441,365 @@ paths:
       summary: Update a shop
       tags:
       - shops
+  /shops/{shop_id}/analytics/customers-summary:
+    get:
+      description: Returns new customers, returning customers, and top customers for
+        a shop in a given period
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: integer
+      - description: Period (today, week, month, custom)
+        in: query
+        name: period
+        schema:
+          default: today
+          enum:
+          - today
+          - week
+          - month
+          - custom
+          type: string
+      - description: Start date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: start_date
+        schema:
+          type: string
+      - description: End date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: end_date
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Customer summary fetched successfully.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid parameters
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Failed to fetch customer summary
+      security:
+      - OAuth2AccessCode: []
+      summary: Get customer summary
+      tags:
+      - analytics
+  /shops/{shop_id}/analytics/low-stock:
+    get:
+      description: Returns products with low stock for a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: integer
+      - description: Stock threshold
+        in: query
+        name: threshold
+        schema:
+          default: 5
+          type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Low stock products fetched successfully.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid parameters
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Failed to fetch low stock products
+      security:
+      - OAuth2AccessCode: []
+      summary: Get low stock products
+      tags:
+      - analytics
+  /shops/{shop_id}/analytics/orders-over-time:
+    get:
+      description: Returns order counts grouped by interval (day, week, month) for
+        a shop in a given period
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: integer
+      - description: Interval (day, week, month)
+        in: query
+        name: interval
+        schema:
+          default: day
+          enum:
+          - day
+          - week
+          - month
+          type: string
+      - description: Period (today, week, month, custom)
+        in: query
+        name: period
+        schema:
+          default: today
+          enum:
+          - today
+          - week
+          - month
+          - custom
+          type: string
+      - description: Start date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: start_date
+        schema:
+          type: string
+      - description: End date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: end_date
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Orders over time fetched successfully.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid parameters
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Failed to fetch orders over time
+      security:
+      - OAuth2AccessCode: []
+      summary: Get orders over time
+      tags:
+      - analytics
+  /shops/{shop_id}/analytics/sales-summary:
+    get:
+      description: Returns total sales, total orders, and average order value for
+        a shop in a given period
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: integer
+      - description: Period (today, week, month, custom)
+        in: query
+        name: period
+        schema:
+          default: today
+          enum:
+          - today
+          - week
+          - month
+          - custom
+          type: string
+      - description: Start date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: start_date
+        schema:
+          type: string
+      - description: End date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: end_date
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Sales summary fetched successfully.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid parameters
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Failed to fetch sales summary
+      security:
+      - OAuth2AccessCode: []
+      summary: Get sales summary
+      tags:
+      - analytics
+  /shops/{shop_id}/analytics/top-products:
+    get:
+      description: Returns the top selling products for a shop in a given period
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: integer
+      - description: Period (today, week, month, custom)
+        in: query
+        name: period
+        schema:
+          default: today
+          enum:
+          - today
+          - week
+          - month
+          - custom
+          type: string
+      - description: Number of products to return
+        in: query
+        name: limit
+        schema:
+          default: 5
+          type: integer
+      - description: Start date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: start_date
+        schema:
+          type: string
+      - description: End date (YYYY-MM-DD, required if period=custom)
+        in: query
+        name: end_date
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Top products fetched successfully.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid parameters
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Failed to fetch top products
+      security:
+      - OAuth2AccessCode: []
+      summary: Get top products
+      tags:
+      - analytics
   /shops/{shop_id}/attributes/{attribute_id}:
     delete:
       description: Delete an attribute
@@ -3042,6 +3040,47 @@ paths:
       summary: Initiate checkout
       tags:
       - checkout
+  /shops/{shop_id}/cleanup:
+    delete:
+      description: Cleanup R2 storage files when a store is deleted
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/models.CleanupRequest'
+        description: Cleanup request
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.SuccessResponse'
+          description: Store files cleaned up successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid request
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Internal server error
+      security:
+      - OAuth2AccessCode: []
+      summary: Cleanup store files
+      tags:
+      - deployment
   /shops/{shop_id}/customers:
     get:
       description: Get paginated list of customers for a specific shop
@@ -3443,7 +3482,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.DeploymentResponse'
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Store deployed successfully
         "400":
           content:
@@ -3477,8 +3516,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.DeploymentStatus'
-          description: Deployment status retrieved
+                $ref: '#/components/schemas/models.SuccessResponse'
+          description: Deployment status retrieved successfully
         "400":
           content:
             application/json:
@@ -5792,181 +5831,6 @@ paths:
       summary: Delete a product image
       tags:
       - Product Images
-  /shops/{shop_id}/publish:
-    post:
-      description: Queue a build job for the shop's static site
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/handlers.PublishRequest'
-        description: Publish request
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Build job queued successfully
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Shop not found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Failed to queue build job
-      security:
-      - OAuth2AccessCode: []
-      summary: Trigger site build
-      tags:
-      - publish
-  /shops/{shop_id}/publish/history:
-    get:
-      description: Get the publish history for a shop
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        schema:
-          type: string
-      - description: Limit
-        in: query
-        name: limit
-        schema:
-          default: 10
-          type: integer
-      - description: Offset
-        in: query
-        name: offset
-        schema:
-          default: 0
-          type: integer
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Publish history retrieved
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
-      security:
-      - OAuth2AccessCode: []
-      summary: Get publish history
-      tags:
-      - publish
-  /shops/{shop_id}/publish/status:
-    get:
-      description: Get the current status of a publish job
-      parameters:
-      - description: Shop ID
-        in: path
-        name: shop_id
-        required: true
-        schema:
-          type: string
-      - description: Job ID
-        in: query
-        name: job_id
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Job status retrieved
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Job not found
-      security:
-      - OAuth2AccessCode: []
-      summary: Get publish status
-      tags:
-      - publish
   /shops/{shop_id}/redeploy:
     post:
       description: Redeploy an existing store using the store deployer service
@@ -5989,7 +5853,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.DeploymentResponse'
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Store redeployed successfully
         "400":
           content:
@@ -6049,7 +5913,97 @@ paths:
       summary: Update store data
       tags:
       - deployment
-  /shops/check-subdomain/{subdomain}:
+  /shops/customerinfo:
+    get:
+      parameters:
+      - description: Shop subdomain
+        in: query
+        name: subdomain
+        required: true
+        schema:
+          type: string
+      - description: Customer email
+        in: query
+        name: email
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Customer fetched successfully
+      summary: Fetch a customer by email for a specific shop
+      tags:
+      - customer
+  /subdomains/{subdomain}:
+    get:
+      parameters:
+      - description: Shop Subdomain
+        in: path
+        name: subdomain
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Shop fetched successfully
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Shop not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Internal server error
+      security:
+      - OAuth2AccessCode: []
+      summary: Fetch a shop by subdomain
+      tags:
+      - shops
+  /subdomains/{subdomain}/check:
     get:
       description: Check if a subdomain is available for creating a new shop
       parameters:
@@ -6099,96 +6053,6 @@ paths:
       summary: Check subdomain availability
       tags:
       - shops
-  /shops/customerinfo:
-    get:
-      parameters:
-      - description: Shop subdomain
-        in: query
-        name: subdomain
-        required: true
-        schema:
-          type: string
-      - description: Customer email
-        in: query
-        name: email
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Customer fetched successfully
-      summary: Fetch a customer by email for a specific shop
-      tags:
-      - customer
-  /shops/subdomain/{subdomain}:
-    get:
-      parameters:
-      - description: Shop Subdomain
-        in: path
-        name: subdomain
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Shop fetched successfully
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Shop not found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      security:
-      - OAuth2AccessCode: []
-      summary: Fetch a shop by subdomain
-      tags:
-      - shops
   /templates:
     get:
       description: Get a list of all available templates from template registry
@@ -6197,9 +6061,7 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/models.Template'
-                type: array
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Templates retrieved successfully
         "500":
           content:
@@ -6227,7 +6089,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.Template'
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Template retrieved successfully
         "404":
           content:
@@ -6261,7 +6123,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.TemplateVersion'
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Latest template version retrieved successfully
         "404":
           content:
@@ -6295,9 +6157,7 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/models.TemplateVersion'
-                type: array
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Template versions retrieved successfully
         "404":
           content:
@@ -6337,7 +6197,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.TemplateVersion'
+                $ref: '#/components/schemas/models.SuccessResponse'
           description: Template version retrieved successfully
         "404":
           content:
@@ -6548,13 +6408,14 @@ paths:
       - templates
   /templates/upload:
     post:
-      description: Upload a new template to the template registry
+      description: Upload a new template with assets and optional preview image. The
+        assets should be a tar.gz archive containing the template files.
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/handlers.TemplateUploadRequest'
-        description: Template upload form data
+              $ref: '#/components/schemas/models.TemplateUploadRequest'
+        description: Template upload data
         required: true
       responses:
         "200":
@@ -6562,22 +6423,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/models.SuccessResponse'
-          description: Template uploaded successfully
+          description: OK
         "400":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid request
+          description: Bad Request
         "500":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
+          description: Internal Server Error
       security:
       - OAuth2AccessCode: []
-      summary: Upload a template
+      summary: Upload a new template
       tags:
       - templates
   /userinfo:

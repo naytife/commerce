@@ -16,16 +16,16 @@ resources:
 images:
 - name: docker.io/library/store-deployer
   newName: ghcr.io/naytife/commerce/store-deployer
-  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+  newTag: d9b46e9ac512425acddd6ad210c75d822741680f
 - name: naytife/auth-handler
   newName: ghcr.io/naytife/commerce/auth-handler
-  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+  newTag: d9b46e9ac512425acddd6ad210c75d822741680f
 - name: naytife/backend
   newName: ghcr.io/naytife/commerce/backend
-  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+  newTag: d9b46e9ac512425acddd6ad210c75d822741680f
 - name: template-registry
   newName: ghcr.io/naytife/commerce/template-registry
-  newTag: 0131f212225f4710e38c8f847cf30996306e614e
+  newTag: d9b46e9ac512425acddd6ad210c75d822741680f
 
 replicas:
 - count: 3
