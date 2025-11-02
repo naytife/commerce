@@ -563,7 +563,7 @@ func transformProductsForStatic(productsData interface{}) map[string]interface{}
 		logger.Warn("edges field not found or invalid in products data", zap.Any("available_keys", getMapKeys(productsMap)))
 		return map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
 	}
-	
+
 	pageInfo, _ := productsMap["pageInfo"].(map[string]interface{})
 	totalCount, _ := productsMap["totalCount"].(float64)
 
@@ -764,13 +764,13 @@ func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 		if err != nil {
 			return fmt.Errorf("failed to fetch products data: %v", err)
 		}
-		
+
 		// Extract the products object from the GraphQL response
 		productsResult, ok := productsData.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("invalid products data format")
 		}
-		
+
 		productsObj := productsResult["products"]
 		if productsObj == nil {
 			logger.Warn("products field not found in GraphQL response", zap.String("subdomain", sd.Subdomain))
