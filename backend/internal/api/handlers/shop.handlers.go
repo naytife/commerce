@@ -194,8 +194,8 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 
 		// 5) Update shop's last_deployment_id
 		_ = h.Repository.UpdateShopLastDeployment(ctx, db.UpdateShopLastDeploymentParams{
-			ShopID:             shopID,
-			LastDeploymentID:   &deployment.DeploymentID,
+			ShopID:           shopID,
+			LastDeploymentID: &deployment.DeploymentID,
 		})
 
 		zap.L().Info("autoDeployNewShop: auto-deployment completed successfully",
