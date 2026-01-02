@@ -13,7 +13,7 @@ func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryable
 	// attach retry client to proxy and template handlers
 	proxyHandler.RetryClient = retryClient
 	templateHandler := handlers.NewTemplateHandler(repo)
-	// if template handler needs retry client in future, attach similarly
+	templateHandler.RetryClient = retryClient
 
 	// Template management endpoints (proxied to template-registry)
 	app.Get("/templates", proxyHandler.ProxyListTemplates)
@@ -33,6 +33,10 @@ func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryable
 	app.Get("/shops/:shop_id/deployment-status", proxyHandler.ProxyDeploymentStatus)
 	app.Post("/shops/:shop_id/update-data", proxyHandler.ProxyUpdateStoreData)
 	app.Delete("/shops/:shop_id/cleanup", proxyHandler.ProxyCleanupStore)
+
+	// Template version management endpoints (local handlers)
+	app.Get("/shops/:shop_id/template/current", templateHandler.GetCurrentTemplate)
+	app.Post("/shops/:shop_id/template/update-latest", templateHandler.UpdateToLatestTemplate)
 
 	// Health check for services
 	app.Get("/health/services", proxyHandler.ProxyHealthCheck)

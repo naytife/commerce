@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -166,6 +167,137 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 	}
 
 	return api.SuccessResponse(c, fiber.StatusOK, status, "Deployment status fetched successfully")
+}
+
+// @Summary      Get current template
+// @Description  Get the current deployed template and version for a shop
+// @Tags         templates
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Success      200  {object}  models.SuccessResponse{data=models.CurrentTemplate}
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id}/template/current [get]
+func (h *TemplateHandler) GetCurrentTemplate(c *fiber.Ctx) error {
+	shopIDStr := c.Params("shop_id")
+	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Verify shop exists
+	_, err = h.repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		zap.L().Warn("GetCurrentTemplate: shop not found", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+	}
+
+	// Get current deployed template
+	templateInfo, err := h.repository.GetShopCurrentTemplate(c.Context(), shopID)
+	if err != nil {
+		zap.L().Warn("GetCurrentTemplate: no deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no active deployment", nil)
+	}
+
+	// Convert pgtype.Timestamptz to *time.Time
+	var deployedAt *time.Time
+	if templateInfo.CompletedAt.Valid {
+		deployedAt = &templateInfo.CompletedAt.Time
+	}
+
+	response := models.CurrentTemplate{
+		ShopID:          fmt.Sprintf("%d", shopID),
+		TemplateName:    templateInfo.TemplateName,
+		TemplateVersion: templateInfo.TemplateVersion,
+		DeployedAt:      deployedAt,
+		Status:          templateInfo.Status,
+	}
+
+	return api.SuccessResponse(c, fiber.StatusOK, response, "Current template fetched successfully")
+}
+
+// @Summary      Update template to latest version
+// @Description  Update a shop's template to the latest available version (prevents downgrades)
+// @Tags         templates
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Success      202  {object}  models.SuccessResponse{data=models.TemplateUpdateResponse}
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      409  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Security     OAuth2AccessCode
+// @Router       /shops/{shop_id}/template/update-latest [post]
+func (h *TemplateHandler) UpdateToLatestTemplate(c *fiber.Ctx) error {
+	shopIDStr := c.Params("shop_id")
+	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	if err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Verify shop exists
+	shop, err := h.repository.GetShop(c.Context(), shopID)
+	if err != nil {
+		zap.L().Warn("UpdateToLatestTemplate: shop not found", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
+	}
+
+	// Get current deployed template
+	currentTemplate, err := h.repository.GetShopCurrentTemplate(c.Context(), shopID)
+	if err != nil {
+		zap.L().Warn("UpdateToLatestTemplate: no deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no active deployment", nil)
+	}
+
+	// Fetch latest template version from template-registry
+	latestVersion, err := h.fetchLatestTemplateVersionFromService(c.Context(), currentTemplate.TemplateName)
+	if err != nil {
+		zap.L().Error("UpdateToLatestTemplate: failed to fetch latest template version", zap.Int64("shop_id", shopID), zap.String("template", currentTemplate.TemplateName), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch latest template version", nil)
+	}
+
+	// Check if already on latest version
+	if currentTemplate.TemplateVersion == latestVersion.Version {
+		return api.SuccessResponse(c, fiber.StatusOK, models.TemplateUpdateResponse{
+			ShopID:           fmt.Sprintf("%d", shopID),
+			CurrentVersion:   currentTemplate.TemplateVersion,
+			TargetVersion:    latestVersion.Version,
+			IsUpdateRequired: false,
+			Message:          "Already on latest version",
+		}, "Shop is already using the latest template version")
+	}
+
+	// Compare versions to prevent downgrades (simple semantic versioning check)
+	// Extract version numbers for comparison (e.g., "1.2.3" -> [1, 2, 3])
+	currentParts := parseSemanticVersion(currentTemplate.TemplateVersion)
+	latestParts := parseSemanticVersion(latestVersion.Version)
+
+	if compareVersions(currentParts, latestParts) > 0 {
+		// Current version is newer than latest available - this shouldn't happen but prevent downgrade
+		zap.L().Warn("UpdateToLatestTemplate: attempted downgrade detected", zap.Int64("shop_id", shopID), zap.String("current", currentTemplate.TemplateVersion), zap.String("latest", latestVersion.Version))
+		return api.ErrorResponse(c, fiber.StatusConflict, "Cannot downgrade template version", nil)
+	}
+
+	// Trigger async redeployment with new template version
+	deploymentResp, err := h.triggerStoreRedeployment(c.Context(), shop.Subdomain, currentTemplate.TemplateName, latestVersion.Version)
+	if err != nil {
+		zap.L().Error("UpdateToLatestTemplate: failed to trigger redeployment", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to trigger template update", nil)
+	}
+
+	response := models.TemplateUpdateResponse{
+		ShopID:           fmt.Sprintf("%d", shopID),
+		CurrentVersion:   currentTemplate.TemplateVersion,
+		TargetVersion:    latestVersion.Version,
+		IsUpdateRequired: true,
+		DeploymentID:     deploymentResp.DeploymentID,
+		Status:           deploymentResp.Status,
+		Message:          "Template update initiated",
+	}
+
+	return api.SuccessResponse(c, fiber.StatusAccepted, response, "Template update initiated successfully")
 }
 
 // Service integration methods
@@ -370,6 +502,106 @@ func (h *TemplateHandler) fetchDeploymentStatusFromService(ctx context.Context, 
 	}
 
 	return &result, nil
+}
+
+// triggerStoreRedeployment triggers an async redeployment of a store with a new template version
+func (h *TemplateHandler) triggerStoreRedeployment(ctx context.Context, subdomain, templateName, templateVersion string) (*models.DeploymentResponse, error) {
+	serviceURL := getServiceURL("store-deployer", "8001")
+
+	redeployReq := models.StoreRedeploymentRequest{
+		Subdomain:    subdomain,
+		TemplateName: templateName,
+		Version:      templateVersion,
+	}
+
+	payload, err := json.Marshal(redeployReq)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	ctx, finish := observability.StartSpan(ctx, "triggerStoreRedeployment", "store-deployer", http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL))
+	defer finish(0, nil)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL), jsonPayload(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	observability.InjectTraceHeaders(ctx, req)
+	observability.EnsureRequestID(req)
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to store-deployer service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		return nil, fmt.Errorf("store-deployer service returned status %d", resp.StatusCode)
+	}
+
+	var result models.DeploymentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode deployment response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Version comparison utilities for semantic versioning
+
+// parseSemanticVersion converts a version string like "1.2.3" to [1, 2, 3]
+func parseSemanticVersion(versionStr string) []int {
+	parts := strings.Split(versionStr, ".")
+	result := make([]int, 0, len(parts))
+
+	for _, part := range parts {
+		// Extract only the numeric part
+		var numStr string
+		for _, c := range part {
+			if c >= '0' && c <= '9' {
+				numStr += string(c)
+			} else {
+				break
+			}
+		}
+		if numStr == "" {
+			result = append(result, 0)
+		} else {
+			if v, err := strconv.Atoi(numStr); err == nil {
+				result = append(result, v)
+			} else {
+				result = append(result, 0)
+			}
+		}
+	}
+
+	// Pad with zeros to ensure consistent length
+	for len(result) < 3 {
+		result = append(result, 0)
+	}
+
+	return result[:3]
+}
+
+// compareVersions compares two semantic version arrays
+// Returns: positive if v1 > v2, 0 if equal, negative if v1 < v2
+func compareVersions(v1, v2 []int) int {
+	for i := 0; i < len(v1) && i < len(v2); i++ {
+		if v1[i] > v2[i] {
+			return 1
+		} else if v1[i] < v2[i] {
+			return -1
+		}
+	}
+	return 0
 }
 
 // Service URL configuration
