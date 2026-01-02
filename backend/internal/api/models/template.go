@@ -150,6 +150,7 @@ type CleanupResponse struct {
 	Subdomain string    `json:"subdomain,omitempty"`
 	CleanedAt time.Time `json:"cleaned_at"`
 }
+
 // CurrentTemplate represents the current deployed template for a shop
 type CurrentTemplate struct {
 	ShopID          string     `json:"shop_id"`
