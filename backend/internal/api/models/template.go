@@ -150,3 +150,22 @@ type CleanupResponse struct {
 	Subdomain string    `json:"subdomain,omitempty"`
 	CleanedAt time.Time `json:"cleaned_at"`
 }
+// CurrentTemplate represents the current deployed template for a shop
+type CurrentTemplate struct {
+	ShopID          string     `json:"shop_id"`
+	TemplateName    string     `json:"template_name"`
+	TemplateVersion string     `json:"template_version"`
+	DeployedAt      *time.Time `json:"deployed_at,omitempty"`
+	Status          string     `json:"status"`
+}
+
+// TemplateUpdateResponse represents the response from a template update request
+type TemplateUpdateResponse struct {
+	ShopID           string `json:"shop_id"`
+	CurrentVersion   string `json:"current_version"`
+	TargetVersion    string `json:"target_version"`
+	IsUpdateRequired bool   `json:"is_update_required"`
+	DeploymentID     string `json:"deployment_id,omitempty"`
+	Status           string `json:"status,omitempty"`
+	Message          string `json:"message,omitempty"`
+}

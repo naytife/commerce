@@ -21,10 +21,10 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      backend: true
-      auth: true
-      store: true
-      registry: true
+      backend: ${{ steps.filter.outputs.backend }}
+      auth: ${{ steps.filter.outputs.auth }}
+      store: ${{ steps.filter.outputs.store }}
+      registry: ${{ steps.filter.outputs.registry }}
     steps:
       - uses: actions/checkout@v4
         with:
