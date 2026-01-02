@@ -2,19 +2,24 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/observability"
+	"github.com/petrejonn/naytife/internal/services"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +29,7 @@ type ProxyHandler struct {
 	StoreDeployerURL    string
 	HttpClient          *http.Client
 	RetryClient         *retryablehttp.Client
+	StoreDeployerClient *services.StoreDeployerClient
 }
 
 func NewProxyHandler(repo db.Repository) *ProxyHandler {
@@ -305,15 +311,120 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			zap.L().Warn("ProxyDeployStore: shop not found", zap.Int64("shop_id", shopIDInt))
+			zap.L().Warn("ProxyRedeployStore: shop not found", zap.Int64("shop_id", shopIDInt))
 			return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 		}
-		zap.L().Error("ProxyDeployStore: failed to fetch shop", zap.Int64("shop_id", shopIDInt), zap.Error(err))
+		zap.L().Error("ProxyRedeployStore: failed to fetch shop", zap.Int64("shop_id", shopIDInt), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch shop", nil)
 	}
 
-	path := fmt.Sprintf("/redeploy/%s", shop.Subdomain)
-	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Store redeployed successfully")
+	// Parse redeploy request
+	var redeployReq models.StoreRedeploymentRequest
+	if err := c.BodyParser(&redeployReq); err != nil {
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	// Default to current template if not specified
+	templateName := redeployReq.TemplateName
+	if templateName == "" {
+		// Get current template from last deployment
+		currentTemplate, err := h.Repository.GetShopCurrentTemplate(c.Context(), shopIDInt)
+		if err != nil {
+			return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name required for first deployment", nil)
+		}
+		templateName = currentTemplate.TemplateName
+	}
+
+	// Create deployment record (status = 'deploying')
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	deployment, err := h.Repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
+		ShopID:          shopIDInt,
+		TemplateName:    templateName,
+		TemplateVersion: redeployReq.Version,
+		Status:          "deploying",
+		DeploymentType:  "full",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
+	if err != nil {
+		zap.L().Error("ProxyRedeployStore: failed to create deployment record",
+			zap.Int64("shop_id", shopIDInt),
+			zap.String("subdomain", shop.Subdomain),
+			zap.String("template", templateName),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create deployment record", nil)
+	}
+
+	// Start async deployment and polling in background
+	go func(shopID int64, deploymentID int64, subdomain, template, version string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "asyncRedeploy", "store-deployer", "POST", "redeploy")
+		defer finish(0, nil)
+
+		// Trigger deployment
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, template); err != nil {
+			errMsg := fmt.Sprintf("failed to trigger redeployment: %v", err)
+			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+				DeploymentID: deploymentID,
+				Status:       "failed",
+				Message:      &errMsg,
+			})
+
+			zap.L().Error("ProxyRedeployStore: failed to trigger deployment",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.Error(err))
+			return
+		}
+
+		// Poll for completion
+		if err := h.StoreDeployerClient.WaitForDeploymentCompletion(ctx, subdomain); err != nil {
+			errMsg := fmt.Sprintf("deployment polling failed: %v", err)
+			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+				DeploymentID: deploymentID,
+				Status:       "failed",
+				Message:      &errMsg,
+			})
+
+			zap.L().Error("ProxyRedeployStore: deployment polling failed",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.Error(err))
+			return
+		}
+
+		// Mark deployment as completed
+		_ = h.Repository.CompleteDeployment(ctx, db.CompleteDeploymentParams{
+			DeploymentID: deploymentID,
+			Status:       "deployed",
+			Message:      nil,
+		})
+
+		// Update shop's last deployment
+		_ = h.Repository.UpdateShopLastDeployment(ctx, db.UpdateShopLastDeploymentParams{
+			ShopID:           shopID,
+			LastDeploymentID: &deploymentID,
+		})
+
+		zap.L().Info("ProxyRedeployStore: redeployment completed successfully",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", subdomain),
+			zap.String("template", template))
+	}(shopIDInt, deployment.DeploymentID, shop.Subdomain, templateName, redeployReq.Version)
+
+	// Return immediately with deployment info
+	response := models.TemplateUpdateResponse{
+		ShopID:           fmt.Sprintf("%d", shopIDInt),
+		CurrentVersion:   deployment.TemplateVersion,
+		TargetVersion:    redeployReq.Version,
+		IsUpdateRequired: true,
+		DeploymentID:     fmt.Sprintf("%d", deployment.DeploymentID),
+		Status:           "deploying",
+		Message:          "Redeployment initiated successfully",
+	}
+
+	return api.SuccessResponse(c, fiber.StatusAccepted, response, "Store redeployed successfully")
 }
 
 // ProxyDeploymentStatus proxies requests to store-deployer for deployment status

@@ -5,13 +5,16 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/petrejonn/naytife/internal/api/handlers"
 	"github.com/petrejonn/naytife/internal/db"
+	"github.com/petrejonn/naytife/internal/services"
 )
 
 func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryablehttp.Client) {
 	// Create both handlers - proxy for microservices, template for local logic
+	storeDeployerClient := services.NewStoreDeployerClient(retryClient)
 	proxyHandler := handlers.NewProxyHandler(repo)
-	// attach retry client to proxy and template handlers
+	// attach retry client and store-deployer client to proxy handler
 	proxyHandler.RetryClient = retryClient
+	proxyHandler.StoreDeployerClient = storeDeployerClient
 	templateHandler := handlers.NewTemplateHandler(repo)
 	templateHandler.RetryClient = retryClient
 
