@@ -111,9 +111,10 @@ func (s *StoreDeployerClient) Cleanup(ctx context.Context, subdomain string, sho
 	return nil
 }
 
-func (c *StoreDeployerClient) Deploy(ctx context.Context, shopID int64, subdomain, templateName string) error {
+func (c *StoreDeployerClient) Deploy(ctx context.Context, shopID int64, deploymentID int64, subdomain, templateName string) error {
 	deploymentReq := map[string]interface{}{
 		"shop_id":       fmt.Sprintf("%d", shopID),
+		"deployment_id": fmt.Sprintf("%d", deploymentID),
 		"subdomain":     subdomain,
 		"template_name": templateName,
 		"version":       "",

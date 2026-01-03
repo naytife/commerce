@@ -143,7 +143,7 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		// Trigger store-deployer deployment (non-blocking call)
-		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, templateName); err != nil {
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, deploymentID, subdomain, templateName); err != nil {
 			errMsg := err.Error()
 			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 				DeploymentID: deploymentID,

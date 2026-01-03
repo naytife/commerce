@@ -33,6 +33,7 @@ var (
 
 type StoreDeployer struct {
 	ShopID       string `json:"shop_id"`
+	DeploymentID string `json:"deployment_id"`
 	Subdomain    string `json:"subdomain"`
 	TemplateName string `json:"template_name"`
 	Version      string `json:"version,omitempty"` // Empty for latest
@@ -40,6 +41,7 @@ type StoreDeployer struct {
 
 type DeploymentRequest struct {
 	ShopID       string            `json:"shop_id"`
+	DeploymentID string            `json:"deployment_id"`
 	Subdomain    string            `json:"subdomain"`
 	TemplateName string            `json:"template_name"`
 	Version      string            `json:"version,omitempty"`
@@ -303,11 +305,10 @@ func (sd *StoreDeployer) notifyDeploymentComplete(status, message string) error 
 		backendURL = "http://backend:8000"
 	}
 
-	notifyURL := fmt.Sprintf("%s/v1/internal/deployments/%s/complete", backendURL, sd.ShopID)
+	notifyURL := fmt.Sprintf("%s/v1/internal/deployments/%s/complete", backendURL, sd.DeploymentID)
 
 	notifyPayload := map[string]interface{}{
-		"deployment_id": sd.ShopID,
-		"shop_id":       sd.ShopID,
+		"deployment_id": sd.DeploymentID,
 		"subdomain":     sd.Subdomain,
 		"status":        status,
 		"message":       message,
@@ -1083,6 +1084,7 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    req.Subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,
@@ -1115,6 +1117,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 		TemplateName string `json:"template_name,omitempty"`
 		Version      string `json:"version,omitempty"`
 		ShopID       string `json:"shop_id"`
+		DeploymentID string `json:"deployment_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1139,6 +1142,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,

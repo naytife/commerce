@@ -363,7 +363,7 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 		defer finish(0, nil)
 
 		// Trigger deployment
-		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, template); err != nil {
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, deploymentID, subdomain, template); err != nil {
 			errMsg := fmt.Sprintf("failed to trigger redeployment: %v", err)
 			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
 				DeploymentID: deploymentID,
