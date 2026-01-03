@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -116,12 +119,21 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
+	// Fetch the actual template version from template registry
+	templateVersion, err := h.fetchLatestTemplateVersion(c.Context(), shop.Template)
+	if err != nil {
+		zap.L().Warn("CreateShop: failed to fetch template version, falling back to latest",
+			zap.String("template", shop.Template),
+			zap.Error(err))
+		templateVersion = "latest"
+	}
+
 	// Create deployment record before triggering deployment
 	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
 	deployment, err := h.Repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
 		ShopID:          objDB.ShopID,
 		TemplateName:    shop.Template,
-		TemplateVersion: "latest",
+		TemplateVersion: templateVersion,
 		Status:          "deploying",
 		DeploymentType:  "full",
 		Message:         nil,
@@ -694,3 +706,58 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
 }
+
+// fetchLatestTemplateVersion retrieves the actual version number for a template from the template registry
+func (h *Handler) fetchLatestTemplateVersion(ctx context.Context, templateName string) (string, error) {
+	templateRegistryURL := os.Getenv("TEMPLATE_REGISTRY_URL")
+	if templateRegistryURL == "" {
+		templateRegistryURL = "http://template-registry:8002"
+	}
+
+	reqURL := fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, templateName)
+	
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch template version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("template registry returned status %d", resp.StatusCode)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// The response structure should have version information
+	version, ok := response["version"].(string)
+	if ok && version != "" {
+		return version, nil
+	}
+
+	// If top-level version doesn't exist, try nested version object
+	versionObj, ok := response["version"].(map[string]interface{})
+	if ok {
+		if versionStr, ok := versionObj["version"].(string); ok && versionStr != "" {
+			return versionStr, nil
+		}
+	}
+
+	return "", fmt.Errorf("version not found in response")
+}
+
