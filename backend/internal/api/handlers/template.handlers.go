@@ -159,14 +159,44 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	status, err := h.fetchDeploymentStatusFromService(c.Context(), shop.Subdomain)
+	// Get latest deployment from database (webhook-updated source of truth)
+	deployment, err := h.repository.GetLatestDeploymentByShop(c.Context(), shopID)
 	if err != nil {
-		zap.L().Error("GetDeploymentStatus: failed to fetch deployment status", zap.Int64("shop_id", shopID), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch deployment status", nil)
+		zap.L().Warn("GetDeploymentStatus: no deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no deployment", nil)
 	}
 
-	return api.SuccessResponse(c, fiber.StatusOK, status, "Deployment status fetched successfully")
+	// Build response using actual database state
+	response := models.DeploymentStatus{
+		ShopID:          fmt.Sprintf("%d", shopID),
+		Subdomain:       shop.Subdomain,
+		Status:          deployment.Status,
+		TemplateName:    deployment.TemplateName,
+		TemplateVersion: deployment.TemplateVersion,
+		DeploymentID:    fmt.Sprintf("%d", deployment.DeploymentID),
+		Message:         "",
+		ProductionURL:   fmt.Sprintf("https://%s.naytife.com", shop.Subdomain),
+	}
+
+	// Add timestamps if available
+	if deployment.CompletedAt.Valid {
+		response.LastDeployedAt = &deployment.CompletedAt.Time
+	}
+	if deployment.StartedAt.Valid {
+		response.LastUpdateAt = &deployment.StartedAt.Time
+	}
+
+	// Add error message if deployment failed
+	if deployment.Message != nil {
+		response.Message = *deployment.Message
+	}
+
+	zap.L().Info("GetDeploymentStatus: retrieved deployment status",
+		zap.Int64("shop_id", shopID),
+		zap.Int64("deployment_id", deployment.DeploymentID),
+		zap.String("status", deployment.Status))
+
+	return api.SuccessResponse(c, fiber.StatusOK, response, "Deployment status retrieved successfully")
 }
 
 // @Summary      Get current template
