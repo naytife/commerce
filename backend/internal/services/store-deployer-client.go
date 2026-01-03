@@ -152,143 +152,85 @@ func (c *StoreDeployerClient) Deploy(ctx context.Context, shopID int64, subdomai
 	return nil
 }
 
-// DeploymentStatusResponse represents the status response from store-deployer
-type DeploymentStatusResponse struct {
-	Status          string `json:"status"`
-	Message         string `json:"message"`
-	Subdomain       string `json:"subdomain"`
-	TemplateName    string `json:"template_name"`
-	TemplateVersion string `json:"template_version"`
-}
+// NotifyDeploymentComplete notifies the backend when deployment completes
+// Implements 3-attempt retry logic without exponential backoff
+func (c *StoreDeployerClient) NotifyDeploymentComplete(ctx context.Context, shopID int64, deploymentID int64, subdomain, status, message string) error {
+	const maxAttempts = 3
+	var lastErr error
 
-// WaitForDeploymentCompletion polls the store-deployer service until deployment completes
-// It uses exponential backoff with a maximum timeout of 60 seconds
-// Returns nil on success, error if deployment fails or times out
-func (c *StoreDeployerClient) WaitForDeploymentCompletion(ctx context.Context, subdomain string) error {
-	maxWaitTime := 60 * time.Second
-	initialInterval := 2 * time.Second
-	maxInterval := 5 * time.Second
-
-	url := fmt.Sprintf("%s/status/%s", c.BaseURL, subdomain)
-	interval := initialInterval
-	startTime := time.Now()
-
-	for {
-		// Check timeout
-		if time.Since(startTime) > maxWaitTime {
-			zap.L().Warn("WaitForDeploymentCompletion: timeout waiting for deployment",
-				zap.String("subdomain", subdomain),
-				zap.Duration("max_wait", maxWaitTime))
-			return fmt.Errorf("deployment polling timeout after %s", maxWaitTime)
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		// Skip backoff on first attempt
+		if attempt > 1 {
+			time.Sleep(time.Duration(attempt-1) * time.Second)
 		}
 
-		// Poll status
-		req, err := retryablehttp.NewRequest("GET", url, nil)
+		payload := map[string]interface{}{
+			"deployment_id": deploymentID,
+			"shop_id":       shopID,
+			"subdomain":     subdomain,
+			"status":        status,
+			"message":       message,
+			"completed_at":  time.Now().UTC().Format(time.RFC3339),
+		}
+
+		reqBody, err := json.Marshal(payload)
 		if err != nil {
-			zap.L().Warn("WaitForDeploymentCompletion: failed to create status request",
-				zap.String("subdomain", subdomain),
+			zap.L().Warn("NotifyDeploymentComplete: failed to marshal notification payload",
+				zap.Int64("deployment_id", deploymentID),
 				zap.Error(err))
-			// Don't fail immediately, retry
-			time.Sleep(interval)
+			return fmt.Errorf("marshal notification: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/api/v1/internal/deployments/%d/complete", c.BaseURL, shopID)
+		req, err := retryablehttp.NewRequest("POST", url, bytes.NewReader(reqBody))
+		if err != nil {
+			zap.L().Warn("NotifyDeploymentComplete: failed to create notification request",
+				zap.Int64("deployment_id", deploymentID),
+				zap.Error(err))
+			lastErr = fmt.Errorf("create notification request: %w", err)
 			continue
 		}
 
 		req = req.WithContext(ctx)
+		req.Header.Set("Content-Type", "application/json")
 		observability.InjectTraceHeaders(ctx, req.Request)
 		observability.EnsureRequestID(req.Request)
 
 		start := time.Now()
 		resp, err := c.HTTPClient.Do(req)
 		if err != nil {
-			zap.L().Warn("WaitForDeploymentCompletion: failed to call store-deployer status",
-				zap.String("subdomain", subdomain),
+			zap.L().Warn("NotifyDeploymentComplete: failed to call deployment completion webhook",
+				zap.Int64("deployment_id", deploymentID),
+				zap.Int("attempt", attempt),
 				zap.Error(err))
-			// Service might be temporarily unavailable, retry
-			time.Sleep(interval)
-			if interval < maxInterval {
-				interval = time.Duration(float64(interval) * 1.5)
-				if interval > maxInterval {
-					interval = maxInterval
-				}
-			}
+			lastErr = fmt.Errorf("webhook call attempt %d: %w", attempt, err)
 			continue
 		}
+		defer resp.Body.Close()
 
-		observability.RecordServiceRequest("store-deployer", "GET", url, resp.StatusCode, time.Since(start))
+		observability.RecordServiceRequest("backend", "POST", url, resp.StatusCode, time.Since(start))
 
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			zap.L().Warn("WaitForDeploymentCompletion: non-200 status from store-deployer",
+		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusAccepted {
+			zap.L().Info("NotifyDeploymentComplete: deployment completion notification succeeded",
+				zap.Int64("deployment_id", deploymentID),
 				zap.String("subdomain", subdomain),
-				zap.Int("status_code", resp.StatusCode))
-			// Service error, retry
-			time.Sleep(interval)
-			if interval < maxInterval {
-				interval = time.Duration(float64(interval) * 1.5)
-				if interval > maxInterval {
-					interval = maxInterval
-				}
-			}
-			continue
-		}
-
-		// Parse response
-		var statusResp DeploymentStatusResponse
-		if err := json.NewDecoder(resp.Body).Decode(&statusResp); err != nil {
-			resp.Body.Close()
-			zap.L().Warn("WaitForDeploymentCompletion: failed to decode status response",
-				zap.String("subdomain", subdomain),
-				zap.Error(err))
-			// Bad response, retry
-			time.Sleep(interval)
-			continue
-		}
-		resp.Body.Close()
-
-		// Check deployment status
-		switch statusResp.Status {
-		case "deployed", "success":
-			zap.L().Info("WaitForDeploymentCompletion: deployment completed successfully",
-				zap.String("subdomain", subdomain),
-				zap.String("template", statusResp.TemplateName),
-				zap.String("version", statusResp.TemplateVersion),
-				zap.Duration("total_wait", time.Since(startTime)))
+				zap.String("status", status),
+				zap.Int("attempt", attempt))
 			return nil
-
-		case "failed", "error":
-			errMsg := fmt.Sprintf("deployment failed: %s", statusResp.Message)
-			zap.L().Warn("WaitForDeploymentCompletion: deployment failed",
-				zap.String("subdomain", subdomain),
-				zap.String("message", statusResp.Message))
-			return fmt.Errorf(errMsg)
-
-		case "deploying", "pending":
-			// Still deploying, wait and retry
-			zap.L().Debug("WaitForDeploymentCompletion: deployment in progress",
-				zap.String("subdomain", subdomain),
-				zap.String("status", statusResp.Status),
-				zap.Duration("elapsed", time.Since(startTime)))
-			time.Sleep(interval)
-			if interval < maxInterval {
-				interval = time.Duration(float64(interval) * 1.5)
-				if interval > maxInterval {
-					interval = maxInterval
-				}
-			}
-			continue
-
-		default:
-			zap.L().Warn("WaitForDeploymentCompletion: unknown deployment status",
-				zap.String("subdomain", subdomain),
-				zap.String("status", statusResp.Status))
-			time.Sleep(interval)
-			if interval < maxInterval {
-				interval = time.Duration(float64(interval) * 1.5)
-				if interval > maxInterval {
-					interval = maxInterval
-				}
-			}
-			continue
 		}
+
+		body, _ := io.ReadAll(resp.Body)
+		zap.L().Warn("NotifyDeploymentComplete: webhook returned non-success status",
+			zap.Int64("deployment_id", deploymentID),
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("response_body", string(body)),
+			zap.Int("attempt", attempt))
+		lastErr = fmt.Errorf("webhook returned %d: %s", resp.StatusCode, string(body))
 	}
+
+	zap.L().Error("NotifyDeploymentComplete: failed after 3 attempts",
+		zap.Int64("deployment_id", deploymentID),
+		zap.String("subdomain", subdomain),
+		zap.Error(lastErr))
+	return lastErr
 }

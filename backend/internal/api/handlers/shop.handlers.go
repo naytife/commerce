@@ -116,38 +116,37 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
+	// Create deployment record before triggering deployment
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	deployment, err := h.Repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
+		ShopID:          objDB.ShopID,
+		TemplateName:    shop.Template,
+		TemplateVersion: "latest",
+		Status:          "deploying",
+		DeploymentType:  "full",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
+	if err != nil {
+		zap.L().Error("CreateShop: failed to create deployment record",
+			zap.Int64("shop_id", objDB.ShopID),
+			zap.String("subdomain", objDB.Subdomain),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to initiate deployment", nil)
+	}
+
 	// Auto-trigger deployment for new shops (DB record + StoreDeployerClient)
-	go func(shopID int64, subdomain, templateName string) {
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	go func(shopID int64, subdomain, templateName string, deploymentID int64) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
 		defer finish(0, nil)
 
-		// 1) Create deployment record (deploying)
-		startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
-		deployment, derr := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
-			ShopID:          shopID,
-			TemplateName:    templateName,
-			TemplateVersion: "latest",
-			Status:          "deploying",
-			DeploymentType:  "full",
-			Message:         nil,
-			StartedAt:       startedAt,
-		})
-		if derr != nil {
-			zap.L().Error("autoDeployNewShop: failed to create deployment record",
-				zap.Int64("shop_id", shopID),
-				zap.String("subdomain", subdomain),
-				zap.String("template", templateName),
-				zap.Error(derr))
-			return
-		}
-
-		// 2) Trigger store-deployer deployment (non-blocking call)
+		// Trigger store-deployer deployment (non-blocking call)
 		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, templateName); err != nil {
 			errMsg := err.Error()
 			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-				DeploymentID: deployment.DeploymentID,
+				DeploymentID: deploymentID,
 				Status:       "failed",
 				Message:      &errMsg,
 			})
@@ -156,54 +155,18 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 				zap.Int64("shop_id", shopID),
 				zap.String("subdomain", subdomain),
 				zap.String("template", templateName),
-				zap.Int64("deployment_id", deployment.DeploymentID),
+				zap.Int64("deployment_id", deploymentID),
 				zap.Error(err))
 			return
 		}
 
-		// 3) Poll for deployment completion with exponential backoff
-		zap.L().Info("autoDeployNewShop: polling for deployment completion",
+		// Deployment triggered successfully - store-deployer will notify us when complete
+		zap.L().Info("autoDeployNewShop: deployment initiated, waiting for store-deployer callback",
 			zap.Int64("shop_id", shopID),
 			zap.String("subdomain", subdomain),
 			zap.String("template", templateName),
-			zap.Int64("deployment_id", deployment.DeploymentID))
-
-		if err := h.StoreDeployerClient.WaitForDeploymentCompletion(ctx, subdomain); err != nil {
-			errMsg := fmt.Sprintf("deployment polling failed: %v", err)
-			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-				DeploymentID: deployment.DeploymentID,
-				Status:       "failed",
-				Message:      &errMsg,
-			})
-
-			zap.L().Error("autoDeployNewShop: deployment completion polling failed",
-				zap.Int64("shop_id", shopID),
-				zap.String("subdomain", subdomain),
-				zap.String("template", templateName),
-				zap.Int64("deployment_id", deployment.DeploymentID),
-				zap.Error(err))
-			return
-		}
-
-		// 4) Deployment succeeded - update status to deployed
-		_ = h.Repository.CompleteDeployment(ctx, db.CompleteDeploymentParams{
-			DeploymentID: deployment.DeploymentID,
-			Status:       "deployed",
-			Message:      nil,
-		})
-
-		// 5) Update shop's last_deployment_id
-		_ = h.Repository.UpdateShopLastDeployment(ctx, db.UpdateShopLastDeploymentParams{
-			ShopID:           shopID,
-			LastDeploymentID: &deployment.DeploymentID,
-		})
-
-		zap.L().Info("autoDeployNewShop: auto-deployment completed successfully",
-			zap.Int64("shop_id", shopID),
-			zap.String("subdomain", subdomain),
-			zap.String("template", templateName),
-			zap.Int64("deployment_id", deployment.DeploymentID))
-	}(objDB.ShopID, objDB.Subdomain, shop.Template)
+			zap.Int64("deployment_id", deploymentID))
+	}(objDB.ShopID, objDB.Subdomain, shop.Template, deployment.DeploymentID)
 
 	zap.L().Info("CreateShop: shop created successfully",
 		zap.Int64("shop_id", objDB.ShopID),

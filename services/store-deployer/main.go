@@ -202,7 +202,6 @@ func main() {
 	r.HandleFunc("/deploy", deployStoreHandler).Methods("POST")
 	r.HandleFunc("/redeploy/{subdomain}", redeployStoreHandler).Methods("POST")
 	r.HandleFunc("/update-data/{subdomain}", updateDataHandler).Methods("POST")
-	r.HandleFunc("/status/{subdomain}", getDeploymentStatusHandler).Methods("GET")
 	r.HandleFunc("/cleanup/{subdomain}", cleanupStoreHandler).Methods("DELETE")
 	r.HandleFunc("/health", healthHandler).Methods("GET")
 
@@ -277,6 +276,44 @@ func (sd *StoreDeployer) DeployStore() (*DeploymentResponse, error) {
 		TotalSize:  calculateTotalSize(manifest.Assets),
 		DeployTime: deployTime.String(),
 	}
+
+	// 7. Notify backend of deployment completion
+	// Note: deployment_id should be passed from backend, for now using shop_id
+	// This is a fire-and-forget notification; errors are logged but don't fail the deployment
+	go func() {
+		backendURL := os.Getenv("BACKEND_URL")
+		if backendURL == "" {
+			backendURL = "http://backend:8000"
+		}
+
+		notifyURL := fmt.Sprintf("%s/api/v1/internal/deployments/%s/complete", backendURL, sd.ShopID)
+		notifyPayload := map[string]interface{}{
+			"deployment_id": sd.ShopID,
+			"shop_id":       sd.ShopID,
+			"subdomain":     sd.Subdomain,
+			"status":        "deployed",
+			"message":       "Deployment completed successfully",
+			"completed_at":  time.Now().UTC().Format(time.RFC3339),
+		}
+
+		notifyBody, _ := json.Marshal(notifyPayload)
+		notifyReq, err := http.NewRequest("POST", notifyURL, strings.NewReader(string(notifyBody)))
+		if err == nil {
+			notifyReq.Header.Set("Content-Type", "application/json")
+			notifyResp, err := httpClient.Do(notifyReq)
+			if err != nil {
+				logger.Warn("failed to notify backend of deployment completion",
+					zap.String("shop_id", sd.ShopID),
+					zap.String("subdomain", sd.Subdomain),
+					zap.Error(err))
+			} else {
+				notifyResp.Body.Close()
+				logger.Info("notified backend of deployment completion",
+					zap.String("shop_id", sd.ShopID),
+					zap.String("subdomain", sd.Subdomain))
+			}
+		}
+	}()
 
 	logger.Info("deployment complete", zap.String("subdomain", sd.Subdomain), zap.Duration("deploy_time", deployTime), zap.String("shop_id", sd.ShopID))
 	return response, nil
@@ -1122,19 +1159,6 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		"updated_files": updatedFiles,
 		"updated_at":    time.Now().UTC().Format(time.RFC3339),
 	})
-}
-
-func getDeploymentStatusHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	subdomain := vars["subdomain"]
-
-	status, err := getDeploymentStatus(subdomain)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get deployment status: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	writeJSONResponse(w, status)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

@@ -33,9 +33,11 @@ func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryable
 	// Store deployment endpoints (proxied to store-deployer)
 	app.Post("/shops/:shop_id/deploy", proxyHandler.ProxyDeployStore)
 	app.Post("/shops/:shop_id/redeploy", proxyHandler.ProxyRedeployStore)
-	app.Get("/shops/:shop_id/deployment-status", proxyHandler.ProxyDeploymentStatus)
 	app.Post("/shops/:shop_id/update-data", proxyHandler.ProxyUpdateStoreData)
 	app.Delete("/shops/:shop_id/cleanup", proxyHandler.ProxyCleanupStore)
+
+	// Internal deployment callback endpoint
+	app.Post("/internal/deployments/:shop_id/complete", templateHandler.CompleteDeploymentCallback)
 
 	// Template version management endpoints (local handlers)
 	app.Get("/shops/:shop_id/template/current", templateHandler.GetCurrentTemplate)

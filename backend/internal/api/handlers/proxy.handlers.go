@@ -355,9 +355,9 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create deployment record", nil)
 	}
 
-	// Start async deployment and polling in background
+	// Start async deployment in background
 	go func(shopID int64, deploymentID int64, subdomain, template, version string) {
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		ctx, finish := observability.StartSpan(ctx, "asyncRedeploy", "store-deployer", "POST", "redeploy")
 		defer finish(0, nil)
@@ -378,36 +378,8 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 			return
 		}
 
-		// Poll for completion
-		if err := h.StoreDeployerClient.WaitForDeploymentCompletion(ctx, subdomain); err != nil {
-			errMsg := fmt.Sprintf("deployment polling failed: %v", err)
-			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-				DeploymentID: deploymentID,
-				Status:       "failed",
-				Message:      &errMsg,
-			})
-
-			zap.L().Error("ProxyRedeployStore: deployment polling failed",
-				zap.Int64("shop_id", shopID),
-				zap.String("subdomain", subdomain),
-				zap.Error(err))
-			return
-		}
-
-		// Mark deployment as completed
-		_ = h.Repository.CompleteDeployment(ctx, db.CompleteDeploymentParams{
-			DeploymentID: deploymentID,
-			Status:       "deployed",
-			Message:      nil,
-		})
-
-		// Update shop's last deployment
-		_ = h.Repository.UpdateShopLastDeployment(ctx, db.UpdateShopLastDeploymentParams{
-			ShopID:           shopID,
-			LastDeploymentID: &deploymentID,
-		})
-
-		zap.L().Info("ProxyRedeployStore: redeployment completed successfully",
+		// Deployment triggered successfully - store-deployer will notify us when complete
+		zap.L().Info("ProxyRedeployStore: redeployment initiated, waiting for store-deployer callback",
 			zap.Int64("shop_id", shopID),
 			zap.String("subdomain", subdomain),
 			zap.String("template", template))
@@ -425,36 +397,6 @@ func (h *ProxyHandler) ProxyRedeployStore(c *fiber.Ctx) error {
 	}
 
 	return api.SuccessResponse(c, fiber.StatusAccepted, response, "Store redeployed successfully")
-}
-
-// ProxyDeploymentStatus proxies requests to store-deployer for deployment status
-// @Summary      Get deployment status
-// @Description  Get the current deployment status of a store
-// @Tags         deployment
-// @Produce      json
-// @Param        shop_id path string true "Shop ID"
-// @Success      200  {object}  models.SuccessResponse  "Deployment status retrieved successfully"
-// @Failure      400  {object}  models.ErrorResponse "Invalid shop ID"
-// @Failure      500  {object}  models.ErrorResponse "Internal server error"
-// @Security     OAuth2AccessCode
-// @Router       /shops/{shop_id}/deployment-status [get]
-func (h *ProxyHandler) ProxyDeploymentStatus(c *fiber.Ctx) error {
-	shopID := c.Params("shop_id")
-
-	// Validate shop ownership before proxying
-	shopIDInt, err := strconv.ParseInt(shopID, 10, 64)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
-	}
-
-	// Get shop details to extract subdomain for the proxy call
-	shop, err := h.Repository.GetShop(c.Context(), shopIDInt)
-	if err != nil {
-		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
-	}
-
-	path := fmt.Sprintf("/status/%s", shop.Subdomain)
-	return h.ProxyWithStandardResponse(c, h.StoreDeployerURL, path, "Deployment status retrieved successfully")
 }
 
 // ProxyUpdateStoreData proxies requests to store-deployer /update-data/{subdomain}

@@ -630,3 +630,107 @@ func getServiceURL(serviceName, defaultPort string) string {
 func jsonPayload(data []byte) *bytes.Reader {
 	return bytes.NewReader(data)
 }
+
+// CompleteDeploymentCallback handles deployment completion notifications from store-deployer
+// @Summary      Complete deployment callback
+// @Description  Webhook endpoint called by store-deployer when deployment completes
+// @Tags         deployments-internal
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        callback body models.DeploymentCompleteCallbackRequest true "Deployment completion callback"
+// @Success      200  {object}  models.SuccessResponse "Deployment status updated successfully"
+// @Failure      400  {object}  models.ErrorResponse "Invalid request"
+// @Failure      404  {object}  models.ErrorResponse "Deployment not found"
+// @Failure      500  {object}  models.ErrorResponse "Internal server error"
+// @Router       /internal/deployments/{shop_id}/complete [post]
+func (h *TemplateHandler) CompleteDeploymentCallback(c *fiber.Ctx) error {
+	shopIDStr := c.Params("shop_id")
+	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	if err != nil {
+		zap.L().Warn("CompleteDeploymentCallback: invalid shop_id", zap.String("shop_id", shopIDStr))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Parse callback payload
+	var callback struct {
+		DeploymentID int64  `json:"deployment_id"`
+		Subdomain    string `json:"subdomain"`
+		Status       string `json:"status"`
+		Message      string `json:"message"`
+		CompletedAt  string `json:"completed_at"`
+	}
+
+	if err := c.BodyParser(&callback); err != nil {
+		zap.L().Warn("CompleteDeploymentCallback: failed to parse request body",
+			zap.Int64("shop_id", shopID),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	// Validate required fields
+	if callback.DeploymentID == 0 || callback.Status == "" {
+		zap.L().Warn("CompleteDeploymentCallback: missing required fields",
+			zap.Int64("shop_id", shopID),
+			zap.Int64("deployment_id", callback.DeploymentID),
+			zap.String("status", callback.Status))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Missing required fields", nil)
+	}
+
+	// Update deployment status in database
+	var messagePtr *string
+	if callback.Message != "" {
+		messagePtr = &callback.Message
+	}
+
+	err = h.repository.UpdateDeploymentStatus(c.Context(), db.UpdateDeploymentStatusParams{
+		DeploymentID: callback.DeploymentID,
+		Status:       callback.Status,
+		Message:      messagePtr,
+	})
+	if err != nil {
+		zap.L().Error("CompleteDeploymentCallback: failed to update deployment status",
+			zap.Int64("shop_id", shopID),
+			zap.Int64("deployment_id", callback.DeploymentID),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update deployment status", nil)
+	}
+
+	// If deployment succeeded, also update shop's last_deployment_id and complete it
+	if callback.Status == "deployed" {
+		err = h.repository.CompleteDeployment(c.Context(), db.CompleteDeploymentParams{
+			DeploymentID: callback.DeploymentID,
+			Status:       "deployed",
+			Message:      messagePtr,
+		})
+		if err != nil {
+			zap.L().Warn("CompleteDeploymentCallback: failed to mark deployment as completed",
+				zap.Int64("shop_id", shopID),
+				zap.Int64("deployment_id", callback.DeploymentID),
+				zap.Error(err))
+		}
+
+		// Update shop's last_deployment_id
+		err = h.repository.UpdateShopLastDeployment(c.Context(), db.UpdateShopLastDeploymentParams{
+			ShopID:           shopID,
+			LastDeploymentID: &callback.DeploymentID,
+		})
+		if err != nil {
+			zap.L().Warn("CompleteDeploymentCallback: failed to update shop last deployment",
+				zap.Int64("shop_id", shopID),
+				zap.Int64("deployment_id", callback.DeploymentID),
+				zap.Error(err))
+		}
+	}
+
+	zap.L().Info("CompleteDeploymentCallback: deployment callback processed successfully",
+		zap.Int64("shop_id", shopID),
+		zap.Int64("deployment_id", callback.DeploymentID),
+		zap.String("status", callback.Status),
+		zap.String("subdomain", callback.Subdomain))
+
+	return api.SuccessResponse(c, fiber.StatusOK, map[string]interface{}{
+		"deployment_id": callback.DeploymentID,
+		"status":        callback.Status,
+	}, "Deployment status updated successfully")
+}
