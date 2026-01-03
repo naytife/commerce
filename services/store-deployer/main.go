@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -307,8 +308,14 @@ func (sd *StoreDeployer) notifyDeploymentComplete(status, message string) error 
 
 	notifyURL := fmt.Sprintf("%s/v1/internal/deployments/%s/complete", backendURL, sd.DeploymentID)
 
+	// Convert deployment_id from string to int64 for the API
+	deploymentID, err := strconv.ParseInt(sd.DeploymentID, 10, 64)
+	if err != nil {
+		deploymentID = 0 // Fallback to 0 if parsing fails
+	}
+
 	notifyPayload := map[string]interface{}{
-		"deployment_id": sd.DeploymentID,
+		"deployment_id": deploymentID,
 		"subdomain":     sd.Subdomain,
 		"status":        status,
 		"message":       message,
@@ -1093,21 +1100,20 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("deployment failed", zap.Error(err), zap.String("subdomain", req.Subdomain), zap.String("shop_id", req.ShopID))
-		
+
 		// Notify backend of deployment failure
 		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Deployment failed: %v", err)); notifyErr != nil {
 			logger.Error("failed to notify backend of deployment failure",
 				zap.String("shop_id", req.ShopID),
 				zap.Error(notifyErr))
 		}
-		
+
 		http.Error(w, fmt.Sprintf("Deployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	writeJSONResponse(w, response)
 }
-
 
 func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -1151,14 +1157,14 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("redeployment failed", zap.Error(err), zap.String("subdomain", subdomain), zap.String("shop_id", req.ShopID))
-		
+
 		// Notify backend of redeployment failure
 		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Redeployment failed: %v", err)); notifyErr != nil {
 			logger.Error("failed to notify backend of redeployment failure",
 				zap.String("shop_id", req.ShopID),
 				zap.Error(notifyErr))
 		}
-		
+
 		http.Error(w, fmt.Sprintf("Redeployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}

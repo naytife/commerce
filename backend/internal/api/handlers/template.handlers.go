@@ -136,16 +136,16 @@ func (h *TemplateHandler) BuildTemplate(c *fiber.Ctx) error {
 // NOTE: Store data update functionality is now handled by proxy handlers
 // (see proxy.handlers.go ProxyUpdateStoreData) which proxy to store-deployer service
 
-	// @Summary      Get deployment status
-	// @Description  Get the current deployment status of a store
-	// @Tags         deployment
-	// @Produce      json
-	// @Param        shop_id path string true "Shop ID"
-	// @Success      200  {object}  models.SuccessResponse{data=models.DeploymentStatus}
-	// @Failure      400  {object}  models.ErrorResponse
-	// @Failure      404  {object}  models.ErrorResponse
-	// @Failure      500  {object}  models.ErrorResponse
-	// @Router       /shops/{shop_id}/deployment-status [get]
+// @Summary      Get deployment status
+// @Description  Get the current deployment status of a store
+// @Tags         deployment
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Success      200  {object}  models.SuccessResponse{data=models.DeploymentStatus}
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /shops/{shop_id}/deployment-status [get]
 func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
@@ -669,7 +669,7 @@ func jsonPayload(data []byte) *bytes.Reader {
 // @Accept       json
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
-	// @Param        callback body object{deployment_id=int64,subdomain=string,status=string,message=string,completed_at=string} true "Deployment completion callback"
+// @Param        callback body object{deployment_id=int64,subdomain=string,status=string,message=string,completed_at=string} true "Deployment completion callback"
 // @Success      200  {object}  models.SuccessResponse "Deployment status updated successfully"
 // @Failure      400  {object}  models.ErrorResponse "Invalid request"
 // @Failure      404  {object}  models.ErrorResponse "Deployment not found"
