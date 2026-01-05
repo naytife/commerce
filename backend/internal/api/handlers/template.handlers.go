@@ -278,8 +278,14 @@ func (h *TemplateHandler) UpdateToLatestTemplate(c *fiber.Ctx) error {
 	// Get current deployed template
 	currentTemplate, err := h.repository.GetShopCurrentTemplate(c.Context(), shopID)
 	if err != nil {
-		zap.L().Warn("UpdateToLatestTemplate: no deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no active deployment", nil)
+		zap.L().Warn("UpdateToLatestTemplate: no active deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no active/completed deployment. Please ensure the shop is deployed first.", nil)
+	}
+
+	// Validate template name
+	if currentTemplate.TemplateName == "" {
+		zap.L().Error("UpdateToLatestTemplate: deployment has empty template name", zap.Int64("shop_id", shopID))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Shop deployment has no template assigned", nil)
 	}
 
 	// Fetch latest template version from template-registry
@@ -416,6 +422,11 @@ func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, 
 }
 
 func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Context, templateName string) (*models.TemplateVersion, error) {
+	if templateName == "" {
+		zap.L().Error("fetchLatestTemplateVersionFromService: template name is empty")
+		return nil, fmt.Errorf("template name cannot be empty")
+	}
+
 	serviceURL := getServiceURL("template-registry", "8002")
 	// TODO: Accept caller ctx to preserve cancellation/tracing.
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
@@ -424,6 +435,7 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 	defer finish(0, nil)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/latest/%s", serviceURL, templateName), nil)
 	if err != nil {
+		zap.L().Error("fetchLatestTemplateVersionFromService: failed to create request", zap.String("template", templateName), zap.Error(err))
 		return nil, err
 	}
 	observability.InjectTraceHeaders(ctx, req)
@@ -436,15 +448,18 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 		resp, err = http.DefaultClient.Do(req)
 	}
 	if err != nil {
+		zap.L().Error("fetchLatestTemplateVersionFromService: HTTP request failed", zap.String("template", templateName), zap.String("url", fmt.Sprintf("%s/latest/%s", serviceURL, templateName)), zap.Error(err))
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		zap.L().Error("fetchLatestTemplateVersionFromService: service returned error status", zap.String("template", templateName), zap.Int("status_code", resp.StatusCode), zap.String("url", fmt.Sprintf("%s/latest/%s", serviceURL, templateName)))
 		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
 	}
 
 	var result models.TemplateVersion
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		zap.L().Error("fetchLatestTemplateVersionFromService: failed to decode response", zap.String("template", templateName), zap.Error(err))
 		return nil, err
 	}
 

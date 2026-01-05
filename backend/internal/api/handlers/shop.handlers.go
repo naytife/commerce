@@ -715,7 +715,7 @@ func (h *Handler) fetchLatestTemplateVersion(ctx context.Context, templateName s
 	}
 
 	reqURL := fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, templateName)
-	
+
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -760,4 +760,3 @@ func (h *Handler) fetchLatestTemplateVersion(ctx context.Context, templateName s
 
 	return "", fmt.Errorf("version not found in response")
 }
-
