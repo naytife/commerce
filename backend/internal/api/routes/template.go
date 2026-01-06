@@ -27,9 +27,6 @@ func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryable
 	app.Get("/templates/:name/versions/:version/download", proxyHandler.ProxyDownloadTemplate)
 	app.Post("/templates/upload", proxyHandler.ProxyUploadTemplate)
 
-	// Keep local template handlers for additional functionality if needed
-	app.Post("/templates/build", templateHandler.BuildTemplate)
-
 	// Store deployment endpoints (proxied to store-deployer)
 	app.Post("/shops/:shop_id/deploy", proxyHandler.ProxyDeployStore)
 	app.Post("/shops/:shop_id/redeploy", proxyHandler.ProxyRedeployStore)
