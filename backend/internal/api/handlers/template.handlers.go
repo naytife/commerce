@@ -13,17 +13,20 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/observability"
+	"github.com/petrejonn/naytife/internal/services"
 	"go.uber.org/zap"
 )
 
 type TemplateHandler struct {
-	repository  db.Repository
-	RetryClient *retryablehttp.Client
+	repository           db.Repository
+	RetryClient          *retryablehttp.Client
+	StoreDeployerClient  *services.StoreDeployerClient
 }
 
 func NewTemplateHandler(repo db.Repository) *TemplateHandler {
@@ -210,20 +213,65 @@ func (h *TemplateHandler) UpdateToLatestTemplate(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusConflict, "Cannot downgrade template version", nil)
 	}
 
-	// Trigger async redeployment with new template version
-	deploymentResp, err := h.triggerStoreRedeployment(c.Context(), shop.Subdomain, currentTemplate.TemplateName, latestVersion.Version)
+	// Create deployment record (status = 'deploying')
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	deployment, err := h.repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
+		ShopID:          shopID,
+		TemplateName:    currentTemplate.TemplateName,
+		TemplateVersion: latestVersion.Version,
+		Status:          "deploying",
+		DeploymentType:  "template_update",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
 	if err != nil {
-		zap.L().Error("UpdateToLatestTemplate: failed to trigger redeployment", zap.Int64("shop_id", shopID), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to trigger template update", nil)
+		zap.L().Error("UpdateToLatestTemplate: failed to create deployment record",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", shop.Subdomain),
+			zap.String("template", currentTemplate.TemplateName),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create deployment record", nil)
 	}
+
+	// Trigger async redeployment via store-deployer client
+	go func(shopID int64, deploymentID int64, subdomain, templateName, templateVersion string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "asyncTemplateUpdate", "store-deployer", "POST", "redeploy")
+		defer finish(0, nil)
+
+		// Trigger deployment with store-deployer client
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, deploymentID, subdomain, templateName); err != nil {
+			errMsg := fmt.Sprintf("failed to trigger template update: %v", err)
+			_ = h.repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+				DeploymentID: deploymentID,
+				Status:       "failed",
+				Message:      &errMsg,
+			})
+
+			zap.L().Error("UpdateToLatestTemplate: failed to trigger store-deployer",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.String("template", templateName),
+				zap.String("version", templateVersion),
+				zap.Error(err))
+			return
+		}
+
+		zap.L().Info("UpdateToLatestTemplate: template update initiated, waiting for store-deployer callback",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", subdomain),
+			zap.String("template", templateName),
+			zap.String("version", templateVersion))
+	}(shopID, deployment.DeploymentID, shop.Subdomain, currentTemplate.TemplateName, latestVersion.Version)
 
 	response := models.TemplateUpdateResponse{
 		ShopID:           fmt.Sprintf("%d", shopID),
 		CurrentVersion:   currentTemplate.TemplateVersion,
 		TargetVersion:    latestVersion.Version,
 		IsUpdateRequired: true,
-		DeploymentID:     deploymentResp.DeploymentID,
-		Status:           deploymentResp.Status,
+		DeploymentID:     fmt.Sprintf("%d", deployment.DeploymentID),
+		Status:           "deploying",
 		Message:          "Template update initiated",
 	}
 
@@ -279,57 +327,6 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 	}
 
 	return &wrapper.Version, nil
-}
-
-// triggerStoreRedeployment triggers an async redeployment of a store with a new template version
-func (h *TemplateHandler) triggerStoreRedeployment(ctx context.Context, subdomain, templateName, templateVersion string) (*models.DeploymentResponse, error) {
-	serviceURL := getServiceURL("store-deployer", "8001")
-
-	redeployReq := models.StoreRedeploymentRequest{
-		Subdomain:    subdomain,
-		TemplateName: templateName,
-		Version:      templateVersion,
-	}
-
-	payload, err := json.Marshal(redeployReq)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "triggerStoreRedeployment", "store-deployer", http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL))
-	defer finish(0, nil)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL), jsonPayload(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(req)
-	} else {
-		resp, err = http.DefaultClient.Do(req)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to store-deployer service: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("store-deployer service returned status %d", resp.StatusCode)
-	}
-
-	var result models.DeploymentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode deployment response: %w", err)
-	}
-
-	return &result, nil
 }
 
 // Version comparison utilities for semantic versioning

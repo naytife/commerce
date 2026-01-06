@@ -17,6 +17,7 @@ func TemplateRouter(app fiber.Router, repo db.Repository, retryClient *retryable
 	proxyHandler.StoreDeployerClient = storeDeployerClient
 	templateHandler := handlers.NewTemplateHandler(repo)
 	templateHandler.RetryClient = retryClient
+	templateHandler.StoreDeployerClient = storeDeployerClient
 
 	// Template management endpoints (proxied to template-registry)
 	app.Get("/templates", proxyHandler.ProxyListTemplates)

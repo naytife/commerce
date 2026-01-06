@@ -45,25 +45,8 @@ type TemplateVersion struct {
 
 // LatestTemplateVersionResponse wraps the response from template-registry /templates/{name}/latest
 type LatestTemplateVersionResponse struct {
-	Status  string           `json:"status"`
-	Version TemplateVersion  `json:"version"`
-}
-
-// Template build models
-
-// TemplateBuildRequest represents a request to build a template
-type TemplateBuildRequest struct {
-	TemplateName string `json:"template_name" validate:"required"`
-	GitCommit    string `json:"git_commit,omitempty"`
-	Force        bool   `json:"force,omitempty"`
-}
-
-// BuildResponse represents the response from a build request
-type BuildResponse struct {
-	BuildID   string    `json:"build_id"`
-	Status    string    `json:"status"`
-	Message   string    `json:"message"`
-	StartedAt time.Time `json:"started_at"`
+	Status  string          `json:"status"`
+	Version TemplateVersion `json:"version"`
 }
 
 // Store deployment models
