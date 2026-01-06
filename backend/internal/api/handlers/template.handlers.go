@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,17 +13,20 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/petrejonn/naytife/internal/api"
 	"github.com/petrejonn/naytife/internal/api/models"
 	"github.com/petrejonn/naytife/internal/db"
 	"github.com/petrejonn/naytife/internal/observability"
+	"github.com/petrejonn/naytife/internal/services"
 	"go.uber.org/zap"
 )
 
 type TemplateHandler struct {
-	repository  db.Repository
-	RetryClient *retryablehttp.Client
+	repository           db.Repository
+	RetryClient          *retryablehttp.Client
+	StoreDeployerClient  *services.StoreDeployerClient
 }
 
 func NewTemplateHandler(repo db.Repository) *TemplateHandler {
@@ -31,120 +35,19 @@ func NewTemplateHandler(repo db.Repository) *TemplateHandler {
 	}
 }
 
-// Template management endpoints
-
-// @Summary      List available templates
-// @Description  Get all available templates from the template system (internal method, not routed)
-// @Tags         templates-internal
-// @Produce      json
-// @Success      200  {object}  models.SuccessResponse{data=[]models.Template}
-// @Failure      500  {object}  models.ErrorResponse
-func (h *TemplateHandler) ListTemplates(c *fiber.Ctx) error {
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	templates, err := h.fetchTemplatesFromService(c.Context())
-	if err != nil {
-		zap.L().Error("ListTemplates: failed to fetch templates", zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch templates", nil)
-	}
-
-	return api.SuccessResponse(c, fiber.StatusOK, templates, "Templates fetched successfully")
-}
-
-// @Summary      Get template versions
-// @Description  Get all versions for a specific template
-// @Tags         templates
-// @Produce      json
-// @Param        template_name path string true "Template name"
-// @Success      200  {object}  models.SuccessResponse{data=[]models.TemplateVersion}
-// @Failure      404  {object}  models.ErrorResponse
-// @Failure      500  {object}  models.ErrorResponse
-// @Security     OAuth2AccessCode
-// @Router       /templates/{template_name}/versions [get]
-func (h *TemplateHandler) GetTemplateVersions(c *fiber.Ctx) error {
-	templateName := c.Params("template_name")
-	if templateName == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
-	}
-
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	versions, err := h.fetchTemplateVersionsFromService(c.Context(), templateName)
-	if err != nil {
-		zap.L().Error("GetTemplateVersions: failed to fetch template versions", zap.String("template", templateName), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch template versions", nil)
-	}
-
-	return api.SuccessResponse(c, fiber.StatusOK, versions, "Template versions fetched successfully")
-}
-
-// @Summary      Get latest template version
-// @Description  Get the latest version for a specific template
-// @Tags         templates
-// @Produce      json
-// @Param        template_name path string true "Template name"
-// @Success      200  {object}  models.SuccessResponse{data=models.TemplateVersion}
-// @Failure      404  {object}  models.ErrorResponse
-// @Failure      500  {object}  models.ErrorResponse
-// @Security     OAuth2AccessCode
-// @Router       /templates/{template_name}/latest [get]
-func (h *TemplateHandler) GetLatestTemplateVersion(c *fiber.Ctx) error {
-	templateName := c.Params("template_name")
-	if templateName == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
-	}
-
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	latest, err := h.fetchLatestTemplateVersionFromService(c.Context(), templateName)
-	if err != nil {
-		zap.L().Error("GetLatestTemplateVersion: failed to fetch latest template version", zap.String("template", templateName), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch latest template version", nil)
-	}
-
-	return api.SuccessResponse(c, fiber.StatusOK, latest, "Latest template version fetched successfully")
-}
-
-// @Summary      Build template
-// @Description  Trigger a template build
-// @Tags         templates
-// @Accept       json
-// @Produce      json
-// @Param        request body models.TemplateBuildRequest true "Build request"
-// @Success      202  {object}  models.SuccessResponse{data=models.BuildResponse}
-// @Failure      400  {object}  models.ErrorResponse
-// @Failure      500  {object}  models.ErrorResponse
-// @Security     OAuth2AccessCode
-// @Router       /templates/build [post]
-func (h *TemplateHandler) BuildTemplate(c *fiber.Ctx) error {
-	var req models.TemplateBuildRequest
-	if err := c.BodyParser(&req); err != nil {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
-	}
-
-	if req.TemplateName == "" {
-		return api.ErrorResponse(c, fiber.StatusBadRequest, "Template name is required", nil)
-	}
-
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	response, err := h.triggerTemplateBuild(c.Context(), req)
-	if err != nil {
-		zap.L().Error("BuildTemplate: failed to trigger template build", zap.String("template", req.TemplateName), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to trigger template build", nil)
-	}
-
-	return api.SuccessResponse(c, fiber.StatusAccepted, response, "Template build initiated successfully")
-}
-
 // NOTE: Store data update functionality is now handled by proxy handlers
 // (see proxy.handlers.go ProxyUpdateStoreData) which proxy to store-deployer service
 
-// @Summary      Get deployment status (internal method, not routed)
-// @Description  Get the deployment status for a shop (internal method, actual endpoint is proxied)
-// @Tags         deployments-internal
+// @Summary      Get deployment status
+// @Description  Get the current deployment status of a store
+// @Tags         deployment
 // @Produce      json
 // @Param        shop_id path string true "Shop ID"
 // @Success      200  {object}  models.SuccessResponse{data=models.DeploymentStatus}
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      404  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse
+// @Router       /shops/{shop_id}/deployment-status [get]
 func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 	shopIDStr := c.Params("shop_id")
 	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
@@ -159,14 +62,44 @@ func (h *TemplateHandler) GetDeploymentStatus(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop not found", nil)
 	}
 
-	// Pass the incoming request context into the helper to preserve cancellation and tracing.
-	status, err := h.fetchDeploymentStatusFromService(c.Context(), shop.Subdomain)
+	// Get latest deployment from database (webhook-updated source of truth)
+	deployment, err := h.repository.GetLatestDeploymentByShop(c.Context(), shopID)
 	if err != nil {
-		zap.L().Error("GetDeploymentStatus: failed to fetch deployment status", zap.Int64("shop_id", shopID), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch deployment status", nil)
+		zap.L().Warn("GetDeploymentStatus: no deployment found for shop", zap.Int64("shop_id", shopID), zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusNotFound, "Shop has no deployment", nil)
 	}
 
-	return api.SuccessResponse(c, fiber.StatusOK, status, "Deployment status fetched successfully")
+	// Build response using actual database state
+	response := models.DeploymentStatus{
+		ShopID:          fmt.Sprintf("%d", shopID),
+		Subdomain:       shop.Subdomain,
+		Status:          deployment.Status,
+		TemplateName:    deployment.TemplateName,
+		TemplateVersion: deployment.TemplateVersion,
+		DeploymentID:    fmt.Sprintf("%d", deployment.DeploymentID),
+		Message:         "",
+		ProductionURL:   fmt.Sprintf("https://%s.naytife.com", shop.Subdomain),
+	}
+
+	// Add timestamps if available
+	if deployment.CompletedAt.Valid {
+		response.LastDeployedAt = &deployment.CompletedAt.Time
+	}
+	if deployment.StartedAt.Valid {
+		response.LastUpdateAt = &deployment.StartedAt.Time
+	}
+
+	// Add error message if deployment failed
+	if deployment.Message != nil {
+		response.Message = *deployment.Message
+	}
+
+	zap.L().Info("GetDeploymentStatus: retrieved deployment status",
+		zap.Int64("shop_id", shopID),
+		zap.Int64("deployment_id", deployment.DeploymentID),
+		zap.String("status", deployment.Status))
+
+	return api.SuccessResponse(c, fiber.StatusOK, response, "Deployment status retrieved successfully")
 }
 
 // @Summary      Get current template
@@ -280,119 +213,80 @@ func (h *TemplateHandler) UpdateToLatestTemplate(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusConflict, "Cannot downgrade template version", nil)
 	}
 
-	// Trigger async redeployment with new template version
-	deploymentResp, err := h.triggerStoreRedeployment(c.Context(), shop.Subdomain, currentTemplate.TemplateName, latestVersion.Version)
+	// Create deployment record (status = 'deploying')
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	deployment, err := h.repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
+		ShopID:          shopID,
+		TemplateName:    currentTemplate.TemplateName,
+		TemplateVersion: latestVersion.Version,
+		Status:          "deploying",
+		DeploymentType:  "template_update",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
 	if err != nil {
-		zap.L().Error("UpdateToLatestTemplate: failed to trigger redeployment", zap.Int64("shop_id", shopID), zap.Error(err))
-		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to trigger template update", nil)
+		zap.L().Error("UpdateToLatestTemplate: failed to create deployment record",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", shop.Subdomain),
+			zap.String("template", currentTemplate.TemplateName),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create deployment record", nil)
 	}
+
+	// Trigger async redeployment via store-deployer client
+	go func(shopID int64, deploymentID int64, subdomain, templateName, templateVersion string) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx, finish := observability.StartSpan(ctx, "asyncTemplateUpdate", "store-deployer", "POST", "redeploy")
+		defer finish(0, nil)
+
+		// Trigger deployment with store-deployer client
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, deploymentID, subdomain, templateName); err != nil {
+			errMsg := fmt.Sprintf("failed to trigger template update: %v", err)
+			_ = h.repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+				DeploymentID: deploymentID,
+				Status:       "failed",
+				Message:      &errMsg,
+			})
+
+			zap.L().Error("UpdateToLatestTemplate: failed to trigger store-deployer",
+				zap.Int64("shop_id", shopID),
+				zap.String("subdomain", subdomain),
+				zap.String("template", templateName),
+				zap.String("version", templateVersion),
+				zap.Error(err))
+			return
+		}
+
+		zap.L().Info("UpdateToLatestTemplate: template update initiated, waiting for store-deployer callback",
+			zap.Int64("shop_id", shopID),
+			zap.String("subdomain", subdomain),
+			zap.String("template", templateName),
+			zap.String("version", templateVersion))
+	}(shopID, deployment.DeploymentID, shop.Subdomain, currentTemplate.TemplateName, latestVersion.Version)
 
 	response := models.TemplateUpdateResponse{
 		ShopID:           fmt.Sprintf("%d", shopID),
 		CurrentVersion:   currentTemplate.TemplateVersion,
 		TargetVersion:    latestVersion.Version,
 		IsUpdateRequired: true,
-		DeploymentID:     deploymentResp.DeploymentID,
-		Status:           deploymentResp.Status,
+		DeploymentID:     fmt.Sprintf("%d", deployment.DeploymentID),
+		Status:           "deploying",
 		Message:          "Template update initiated",
 	}
 
 	return api.SuccessResponse(c, fiber.StatusAccepted, response, "Template update initiated successfully")
 }
 
-// Service integration methods
-
-func (h *TemplateHandler) fetchTemplatesFromService(ctx context.Context) ([]models.Template, error) {
-	serviceURL := getServiceURL("store-deployer", "8001")
-	// TODO: This helper should accept a caller-provided ctx so cancellation and tracing propagate.
-	// If caller passed a background/TODO context, we still create a short timeout as a safeguard.
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "fetchTemplatesFromService", "store-deployer", http.MethodGet, fmt.Sprintf("%s/templates", serviceURL))
-	defer finish(0, nil)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/templates", serviceURL), nil)
-	if err != nil {
-		return nil, err
-	}
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(req)
-	} else {
-		resp, err = http.DefaultClient.Do(req)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to template service: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("template service returned status %d", resp.StatusCode)
-	}
-
-	var result struct {
-		Templates []models.Template `json:"templates"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode template response: %w", err)
-	}
-
-	return result.Templates, nil
-}
-
-// Template version and build service methods
-
-func (h *TemplateHandler) fetchTemplateVersionsFromService(ctx context.Context, templateName string) ([]models.TemplateVersion, error) {
-	serviceURL := getServiceURL("template-registry", "8002")
-	// TODO: Accept caller ctx to preserve cancellation/tracing.
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "fetchTemplateVersionsFromService", "template-registry", http.MethodGet, fmt.Sprintf("%s/versions/%s", serviceURL, templateName))
-	defer finish(0, nil)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/versions/%s", serviceURL, templateName), nil)
-	if err != nil {
-		return nil, err
-	}
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(req)
-	} else {
-		resp, err = http.DefaultClient.Do(req)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
-	}
-
-	var result struct {
-		Versions []models.TemplateVersion `json:"versions"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result.Versions, nil
-}
-
 func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Context, templateName string) (*models.TemplateVersion, error) {
 	serviceURL := getServiceURL("template-registry", "8002")
-	// TODO: Accept caller ctx to preserve cancellation/tracing.
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "fetchLatestTemplateVersionFromService", "template-registry", http.MethodGet, fmt.Sprintf("%s/latest/%s", serviceURL, templateName))
+	// Accept caller ctx to preserve cancellation/tracing - use context directly without creating new timeout
+	ctx, finish := observability.StartSpan(ctx, "fetchLatestTemplateVersionFromService", "template-registry", http.MethodGet, fmt.Sprintf("%s/templates/%s/latest", serviceURL, templateName))
 	defer finish(0, nil)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/latest/%s", serviceURL, templateName), nil)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/templates/%s/latest", serviceURL, templateName), nil)
 	if err != nil {
+		zap.L().Error("failed to create request for template-registry", zap.Error(err), zap.String("template", templateName))
 		return nil, err
 	}
 	observability.InjectTraceHeaders(ctx, req)
@@ -405,154 +299,34 @@ func (h *TemplateHandler) fetchLatestTemplateVersionFromService(ctx context.Cont
 		resp, err = http.DefaultClient.Do(req)
 	}
 	if err != nil {
+		zap.L().Error("failed to fetch latest template version from service", zap.Error(err), zap.String("template", templateName), zap.String("url", fmt.Sprintf("%s/templates/%s/latest", serviceURL, templateName)))
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
-	}
 
-	var result models.TemplateVersion
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (h *TemplateHandler) triggerTemplateBuild(ctx context.Context, req models.TemplateBuildRequest) (*models.BuildResponse, error) {
-	serviceURL := getServiceURL("template-registry", "8002")
-
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: Accept caller ctx to preserve cancellation/tracing.
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "triggerTemplateBuild", "template-registry", http.MethodPost, fmt.Sprintf("%s/build", serviceURL))
-	defer finish(0, nil)
-	reqHttp, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/build", serviceURL), jsonPayload(payload))
-	if err != nil {
-		return nil, err
-	}
-	reqHttp.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, reqHttp)
-	observability.EnsureRequestID(reqHttp)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(reqHttp)
-	} else {
-		resp, err = http.DefaultClient.Do(reqHttp)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	// Log response status for debugging
+	zap.L().Debug("template-registry response", zap.Int("status", resp.StatusCode), zap.String("template", templateName))
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		zap.L().Warn("template-registry returned non-OK status", zap.Int("status", resp.StatusCode), zap.String("template", templateName), zap.String("body", string(body)))
+		return nil, fmt.Errorf("template-registry service returned status %d for template %s", resp.StatusCode, templateName)
 	}
 
-	var result models.BuildResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+	// Decode into wrapper response struct (template-registry returns {status, version})
+	var wrapper models.LatestTemplateVersionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		zap.L().Error("failed to decode template-registry response", zap.Error(err), zap.String("template", templateName))
+		return nil, fmt.Errorf("failed to decode template-registry response: %w", err)
 	}
 
-	return &result, nil
-}
-
-// triggerStoreDeployment removed: store deployment is handled by proxy handlers (store-deployer service).
-
-// NOTE: Data update functionality is now handled by proxy handlers which proxy to store-deployer service
-
-func (h *TemplateHandler) fetchDeploymentStatusFromService(ctx context.Context, subdomain string) (*models.DeploymentStatus, error) {
-	serviceURL := getServiceURL("store-deployer", "8001")
-	// TODO: Accept caller ctx to preserve cancellation/tracing.
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "fetchDeploymentStatusFromService", "store-deployer", http.MethodGet, fmt.Sprintf("%s/status/%s", serviceURL, subdomain))
-	defer finish(0, nil)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/status/%s", serviceURL, subdomain), nil)
-	if err != nil {
-		return nil, err
-	}
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(req)
-	} else {
-		resp, err = http.DefaultClient.Do(req)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
+	// Validate response structure
+	if wrapper.Status != "success" {
+		zap.L().Warn("unexpected status from template-registry", zap.String("status", wrapper.Status), zap.String("template", templateName))
+		return nil, fmt.Errorf("template-registry returned status: %s", wrapper.Status)
 	}
 
-	var result models.DeploymentStatus
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// triggerStoreRedeployment triggers an async redeployment of a store with a new template version
-func (h *TemplateHandler) triggerStoreRedeployment(ctx context.Context, subdomain, templateName, templateVersion string) (*models.DeploymentResponse, error) {
-	serviceURL := getServiceURL("store-deployer", "8001")
-
-	redeployReq := models.StoreRedeploymentRequest{
-		Subdomain:    subdomain,
-		TemplateName: templateName,
-		Version:      templateVersion,
-	}
-
-	payload, err := json.Marshal(redeployReq)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	ctx, finish := observability.StartSpan(ctx, "triggerStoreRedeployment", "store-deployer", http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL))
-	defer finish(0, nil)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/redeploy", serviceURL), jsonPayload(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	observability.InjectTraceHeaders(ctx, req)
-	observability.EnsureRequestID(req)
-
-	var resp *http.Response
-	if h.RetryClient != nil {
-		resp, err = h.RetryClient.StandardClient().Do(req)
-	} else {
-		resp, err = http.DefaultClient.Do(req)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to store-deployer service: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("store-deployer service returned status %d", resp.StatusCode)
-	}
-
-	var result models.DeploymentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode deployment response: %w", err)
-	}
-
-	return &result, nil
+	return &wrapper.Version, nil
 }
 
 // Version comparison utilities for semantic versioning
@@ -629,4 +403,108 @@ func getServiceURL(serviceName, defaultPort string) string {
 
 func jsonPayload(data []byte) *bytes.Reader {
 	return bytes.NewReader(data)
+}
+
+// CompleteDeploymentCallback handles deployment completion notifications from store-deployer
+// @Summary      Complete deployment callback
+// @Description  Webhook endpoint called by store-deployer when deployment completes
+// @Tags         deployments-internal
+// @Accept       json
+// @Produce      json
+// @Param        shop_id path string true "Shop ID"
+// @Param        callback body object{deployment_id=int64,subdomain=string,status=string,message=string,completed_at=string} true "Deployment completion callback"
+// @Success      200  {object}  models.SuccessResponse "Deployment status updated successfully"
+// @Failure      400  {object}  models.ErrorResponse "Invalid request"
+// @Failure      404  {object}  models.ErrorResponse "Deployment not found"
+// @Failure      500  {object}  models.ErrorResponse "Internal server error"
+// @Router       /internal/deployments/{shop_id}/complete [post]
+func (h *TemplateHandler) CompleteDeploymentCallback(c *fiber.Ctx) error {
+	shopIDStr := c.Params("shop_id")
+	shopID, err := strconv.ParseInt(shopIDStr, 10, 64)
+	if err != nil {
+		zap.L().Warn("CompleteDeploymentCallback: invalid shop_id", zap.String("shop_id", shopIDStr))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid shop ID", nil)
+	}
+
+	// Parse callback payload
+	var callback struct {
+		DeploymentID int64  `json:"deployment_id"`
+		Subdomain    string `json:"subdomain"`
+		Status       string `json:"status"`
+		Message      string `json:"message"`
+		CompletedAt  string `json:"completed_at"`
+	}
+
+	if err := c.BodyParser(&callback); err != nil {
+		zap.L().Warn("CompleteDeploymentCallback: failed to parse request body",
+			zap.Int64("shop_id", shopID),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	// Validate required fields
+	if callback.DeploymentID == 0 || callback.Status == "" {
+		zap.L().Warn("CompleteDeploymentCallback: missing required fields",
+			zap.Int64("shop_id", shopID),
+			zap.Int64("deployment_id", callback.DeploymentID),
+			zap.String("status", callback.Status))
+		return api.ErrorResponse(c, fiber.StatusBadRequest, "Missing required fields", nil)
+	}
+
+	// Update deployment status in database
+	var messagePtr *string
+	if callback.Message != "" {
+		messagePtr = &callback.Message
+	}
+
+	err = h.repository.UpdateDeploymentStatus(c.Context(), db.UpdateDeploymentStatusParams{
+		DeploymentID: callback.DeploymentID,
+		Status:       callback.Status,
+		Message:      messagePtr,
+	})
+	if err != nil {
+		zap.L().Error("CompleteDeploymentCallback: failed to update deployment status",
+			zap.Int64("shop_id", shopID),
+			zap.Int64("deployment_id", callback.DeploymentID),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update deployment status", nil)
+	}
+
+	// If deployment succeeded, also update shop's last_deployment_id and complete it
+	if callback.Status == "deployed" {
+		err = h.repository.CompleteDeployment(c.Context(), db.CompleteDeploymentParams{
+			DeploymentID: callback.DeploymentID,
+			Status:       "deployed",
+			Message:      messagePtr,
+		})
+		if err != nil {
+			zap.L().Warn("CompleteDeploymentCallback: failed to mark deployment as completed",
+				zap.Int64("shop_id", shopID),
+				zap.Int64("deployment_id", callback.DeploymentID),
+				zap.Error(err))
+		}
+
+		// Update shop's last_deployment_id
+		err = h.repository.UpdateShopLastDeployment(c.Context(), db.UpdateShopLastDeploymentParams{
+			ShopID:           shopID,
+			LastDeploymentID: &callback.DeploymentID,
+		})
+		if err != nil {
+			zap.L().Warn("CompleteDeploymentCallback: failed to update shop last deployment",
+				zap.Int64("shop_id", shopID),
+				zap.Int64("deployment_id", callback.DeploymentID),
+				zap.Error(err))
+		}
+	}
+
+	zap.L().Info("CompleteDeploymentCallback: deployment callback processed successfully",
+		zap.Int64("shop_id", shopID),
+		zap.Int64("deployment_id", callback.DeploymentID),
+		zap.String("status", callback.Status),
+		zap.String("subdomain", callback.Subdomain))
+
+	return api.SuccessResponse(c, fiber.StatusOK, map[string]interface{}{
+		"deployment_id": callback.DeploymentID,
+		"status":        callback.Status,
+	}, "Deployment status updated successfully")
 }

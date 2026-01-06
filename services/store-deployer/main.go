@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ var (
 
 type StoreDeployer struct {
 	ShopID       string `json:"shop_id"`
+	DeploymentID string `json:"deployment_id"`
 	Subdomain    string `json:"subdomain"`
 	TemplateName string `json:"template_name"`
 	Version      string `json:"version,omitempty"` // Empty for latest
@@ -40,6 +42,7 @@ type StoreDeployer struct {
 
 type DeploymentRequest struct {
 	ShopID       string            `json:"shop_id"`
+	DeploymentID string            `json:"deployment_id"`
 	Subdomain    string            `json:"subdomain"`
 	TemplateName string            `json:"template_name"`
 	Version      string            `json:"version,omitempty"`
@@ -202,7 +205,6 @@ func main() {
 	r.HandleFunc("/deploy", deployStoreHandler).Methods("POST")
 	r.HandleFunc("/redeploy/{subdomain}", redeployStoreHandler).Methods("POST")
 	r.HandleFunc("/update-data/{subdomain}", updateDataHandler).Methods("POST")
-	r.HandleFunc("/status/{subdomain}", getDeploymentStatusHandler).Methods("GET")
 	r.HandleFunc("/cleanup/{subdomain}", cleanupStoreHandler).Methods("DELETE")
 	r.HandleFunc("/health", healthHandler).Methods("GET")
 
@@ -278,8 +280,117 @@ func (sd *StoreDeployer) DeployStore() (*DeploymentResponse, error) {
 		DeployTime: deployTime.String(),
 	}
 
+	// 7. Notify backend of deployment completion with retry logic
+	// This runs synchronously to ensure the notification is delivered before returning
+	if err := sd.notifyDeploymentComplete("deployed", "Deployment completed successfully"); err != nil {
+		logger.Error("failed to notify backend after retries",
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain),
+			zap.Error(err))
+		// Don't fail the deployment if notification fails - just log it
+	} else {
+		logger.Info("successfully notified backend of deployment completion",
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+	}
+
 	logger.Info("deployment complete", zap.String("subdomain", sd.Subdomain), zap.Duration("deploy_time", deployTime), zap.String("shop_id", sd.ShopID))
 	return response, nil
+}
+
+// notifyDeploymentComplete sends a webhook notification to the backend with retry logic
+// Attempts up to 3 times with delays (0s, 1s, 2s) to handle transient failures
+func (sd *StoreDeployer) notifyDeploymentComplete(status, message string) error {
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = "http://backend:8000"
+	}
+
+	notifyURL := fmt.Sprintf("%s/v1/internal/deployments/%s/complete", backendURL, sd.DeploymentID)
+
+	// Convert deployment_id from string to int64 for the API
+	deploymentID, err := strconv.ParseInt(sd.DeploymentID, 10, 64)
+	if err != nil {
+		deploymentID = 0 // Fallback to 0 if parsing fails
+	}
+
+	notifyPayload := map[string]interface{}{
+		"deployment_id": deploymentID,
+		"subdomain":     sd.Subdomain,
+		"status":        status,
+		"message":       message,
+		"completed_at":  time.Now().UTC().Format(time.RFC3339),
+	}
+
+	notifyBody, _ := json.Marshal(notifyPayload)
+
+	// Retry logic: 3 attempts with fixed delays (0s, 1s, 2s)
+	delays := []time.Duration{0, 1 * time.Second, 2 * time.Second}
+	var lastErr error
+
+	for attempt, delay := range delays {
+		if delay > 0 {
+			logger.Debug("waiting before retry",
+				zap.Int("attempt", attempt),
+				zap.Duration("delay", delay),
+				zap.String("shop_id", sd.ShopID))
+			time.Sleep(delay)
+		}
+
+		notifyReq, err := http.NewRequest("POST", notifyURL, strings.NewReader(string(notifyBody)))
+		if err != nil {
+			lastErr = err
+			logger.Warn("failed to create notification request",
+				zap.Int("attempt", attempt+1),
+				zap.String("shop_id", sd.ShopID),
+				zap.Error(err))
+			continue
+		}
+
+		notifyReq.Header.Set("Content-Type", "application/json")
+
+		logger.Debug("sending deployment completion webhook",
+			zap.Int("attempt", attempt+1),
+			zap.String("url", notifyURL),
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+
+		notifyResp, err := httpClient.Do(notifyReq)
+		if err != nil {
+			lastErr = err
+			logger.Warn("deployment completion webhook request failed",
+				zap.Int("attempt", attempt+1),
+				zap.String("shop_id", sd.ShopID),
+				zap.String("subdomain", sd.Subdomain),
+				zap.Error(err))
+			continue
+		}
+
+		// Check response status
+		if notifyResp.StatusCode >= 200 && notifyResp.StatusCode < 300 {
+			notifyResp.Body.Close()
+			logger.Info("deployment completion webhook succeeded",
+				zap.Int("attempt", attempt+1),
+				zap.Int("status_code", notifyResp.StatusCode),
+				zap.String("shop_id", sd.ShopID),
+				zap.String("subdomain", sd.Subdomain))
+			return nil
+		}
+
+		// Read response body for logging
+		respBody, _ := io.ReadAll(notifyResp.Body)
+		notifyResp.Body.Close()
+
+		lastErr = fmt.Errorf("webhook returned status %d: %s", notifyResp.StatusCode, string(respBody))
+		logger.Warn("deployment completion webhook returned error",
+			zap.Int("attempt", attempt+1),
+			zap.Int("status_code", notifyResp.StatusCode),
+			zap.String("response", string(respBody)),
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+	}
+
+	return fmt.Errorf("failed to notify backend after 3 attempts: %w", lastErr)
 }
 
 func (sd *StoreDeployer) resolveTemplateVersion() (string, error) {
@@ -980,6 +1091,7 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    req.Subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,
@@ -988,6 +1100,14 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("deployment failed", zap.Error(err), zap.String("subdomain", req.Subdomain), zap.String("shop_id", req.ShopID))
+
+		// Notify backend of deployment failure
+		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Deployment failed: %v", err)); notifyErr != nil {
+			logger.Error("failed to notify backend of deployment failure",
+				zap.String("shop_id", req.ShopID),
+				zap.Error(notifyErr))
+		}
+
 		http.Error(w, fmt.Sprintf("Deployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -1003,6 +1123,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 		TemplateName string `json:"template_name,omitempty"`
 		Version      string `json:"version,omitempty"`
 		ShopID       string `json:"shop_id"`
+		DeploymentID string `json:"deployment_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1027,6 +1148,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,
@@ -1035,6 +1157,14 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("redeployment failed", zap.Error(err), zap.String("subdomain", subdomain), zap.String("shop_id", req.ShopID))
+
+		// Notify backend of redeployment failure
+		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Redeployment failed: %v", err)); notifyErr != nil {
+			logger.Error("failed to notify backend of redeployment failure",
+				zap.String("shop_id", req.ShopID),
+				zap.Error(notifyErr))
+		}
+
 		http.Error(w, fmt.Sprintf("Redeployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -1122,19 +1252,6 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		"updated_files": updatedFiles,
 		"updated_at":    time.Now().UTC().Format(time.RFC3339),
 	})
-}
-
-func getDeploymentStatusHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	subdomain := vars["subdomain"]
-
-	status, err := getDeploymentStatus(subdomain)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get deployment status: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	writeJSONResponse(w, status)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

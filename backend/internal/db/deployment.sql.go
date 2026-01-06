@@ -344,8 +344,8 @@ func (q *Queries) GetLatestDeploymentByShop(ctx context.Context, shopID int64) (
 const getShopCurrentTemplate = `-- name: GetShopCurrentTemplate :one
 SELECT template_name, template_version, status, completed_at
 FROM shop_deployments 
-WHERE shop_id = $1 AND status = 'deployed'
-ORDER BY completed_at DESC 
+WHERE shop_id = $1
+ORDER BY started_at DESC 
 LIMIT 1
 `
 

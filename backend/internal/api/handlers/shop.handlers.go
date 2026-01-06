@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -116,64 +119,66 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		CurrentTemplate:     objDB.CurrentTemplate,
 	}
 
+	// Fetch the actual template version from template registry
+	templateVersion, err := h.fetchLatestTemplateVersion(c.Context(), shop.Template)
+	if err != nil {
+		zap.L().Warn("CreateShop: failed to fetch template version, falling back to latest",
+			zap.String("template", shop.Template),
+			zap.Error(err))
+		templateVersion = "latest"
+	}
+
+	// Create deployment record before triggering deployment
+	startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	deployment, err := h.Repository.CreateDeployment(c.Context(), db.CreateDeploymentParams{
+		ShopID:          objDB.ShopID,
+		TemplateName:    shop.Template,
+		TemplateVersion: templateVersion,
+		Status:          "deploying",
+		DeploymentType:  "full",
+		Message:         nil,
+		StartedAt:       startedAt,
+	})
+	if err != nil {
+		zap.L().Error("CreateShop: failed to create deployment record",
+			zap.Int64("shop_id", objDB.ShopID),
+			zap.String("subdomain", objDB.Subdomain),
+			zap.Error(err))
+		return api.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to initiate deployment", nil)
+	}
+
 	// Auto-trigger deployment for new shops (DB record + StoreDeployerClient)
-	go func(shopID int64, subdomain, templateName string) {
+	go func(shopID int64, subdomain, templateName string, deploymentID int64) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		ctx, finish := observability.StartSpan(ctx, "autoDeployNewShop", "store-deployer", "POST", "deploy")
 		defer finish(0, nil)
 
-		// 1) Create deployment record (deploying)
-		startedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
-		deployment, derr := h.Repository.CreateDeployment(ctx, db.CreateDeploymentParams{
-			ShopID:          shopID,
-			TemplateName:    templateName,
-			TemplateVersion: "latest",
-			Status:          "deploying",
-			DeploymentType:  "full",
-			Message:         nil,
-			StartedAt:       startedAt,
-		})
-		if derr != nil {
-			zap.L().Error("autoDeployNewShop: failed to create deployment record",
-				zap.Int64("shop_id", shopID),
-				zap.String("subdomain", subdomain),
-				zap.String("template", templateName),
-				zap.Error(derr))
-			return
-		}
-
-		// 2) Call store-deployer via the client
-		if err := h.StoreDeployerClient.Deploy(ctx, shopID, subdomain, templateName); err != nil {
+		// Trigger store-deployer deployment (non-blocking call)
+		if err := h.StoreDeployerClient.Deploy(ctx, shopID, deploymentID, subdomain, templateName); err != nil {
 			errMsg := err.Error()
 			_ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-				DeploymentID: deployment.DeploymentID,
+				DeploymentID: deploymentID,
 				Status:       "failed",
 				Message:      &errMsg,
 			})
 
-			zap.L().Warn("autoDeployNewShop: auto-deploy failed",
+			zap.L().Warn("autoDeployNewShop: failed to trigger deployment with store-deployer",
 				zap.Int64("shop_id", shopID),
 				zap.String("subdomain", subdomain),
 				zap.String("template", templateName),
-				zap.Int64("deployment_id", deployment.DeploymentID),
+				zap.Int64("deployment_id", deploymentID),
 				zap.Error(err))
 			return
 		}
 
-		// Optional: if you have a distinct "queued"/"requested" state, set it here.
-		// If you want to keep legacy semantics (leave "deploying"), do nothing.
-		// _ = h.Repository.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-		// 	DeploymentID: deployment.DeploymentID,
-		// 	Status:       "deploying",
-		// 	Message:      nil,
-		// })
-
-		zap.L().Info("autoDeployNewShop: auto-deployment triggered",
+		// Deployment triggered successfully - store-deployer will notify us when complete
+		zap.L().Info("autoDeployNewShop: deployment initiated, waiting for store-deployer callback",
 			zap.Int64("shop_id", shopID),
 			zap.String("subdomain", subdomain),
-			zap.String("template", templateName))
-	}(objDB.ShopID, objDB.Subdomain, shop.Template)
+			zap.String("template", templateName),
+			zap.Int64("deployment_id", deploymentID))
+	}(objDB.ShopID, objDB.Subdomain, shop.Template, deployment.DeploymentID)
 
 	zap.L().Info("CreateShop: shop created successfully",
 		zap.Int64("shop_id", objDB.ShopID),
@@ -700,4 +705,58 @@ func (h *Handler) UpdateShopImages(c *fiber.Ctx) error {
 	}(shopID, shop.Subdomain)
 
 	return api.SuccessResponse(c, fiber.StatusOK, response, "Shop images updated successfully")
+}
+
+// fetchLatestTemplateVersion retrieves the actual version number for a template from the template registry
+func (h *Handler) fetchLatestTemplateVersion(ctx context.Context, templateName string) (string, error) {
+	templateRegistryURL := os.Getenv("TEMPLATE_REGISTRY_URL")
+	if templateRegistryURL == "" {
+		templateRegistryURL = "http://template-registry:8002"
+	}
+
+	reqURL := fmt.Sprintf("%s/templates/%s/latest", templateRegistryURL, templateName)
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	var resp *http.Response
+	if h.RetryClient != nil {
+		resp, err = h.RetryClient.StandardClient().Do(req)
+	} else {
+		resp, err = http.DefaultClient.Do(req)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch template version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("template registry returned status %d", resp.StatusCode)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// The response structure should have version information
+	version, ok := response["version"].(string)
+	if ok && version != "" {
+		return version, nil
+	}
+
+	// If top-level version doesn't exist, try nested version object
+	versionObj, ok := response["version"].(map[string]interface{})
+	if ok {
+		if versionStr, ok := versionObj["version"].(string); ok && versionStr != "" {
+			return versionStr, nil
+		}
+	}
+
+	return "", fmt.Errorf("version not found in response")
 }

@@ -418,6 +418,19 @@ components:
       required:
       - template_id
       type: object
+    models.CurrentTemplate:
+      properties:
+        deployed_at:
+          type: string
+        shop_id:
+          type: string
+        status:
+          type: string
+        template_name:
+          type: string
+        template_version:
+          type: string
+      type: object
     models.CustomerInfo:
       properties:
         email:
@@ -1646,6 +1659,23 @@ components:
         version:
           type: string
       type: object
+    models.TemplateUpdateResponse:
+      properties:
+        current_version:
+          type: string
+        deployment_id:
+          type: string
+        is_update_required:
+          type: boolean
+        message:
+          type: string
+        shop_id:
+          type: string
+        status:
+          type: string
+        target_version:
+          type: string
+      type: object
     models.TemplateUploadRequest:
       properties:
         assets:
@@ -1982,6 +2012,62 @@ paths:
       summary: Health check for all services
       tags:
       - health
+  /internal/deployments/{shop_id}/complete:
+    post:
+      description: Webhook endpoint called by store-deployer when deployment completes
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                completed_at:
+                  type: string
+                deployment_id:
+                  type: integer
+                message:
+                  type: string
+                status:
+                  type: string
+                subdomain:
+                  type: string
+              type: object
+        description: Deployment completion callback
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.SuccessResponse'
+          description: Deployment status updated successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Invalid request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Deployment not found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Internal server error
+      summary: Complete deployment callback
+      tags:
+      - deployments-internal
   /me:
     get:
       responses:
@@ -3516,22 +3602,42 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/models.SuccessResponse'
-          description: Deployment status retrieved successfully
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: OK
         "400":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/models.ErrorResponse'
-          description: Invalid shop ID
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Not Found
         "500":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal server error
-      security:
-      - OAuth2AccessCode: []
+          description: Internal Server Error
       summary: Get deployment status
       tags:
       - deployment
@@ -5872,6 +5978,125 @@ paths:
       summary: Redeploy a store
       tags:
       - deployment
+  /shops/{shop_id}/template/current:
+    get:
+      description: Get the current deployed template and version for a shop
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Internal Server Error
+      security:
+      - OAuth2AccessCode: []
+      summary: Get current template
+      tags:
+      - templates
+  /shops/{shop_id}/template/update-latest:
+    post:
+      description: Update a shop's template to the latest available version (prevents
+        downgrades)
+      parameters:
+      - description: Shop ID
+        in: path
+        name: shop_id
+        required: true
+        schema:
+          type: string
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/data'
+                description: Generic API response
+                properties:
+                  code:
+                    example: 200
+                    type: integer
+                  data: {}
+                  message:
+                    example: Object updated successfully
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/models.Meta'
+                  status:
+                    example: success
+                    type: string
+                type: object
+          description: Accepted
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Conflict
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/models.ErrorResponse'
+          description: Internal Server Error
+      security:
+      - OAuth2AccessCode: []
+      summary: Update template to latest version
+      tags:
+      - templates
   /shops/{shop_id}/update-data:
     post:
       description: Update store data without redeploying assets

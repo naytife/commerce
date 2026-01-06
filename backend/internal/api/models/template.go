@@ -32,31 +32,21 @@ type TemplateUploadRequest struct {
 
 // TemplateVersion represents a specific version of a template
 type TemplateVersion struct {
-	Name        string    `json:"name"`
 	Version     string    `json:"version"`
-	GitCommit   string    `json:"git_commit"`
+	Description string    `json:"description"`
+	UploadTime  time.Time `json:"upload_time"`
+	AssetCount  int       `json:"asset_count"`
+	TotalSize   int64     `json:"total_size"`
+	GitCommit   string    `json:"git_commit,omitempty"`
 	BuildID     string    `json:"build_id"`
 	Status      string    `json:"status"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Manifest    string    `json:"manifest"`
 }
 
-// Template build models
-
-// TemplateBuildRequest represents a request to build a template
-type TemplateBuildRequest struct {
-	TemplateName string `json:"template_name" validate:"required"`
-	GitCommit    string `json:"git_commit,omitempty"`
-	Force        bool   `json:"force,omitempty"`
-}
-
-// BuildResponse represents the response from a build request
-type BuildResponse struct {
-	BuildID   string    `json:"build_id"`
-	Status    string    `json:"status"`
-	Message   string    `json:"message"`
-	StartedAt time.Time `json:"started_at"`
+// LatestTemplateVersionResponse wraps the response from template-registry /templates/{name}/latest
+type LatestTemplateVersionResponse struct {
+	Status  string          `json:"status"`
+	Version TemplateVersion `json:"version"`
 }
 
 // Store deployment models
@@ -150,6 +140,7 @@ type CleanupResponse struct {
 	Subdomain string    `json:"subdomain,omitempty"`
 	CleanedAt time.Time `json:"cleaned_at"`
 }
+
 // CurrentTemplate represents the current deployed template for a shop
 type CurrentTemplate struct {
 	ShopID          string     `json:"shop_id"`
