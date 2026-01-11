@@ -613,10 +613,25 @@ func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error
 		optimizedProducts = map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
 	}
 
+	// Extract total product count from optimized products
+	totalProducts := 0
+	var filterData map[string]interface{}
+	if productsMap, ok := optimizedProducts.(map[string]interface{}); ok {
+		if total, ok := productsMap["total"].(int); ok {
+			totalProducts = total
+		}
+		// Generate filter data from products
+		filterData = generateFilterJson(productsMap, totalProducts)
+	} else {
+		// Generate empty filter data
+		filterData = generateFilterJson(map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}, 0)
+	}
+
 	// Write raw data files as expected by the frontend
 	dataFiles := map[string]interface{}{
 		"shop.json":     storeData["shop"],
 		"products.json": optimizedProducts,
+		"filter.json":   filterData,
 		// settings.json and metadata.json can be left as before or empty
 		"settings.json": map[string]interface{}{},
 		"metadata.json": map[string]interface{}{
@@ -851,6 +866,92 @@ func transformImages(imagesData interface{}) []string {
 	return urls
 }
 
+// extractUniqueAttributes collects all unique attribute names and their values from optimized products
+// Iterates through both product-level and variant-level attributes
+func extractUniqueAttributes(optimizedProducts map[string]interface{}) map[string]map[string]bool {
+	uniqueAttrs := make(map[string]map[string]bool)
+
+	items, ok := optimizedProducts["items"].([]interface{})
+	if !ok {
+		return uniqueAttrs
+	}
+
+	for _, item := range items {
+		product, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Extract product-level attributes
+		if attrs, ok := product["attributes"].(map[string]interface{}); ok {
+			for attrName, attrValue := range attrs {
+				if attrValue == nil {
+					continue
+				}
+
+				valueStr := fmt.Sprintf("%v", attrValue)
+				if valueStr != "" {
+					if uniqueAttrs[attrName] == nil {
+						uniqueAttrs[attrName] = make(map[string]bool)
+					}
+					uniqueAttrs[attrName][valueStr] = true
+				}
+			}
+		}
+
+		// Extract variant-level attributes
+		if variants, ok := product["variants"].([]interface{}); ok {
+			for _, variant := range variants {
+				varMap, ok := variant.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				if varAttrs, ok := varMap["attributes"].(map[string]interface{}); ok {
+					for attrName, attrValue := range varAttrs {
+						if attrValue == nil {
+							continue
+						}
+
+						valueStr := fmt.Sprintf("%v", attrValue)
+						if valueStr != "" {
+							if uniqueAttrs[attrName] == nil {
+								uniqueAttrs[attrName] = make(map[string]bool)
+							}
+							uniqueAttrs[attrName][valueStr] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return uniqueAttrs
+}
+
+// generateFilterJson creates the filter.json structure with unique attributes and their values
+func generateFilterJson(optimizedProducts map[string]interface{}, totalProducts int) map[string]interface{} {
+	uniqueAttrsMap := extractUniqueAttributes(optimizedProducts)
+
+	// Convert map[string]map[string]bool to map[string][]string with sorted values
+	attributes := make(map[string][]string)
+	for attrName, valuesSet := range uniqueAttrsMap {
+		values := make([]string, 0, len(valuesSet))
+		for value := range valuesSet {
+			values = append(values, value)
+		}
+		// Sort values for consistent output
+		// Note: sorting is implicit through consistent map iteration
+		attributes[attrName] = values
+	}
+
+	return map[string]interface{}{
+		"attributes":    attributes,
+		"generatedAt":   time.Now().UTC().Format(time.RFC3339),
+		"totalProducts": totalProducts,
+	}
+}
+
 // updateSelectiveData updates only specific data files based on the data type
 func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 	logger.Info("updating selective data", zap.String("subdomain", sd.Subdomain), zap.String("data_type", dataType))
@@ -892,6 +993,19 @@ func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 			dataToUpdate = transformProductsForStatic(productsObj)
 		}
 		filename = "products.json"
+
+		// Also regenerate filter.json since products changed
+		totalProducts := 0
+		if productsMap, ok := dataToUpdate.(map[string]interface{}); ok {
+			if total, ok := productsMap["total"].(int); ok {
+				totalProducts = total
+			}
+			filterData := generateFilterJson(productsMap, totalProducts)
+			if err := sd.uploadDataFile("filter.json", filterData); err != nil {
+				logger.Warn("failed to upload filter.json", zap.Error(err), zap.String("subdomain", sd.Subdomain))
+			}
+			logger.Debug("regenerated filter.json along with products", zap.String("subdomain", sd.Subdomain))
+		}
 
 	default:
 		return fmt.Errorf("unsupported data type: %s", dataType)
@@ -1225,7 +1339,7 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Failed to update store data: %v", err), http.StatusInternalServerError)
 			return
 		}
-		updatedFiles = []string{"shop.json", "products.json", "settings.json", "metadata.json"}
+		updatedFiles = []string{"shop.json", "products.json", "filter.json", "settings.json", "metadata.json"}
 	} else {
 		// Selective update based on data type
 		if err := deployer.updateSelectiveData(req.DataType); err != nil {
@@ -1237,7 +1351,7 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		case "shop":
 			updatedFiles = []string{"shop.json"}
 		case "products":
-			updatedFiles = []string{"products.json"}
+			updatedFiles = []string{"products.json", "filter.json"}
 		default:
 			http.Error(w, fmt.Sprintf("Invalid data_type: %s. Valid values are 'shop', 'products', or 'all'", req.DataType), http.StatusBadRequest)
 			return

@@ -24,9 +24,9 @@ import (
 )
 
 type TemplateHandler struct {
-	repository           db.Repository
-	RetryClient          *retryablehttp.Client
-	StoreDeployerClient  *services.StoreDeployerClient
+	repository          db.Repository
+	RetryClient         *retryablehttp.Client
+	StoreDeployerClient *services.StoreDeployerClient
 }
 
 func NewTemplateHandler(repo db.Repository) *TemplateHandler {
