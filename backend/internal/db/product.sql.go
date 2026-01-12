@@ -769,6 +769,26 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 	return err
 }
 
+const updateProductSlug = `-- name: UpdateProductSlug :exec
+UPDATE products
+SET 
+    slug = $1,
+    updated_at = NOW()
+WHERE product_id = $2 AND shop_id = $3
+RETURNING product_id, slug, title, description, status, created_at, updated_at, product_type_id, category_id, shop_id
+`
+
+type UpdateProductSlugParams struct {
+	Slug      string `json:"slug"`
+	ProductID int64  `json:"product_id"`
+	ShopID    int64  `json:"shop_id"`
+}
+
+func (q *Queries) UpdateProductSlug(ctx context.Context, arg UpdateProductSlugParams) error {
+	_, err := q.db.Exec(ctx, updateProductSlug, arg.Slug, arg.ProductID, arg.ShopID)
+	return err
+}
+
 const updateProductVariation = `-- name: UpdateProductVariation :one
 UPDATE product_variations
 SET 

@@ -29,6 +29,14 @@ SET
 WHERE product_id = sqlc.arg('product_id') AND shop_id = sqlc.arg('shop_id')
 RETURNING *;
 
+-- name: UpdateProductSlug :exec
+UPDATE products
+SET 
+    slug = sqlc.arg('slug'),
+    updated_at = NOW()
+WHERE product_id = sqlc.arg('product_id') AND shop_id = sqlc.arg('shop_id')
+RETURNING *;
+
 -- name: DeleteProduct :exec
 DELETE FROM products
 WHERE product_id = $1 AND shop_id = $2

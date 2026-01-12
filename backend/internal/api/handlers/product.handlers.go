@@ -88,14 +88,15 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			)
 		}
 	}
-	slug := slug.MakeLang(fmt.Sprint(productArg.Title), "en")
+	// Generate base slug from title (final slug will include product ID after creation)
+	baseSlug := slug.MakeLang(fmt.Sprint(productArg.Title), "en")
 	createProductParams := db.CreateProductParams{
 		Title:         productArg.Title,
 		Description:   productArg.Description,
 		ShopID:        shopID,
 		ProductTypeID: productTypeID,
 		Status:        db.ProductStatusDRAFT,
-		Slug:          slug,
+		Slug:          baseSlug, // Temporary slug, will be updated with product ID
 	}
 
 	// Get product type to access the sku_substring
@@ -135,8 +136,20 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 			return err
 		}
 
+		// Update slug to include product ID for uniqueness
+		finalSlug := fmt.Sprintf("%s-%d", baseSlug, product.ProductID)
+		err = q.UpdateProductSlug(c.Context(), db.UpdateProductSlugParams{
+			ProductID: product.ProductID,
+			ShopID:    shopID,
+			Slug:      finalSlug,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update product slug: %w", err)
+		}
+
 		// Store the created product for later use
 		createdProduct = product
+		createdProduct.Slug = finalSlug // Update returned product with final slug
 
 		// Handle attribute values if provided
 		if len(productArg.Attributes) > 0 {
@@ -250,8 +263,8 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
 			zap.L().Error("CreateProduct: database error during product creation", zap.Error(err), zap.Int64("shop_id", shopID))
 			if pgErr.Code == errors.UniqueViolation {
-				if pgErr.ConstraintName == "products_title_shop_id_key" {
-					return api.ErrorResponse(c, fiber.StatusConflict, "A product with this title already exists in your shop", nil)
+				if pgErr.ConstraintName == "products_slug_shop_id_key" {
+					return api.ErrorResponse(c, fiber.StatusConflict, "A product with this slug already exists in your shop", nil)
 				}
 				return api.ErrorResponse(c, fiber.StatusConflict, fmt.Sprintf("Unique constraint violation: %s", pgErr.ConstraintName), nil)
 			}

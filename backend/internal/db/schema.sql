@@ -112,7 +112,6 @@ CREATE TABLE products(
     CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
     CONSTRAINT fk_shop FOREIGN KEY (shop_id) REFERENCES shops(shop_id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX unique_lower_product_title_shop ON products (LOWER(title), shop_id);
 
 CREATE TABLE product_images(
     product_image_id BIGSERIAL PRIMARY KEY,

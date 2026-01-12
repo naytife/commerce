@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ var (
 
 type StoreDeployer struct {
 	ShopID       string `json:"shop_id"`
+	DeploymentID string `json:"deployment_id"`
 	Subdomain    string `json:"subdomain"`
 	TemplateName string `json:"template_name"`
 	Version      string `json:"version,omitempty"` // Empty for latest
@@ -40,6 +42,7 @@ type StoreDeployer struct {
 
 type DeploymentRequest struct {
 	ShopID       string            `json:"shop_id"`
+	DeploymentID string            `json:"deployment_id"`
 	Subdomain    string            `json:"subdomain"`
 	TemplateName string            `json:"template_name"`
 	Version      string            `json:"version,omitempty"`
@@ -202,7 +205,6 @@ func main() {
 	r.HandleFunc("/deploy", deployStoreHandler).Methods("POST")
 	r.HandleFunc("/redeploy/{subdomain}", redeployStoreHandler).Methods("POST")
 	r.HandleFunc("/update-data/{subdomain}", updateDataHandler).Methods("POST")
-	r.HandleFunc("/status/{subdomain}", getDeploymentStatusHandler).Methods("GET")
 	r.HandleFunc("/cleanup/{subdomain}", cleanupStoreHandler).Methods("DELETE")
 	r.HandleFunc("/health", healthHandler).Methods("GET")
 
@@ -278,8 +280,117 @@ func (sd *StoreDeployer) DeployStore() (*DeploymentResponse, error) {
 		DeployTime: deployTime.String(),
 	}
 
+	// 7. Notify backend of deployment completion with retry logic
+	// This runs synchronously to ensure the notification is delivered before returning
+	if err := sd.notifyDeploymentComplete("deployed", "Deployment completed successfully"); err != nil {
+		logger.Error("failed to notify backend after retries",
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain),
+			zap.Error(err))
+		// Don't fail the deployment if notification fails - just log it
+	} else {
+		logger.Info("successfully notified backend of deployment completion",
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+	}
+
 	logger.Info("deployment complete", zap.String("subdomain", sd.Subdomain), zap.Duration("deploy_time", deployTime), zap.String("shop_id", sd.ShopID))
 	return response, nil
+}
+
+// notifyDeploymentComplete sends a webhook notification to the backend with retry logic
+// Attempts up to 3 times with delays (0s, 1s, 2s) to handle transient failures
+func (sd *StoreDeployer) notifyDeploymentComplete(status, message string) error {
+	backendURL := os.Getenv("BACKEND_URL")
+	if backendURL == "" {
+		backendURL = "http://backend:8000"
+	}
+
+	notifyURL := fmt.Sprintf("%s/v1/internal/deployments/%s/complete", backendURL, sd.DeploymentID)
+
+	// Convert deployment_id from string to int64 for the API
+	deploymentID, err := strconv.ParseInt(sd.DeploymentID, 10, 64)
+	if err != nil {
+		deploymentID = 0 // Fallback to 0 if parsing fails
+	}
+
+	notifyPayload := map[string]interface{}{
+		"deployment_id": deploymentID,
+		"subdomain":     sd.Subdomain,
+		"status":        status,
+		"message":       message,
+		"completed_at":  time.Now().UTC().Format(time.RFC3339),
+	}
+
+	notifyBody, _ := json.Marshal(notifyPayload)
+
+	// Retry logic: 3 attempts with fixed delays (0s, 1s, 2s)
+	delays := []time.Duration{0, 1 * time.Second, 2 * time.Second}
+	var lastErr error
+
+	for attempt, delay := range delays {
+		if delay > 0 {
+			logger.Debug("waiting before retry",
+				zap.Int("attempt", attempt),
+				zap.Duration("delay", delay),
+				zap.String("shop_id", sd.ShopID))
+			time.Sleep(delay)
+		}
+
+		notifyReq, err := http.NewRequest("POST", notifyURL, strings.NewReader(string(notifyBody)))
+		if err != nil {
+			lastErr = err
+			logger.Warn("failed to create notification request",
+				zap.Int("attempt", attempt+1),
+				zap.String("shop_id", sd.ShopID),
+				zap.Error(err))
+			continue
+		}
+
+		notifyReq.Header.Set("Content-Type", "application/json")
+
+		logger.Debug("sending deployment completion webhook",
+			zap.Int("attempt", attempt+1),
+			zap.String("url", notifyURL),
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+
+		notifyResp, err := httpClient.Do(notifyReq)
+		if err != nil {
+			lastErr = err
+			logger.Warn("deployment completion webhook request failed",
+				zap.Int("attempt", attempt+1),
+				zap.String("shop_id", sd.ShopID),
+				zap.String("subdomain", sd.Subdomain),
+				zap.Error(err))
+			continue
+		}
+
+		// Check response status
+		if notifyResp.StatusCode >= 200 && notifyResp.StatusCode < 300 {
+			notifyResp.Body.Close()
+			logger.Info("deployment completion webhook succeeded",
+				zap.Int("attempt", attempt+1),
+				zap.Int("status_code", notifyResp.StatusCode),
+				zap.String("shop_id", sd.ShopID),
+				zap.String("subdomain", sd.Subdomain))
+			return nil
+		}
+
+		// Read response body for logging
+		respBody, _ := io.ReadAll(notifyResp.Body)
+		notifyResp.Body.Close()
+
+		lastErr = fmt.Errorf("webhook returned status %d: %s", notifyResp.StatusCode, string(respBody))
+		logger.Warn("deployment completion webhook returned error",
+			zap.Int("attempt", attempt+1),
+			zap.Int("status_code", notifyResp.StatusCode),
+			zap.String("response", string(respBody)),
+			zap.String("shop_id", sd.ShopID),
+			zap.String("subdomain", sd.Subdomain))
+	}
+
+	return fmt.Errorf("failed to notify backend after 3 attempts: %w", lastErr)
 }
 
 func (sd *StoreDeployer) resolveTemplateVersion() (string, error) {
@@ -502,10 +613,25 @@ func (sd *StoreDeployer) uploadStoreData(storeData map[string]interface{}) error
 		optimizedProducts = map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}
 	}
 
+	// Extract total product count from optimized products
+	totalProducts := 0
+	var filterData map[string]interface{}
+	if productsMap, ok := optimizedProducts.(map[string]interface{}); ok {
+		if total, ok := productsMap["total"].(int); ok {
+			totalProducts = total
+		}
+		// Generate filter data from products
+		filterData = generateFilterJson(productsMap, totalProducts)
+	} else {
+		// Generate empty filter data
+		filterData = generateFilterJson(map[string]interface{}{"items": []interface{}{}, "total": 0, "hasMore": false}, 0)
+	}
+
 	// Write raw data files as expected by the frontend
 	dataFiles := map[string]interface{}{
 		"shop.json":     storeData["shop"],
 		"products.json": optimizedProducts,
+		"filter.json":   filterData,
 		// settings.json and metadata.json can be left as before or empty
 		"settings.json": map[string]interface{}{},
 		"metadata.json": map[string]interface{}{
@@ -740,6 +866,92 @@ func transformImages(imagesData interface{}) []string {
 	return urls
 }
 
+// extractUniqueAttributes collects all unique attribute names and their values from optimized products
+// Iterates through both product-level and variant-level attributes
+func extractUniqueAttributes(optimizedProducts map[string]interface{}) map[string]map[string]bool {
+	uniqueAttrs := make(map[string]map[string]bool)
+
+	items, ok := optimizedProducts["items"].([]interface{})
+	if !ok {
+		return uniqueAttrs
+	}
+
+	for _, item := range items {
+		product, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Extract product-level attributes
+		if attrs, ok := product["attributes"].(map[string]interface{}); ok {
+			for attrName, attrValue := range attrs {
+				if attrValue == nil {
+					continue
+				}
+
+				valueStr := fmt.Sprintf("%v", attrValue)
+				if valueStr != "" {
+					if uniqueAttrs[attrName] == nil {
+						uniqueAttrs[attrName] = make(map[string]bool)
+					}
+					uniqueAttrs[attrName][valueStr] = true
+				}
+			}
+		}
+
+		// Extract variant-level attributes
+		if variants, ok := product["variants"].([]interface{}); ok {
+			for _, variant := range variants {
+				varMap, ok := variant.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				if varAttrs, ok := varMap["attributes"].(map[string]interface{}); ok {
+					for attrName, attrValue := range varAttrs {
+						if attrValue == nil {
+							continue
+						}
+
+						valueStr := fmt.Sprintf("%v", attrValue)
+						if valueStr != "" {
+							if uniqueAttrs[attrName] == nil {
+								uniqueAttrs[attrName] = make(map[string]bool)
+							}
+							uniqueAttrs[attrName][valueStr] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return uniqueAttrs
+}
+
+// generateFilterJson creates the filter.json structure with unique attributes and their values
+func generateFilterJson(optimizedProducts map[string]interface{}, totalProducts int) map[string]interface{} {
+	uniqueAttrsMap := extractUniqueAttributes(optimizedProducts)
+
+	// Convert map[string]map[string]bool to map[string][]string with sorted values
+	attributes := make(map[string][]string)
+	for attrName, valuesSet := range uniqueAttrsMap {
+		values := make([]string, 0, len(valuesSet))
+		for value := range valuesSet {
+			values = append(values, value)
+		}
+		// Sort values for consistent output
+		// Note: sorting is implicit through consistent map iteration
+		attributes[attrName] = values
+	}
+
+	return map[string]interface{}{
+		"attributes":    attributes,
+		"generatedAt":   time.Now().UTC().Format(time.RFC3339),
+		"totalProducts": totalProducts,
+	}
+}
+
 // updateSelectiveData updates only specific data files based on the data type
 func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 	logger.Info("updating selective data", zap.String("subdomain", sd.Subdomain), zap.String("data_type", dataType))
@@ -781,6 +993,19 @@ func (sd *StoreDeployer) updateSelectiveData(dataType string) error {
 			dataToUpdate = transformProductsForStatic(productsObj)
 		}
 		filename = "products.json"
+
+		// Also regenerate filter.json since products changed
+		totalProducts := 0
+		if productsMap, ok := dataToUpdate.(map[string]interface{}); ok {
+			if total, ok := productsMap["total"].(int); ok {
+				totalProducts = total
+			}
+			filterData := generateFilterJson(productsMap, totalProducts)
+			if err := sd.uploadDataFile("filter.json", filterData); err != nil {
+				logger.Warn("failed to upload filter.json", zap.Error(err), zap.String("subdomain", sd.Subdomain))
+			}
+			logger.Debug("regenerated filter.json along with products", zap.String("subdomain", sd.Subdomain))
+		}
 
 	default:
 		return fmt.Errorf("unsupported data type: %s", dataType)
@@ -980,6 +1205,7 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    req.Subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,
@@ -988,6 +1214,14 @@ func deployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("deployment failed", zap.Error(err), zap.String("subdomain", req.Subdomain), zap.String("shop_id", req.ShopID))
+
+		// Notify backend of deployment failure
+		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Deployment failed: %v", err)); notifyErr != nil {
+			logger.Error("failed to notify backend of deployment failure",
+				zap.String("shop_id", req.ShopID),
+				zap.Error(notifyErr))
+		}
+
 		http.Error(w, fmt.Sprintf("Deployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -1003,6 +1237,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 		TemplateName string `json:"template_name,omitempty"`
 		Version      string `json:"version,omitempty"`
 		ShopID       string `json:"shop_id"`
+		DeploymentID string `json:"deployment_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1027,6 +1262,7 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	deployer := &StoreDeployer{
 		ShopID:       req.ShopID,
+		DeploymentID: req.DeploymentID,
 		Subdomain:    subdomain,
 		TemplateName: req.TemplateName,
 		Version:      req.Version,
@@ -1035,6 +1271,14 @@ func redeployStoreHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := deployer.DeployStore()
 	if err != nil {
 		logger.Error("redeployment failed", zap.Error(err), zap.String("subdomain", subdomain), zap.String("shop_id", req.ShopID))
+
+		// Notify backend of redeployment failure
+		if notifyErr := deployer.notifyDeploymentComplete("failed", fmt.Sprintf("Redeployment failed: %v", err)); notifyErr != nil {
+			logger.Error("failed to notify backend of redeployment failure",
+				zap.String("shop_id", req.ShopID),
+				zap.Error(notifyErr))
+		}
+
 		http.Error(w, fmt.Sprintf("Redeployment failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -1095,7 +1339,7 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Failed to update store data: %v", err), http.StatusInternalServerError)
 			return
 		}
-		updatedFiles = []string{"shop.json", "products.json", "settings.json", "metadata.json"}
+		updatedFiles = []string{"shop.json", "products.json", "filter.json", "settings.json", "metadata.json"}
 	} else {
 		// Selective update based on data type
 		if err := deployer.updateSelectiveData(req.DataType); err != nil {
@@ -1107,7 +1351,7 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		case "shop":
 			updatedFiles = []string{"shop.json"}
 		case "products":
-			updatedFiles = []string{"products.json"}
+			updatedFiles = []string{"products.json", "filter.json"}
 		default:
 			http.Error(w, fmt.Sprintf("Invalid data_type: %s. Valid values are 'shop', 'products', or 'all'", req.DataType), http.StatusBadRequest)
 			return
@@ -1122,19 +1366,6 @@ func updateDataHandler(w http.ResponseWriter, r *http.Request) {
 		"updated_files": updatedFiles,
 		"updated_at":    time.Now().UTC().Format(time.RFC3339),
 	})
-}
-
-func getDeploymentStatusHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	subdomain := vars["subdomain"]
-
-	status, err := getDeploymentStatus(subdomain)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get deployment status: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	writeJSONResponse(w, status)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
