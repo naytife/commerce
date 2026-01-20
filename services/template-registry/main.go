@@ -230,11 +230,29 @@ func (sr *statusRecorder) WriteHeader(code int) {
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /templates/upload [post]
 func uploadTemplateHandler(w http.ResponseWriter, r *http.Request) {
+	// Log request details for debugging
+	logger.Info("upload request received",
+		zap.String("method", r.Method),
+		zap.String("content_type", r.Header.Get("Content-Type")),
+		zap.String("content_length", r.Header.Get("Content-Length")),
+		zap.String("remote_addr", r.RemoteAddr),
+	)
+
 	err := r.ParseMultipartForm(32 << 20) // 32MB max
 	if err != nil {
-		http.Error(w, "Failed to parse multipart form", http.StatusBadRequest)
+		logger.Error("failed to parse multipart form",
+			zap.Error(err),
+			zap.String("content_type", r.Header.Get("Content-Type")),
+			zap.String("content_length", r.Header.Get("Content-Length")),
+		)
+		http.Error(w, fmt.Sprintf("Failed to parse multipart form: %v", err), http.StatusBadRequest)
 		return
 	}
+
+	// Log parsed form fields (excluding file content)
+	logger.Info("multipart form parsed successfully",
+		zap.Strings("form_fields", formFieldNames(r.MultipartForm)),
+	)
 
 	templateName := r.FormValue("template_name")
 	version := r.FormValue("version")
@@ -242,6 +260,14 @@ func uploadTemplateHandler(w http.ResponseWriter, r *http.Request) {
 	category := r.FormValue("category")
 	featuresStr := r.FormValue("features")
 	force := r.FormValue("force") == "true"
+
+	logger.Info("extracted form values",
+		zap.String("template_name", templateName),
+		zap.String("version", version),
+		zap.String("description", description),
+		zap.String("category", category),
+		zap.String("force", fmt.Sprintf("%v", force)),
+	)
 
 	// Parse features from comma-separated string
 	var features []string
@@ -1038,4 +1064,20 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 func writeJSONResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
+}
+
+// formFieldNames extracts all field names from a multipart form for logging
+func formFieldNames(form *multipart.Form) []string {
+	if form == nil {
+		return nil
+	}
+	var fields []string
+	for key := range form.Value {
+		fields = append(fields, key)
+	}
+	for key := range form.File {
+		fields = append(fields, key+" (file)")
+	}
+	sort.Strings(fields)
+	return fields
 }
