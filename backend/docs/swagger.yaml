@@ -274,17 +274,6 @@ components:
           - AttributeUnitGB
           - AttributeUnitINCH
       type: object
-    models.BuildResponse:
-      properties:
-        build_id:
-          type: string
-        message:
-          type: string
-        started_at:
-          type: string
-        status:
-          type: string
-      type: object
     models.CheckoutRequest:
       properties:
         billing_address:
@@ -1607,43 +1596,6 @@ components:
           example: success
           type: string
       type: object
-    models.Template:
-      properties:
-        category:
-          type: string
-        created_at:
-          type: string
-        description:
-          type: string
-        features:
-          items:
-            type: string
-          type: array
-          uniqueItems: false
-        name:
-          type: string
-        preview_url:
-          type: string
-        thumbnail_url:
-          type: string
-        title:
-          type: string
-        updated_at:
-          type: string
-        version:
-          type: string
-      type: object
-    models.TemplateBuildRequest:
-      properties:
-        force:
-          type: boolean
-        git_commit:
-          type: string
-        template_name:
-          type: string
-      required:
-      - template_name
-      type: object
     models.TemplateDownload:
       properties:
         asset_size:
@@ -1674,59 +1626,6 @@ components:
         status:
           type: string
         target_version:
-          type: string
-      type: object
-    models.TemplateUploadRequest:
-      properties:
-        assets:
-          description: File upload
-          form: assets
-          format: binary
-          type: string
-        category:
-          form: category
-          type: string
-        description:
-          form: description
-          type: string
-        features:
-          description: Comma-separated list
-          form: features
-          type: string
-        force:
-          form: force
-          type: boolean
-        preview_image:
-          description: Optional file upload
-          form: preview_image
-          format: binary
-          type: string
-        template_name:
-          form: template_name
-          type: string
-        version:
-          form: version
-          type: string
-      required:
-      - template_name
-      type: object
-    models.TemplateVersion:
-      properties:
-        build_id:
-          type: string
-        created_at:
-          type: string
-        description:
-          type: string
-        git_commit:
-          type: string
-        name:
-          type: string
-        status:
-          type: string
-        updated_at:
-          type: string
-        version:
           type: string
       type: object
     models.UpdateCustomerParams:
@@ -6481,156 +6380,6 @@ paths:
       summary: Download a template version
       tags:
       - templates
-  /templates/{template_name}/latest:
-    get:
-      description: Get the latest version for a specific template
-      parameters:
-      - description: Template name
-        in: path
-        name: template_name
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: OK
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Not Found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal Server Error
-      security:
-      - OAuth2AccessCode: []
-      summary: Get latest template version
-      tags:
-      - templates
-  /templates/{template_name}/versions:
-    get:
-      description: Get all versions for a specific template
-      parameters:
-      - description: Template name
-        in: path
-        name: template_name
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: OK
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Not Found
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal Server Error
-      security:
-      - OAuth2AccessCode: []
-      summary: Get template versions
-      tags:
-      - templates
-  /templates/build:
-    post:
-      description: Trigger a template build
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/models.TemplateBuildRequest'
-        description: Build request
-        required: true
-      responses:
-        "202":
-          content:
-            application/json:
-              schema:
-                allOf:
-                - $ref: '#/components/schemas/data'
-                description: Generic API response
-                properties:
-                  code:
-                    example: 200
-                    type: integer
-                  data: {}
-                  message:
-                    example: Object updated successfully
-                    type: string
-                  meta:
-                    $ref: '#/components/schemas/models.Meta'
-                  status:
-                    example: success
-                    type: string
-                type: object
-          description: Accepted
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Bad Request
-        "500":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/models.ErrorResponse'
-          description: Internal Server Error
-      security:
-      - OAuth2AccessCode: []
-      summary: Build template
-      tags:
-      - templates
   /templates/upload:
     post:
       description: Upload a new template with assets and optional preview image. The
@@ -6639,9 +6388,8 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/models.TemplateUploadRequest'
-        description: Template upload data
-        required: true
+              type: file
+        description: Preview image for template (PNG, JPG, WebP, GIF)
       responses:
         "200":
           content:
