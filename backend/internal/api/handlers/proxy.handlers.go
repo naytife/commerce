@@ -247,14 +247,7 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 // @Tags         templates
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        template_name  formData  string  true  "Template name"
-// @Param        version  formData  string  false  "Template version (auto-generated if not provided)"
-// @Param        description  formData  string  false  "Template description"
-// @Param        category  formData  string  false  "Template category (e.g., web, mobile, desktop)"
-// @Param        features  formData  string  false  "Template features (comma-separated list)"
-// @Param        force  formData  boolean  false  "Force upload even if version exists"
-// @Param        assets  formData  file  true  "Template assets archive (tar.gz)"
-// @Param        preview_image  formData  file  false  "Preview image for template (PNG, JPG, WebP, GIF)"
+// @Param        request body models.TemplateUploadRequest true "Template upload data"
 // @Success      200  {object}  models.SuccessResponse
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse

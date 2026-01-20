@@ -1628,6 +1628,40 @@ components:
         target_version:
           type: string
       type: object
+    models.TemplateUploadRequest:
+      properties:
+        assets:
+          description: File upload
+          form: assets
+          format: binary
+          type: string
+        category:
+          form: category
+          type: string
+        description:
+          form: description
+          type: string
+        features:
+          description: Comma-separated list
+          form: features
+          type: string
+        force:
+          form: force
+          type: boolean
+        preview_image:
+          description: Optional file upload
+          form: preview_image
+          format: binary
+          type: string
+        template_name:
+          form: template_name
+          type: string
+        version:
+          form: version
+          type: string
+      required:
+      - template_name
+      type: object
     models.UpdateCustomerParams:
       properties:
         locale:
@@ -6388,8 +6422,9 @@ paths:
         content:
           multipart/form-data:
             schema:
-              type: file
-        description: Preview image for template (PNG, JPG, WebP, GIF)
+              $ref: '#/components/schemas/models.TemplateUploadRequest'
+        description: Template upload data
+        required: true
       responses:
         "200":
           content:
