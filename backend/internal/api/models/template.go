@@ -20,14 +20,37 @@ type Template struct {
 
 // TemplateUploadRequest represents a request to upload a new template
 type TemplateUploadRequest struct {
-	TemplateName string `form:"template_name" validate:"required" json:"template_name"`
-	Version      string `form:"version" json:"version,omitempty"`
-	Description  string `form:"description" json:"description,omitempty"`
-	Category     string `form:"category" json:"category,omitempty"`
-	Features     string `form:"features" json:"features,omitempty"` // Comma-separated list
-	Force        bool   `form:"force" json:"force,omitempty"`
-	Assets       string `form:"assets" swaggertype:"string" format:"binary" json:"assets"`                         // File upload
-	PreviewImage string `form:"preview_image" swaggertype:"string" format:"binary" json:"preview_image,omitempty"` // Optional file upload
+	// Template name (required)
+	// required: true
+	TemplateName string `form:"template_name" validate:"required" json:"template_name" swaggertype:"string" example:"my-template"`
+
+	// Template version (auto-generated if not provided)
+	// required: false
+	Version string `form:"version" json:"version,omitempty" swaggertype:"string" example:"1.0.0"`
+
+	// Template description
+	// required: false
+	Description string `form:"description" json:"description,omitempty" swaggertype:"string" example:"A beautiful template"`
+
+	// Template category (e.g., web, mobile, desktop)
+	// required: false
+	Category string `form:"category" json:"category,omitempty" swaggertype:"string" example:"web"`
+
+	// Template features (comma-separated list)
+	// required: false
+	Features string `form:"features" json:"features,omitempty" swaggertype:"string" example:"responsive,dark-mode"`
+
+	// Force upload even if version exists
+	// required: false
+	Force bool `form:"force" json:"force,omitempty" swaggertype:"boolean" example:"false"`
+
+	// Template assets archive (tar.gz) - File upload (required)
+	// required: true
+	Assets string `form:"assets" swaggertype:"string" format:"binary" json:"assets"`
+
+	// Preview image for template (PNG, JPG, WebP, GIF) - Optional file upload
+	// required: false
+	PreviewImage string `form:"preview_image" swaggertype:"string" format:"binary" json:"preview_image,omitempty"`
 }
 
 // TemplateVersion represents a specific version of a template

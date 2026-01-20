@@ -1631,32 +1631,59 @@ components:
     models.TemplateUploadRequest:
       properties:
         assets:
-          description: File upload
+          description: |-
+            Template assets archive (tar.gz) - File upload (required)
+            required: true
           form: assets
           format: binary
           type: string
         category:
+          description: |-
+            Template category (e.g., web, mobile, desktop)
+            required: false
+          example: web
           form: category
           type: string
         description:
+          description: |-
+            Template description
+            required: false
+          example: A beautiful template
           form: description
           type: string
         features:
-          description: Comma-separated list
+          description: |-
+            Template features (comma-separated list)
+            required: false
+          example: responsive,dark-mode
           form: features
           type: string
         force:
+          description: |-
+            Force upload even if version exists
+            required: false
+          example: false
           form: force
           type: boolean
         preview_image:
-          description: Optional file upload
+          description: |-
+            Preview image for template (PNG, JPG, WebP, GIF) - Optional file upload
+            required: false
           form: preview_image
           format: binary
           type: string
         template_name:
+          description: |-
+            Template name (required)
+            required: true
+          example: my-template
           form: template_name
           type: string
         version:
+          description: |-
+            Template version (auto-generated if not provided)
+            required: false
+          example: 1.0.0
           form: version
           type: string
       required:
