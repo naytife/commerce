@@ -247,7 +247,7 @@ func (h *ProxyHandler) ProxyDownloadTemplate(c *fiber.Ctx) error {
 // @Tags         templates
 // @Accept       multipart/form-data
 // @Produce      json
-// @Param        request body models.TemplateUploadRequest true "Template upload data"
+// @Param        file  formData  models.TemplateUploadRequest  true  "Template upload data"
 // @Success      200  {object}  models.SuccessResponse
 // @Failure      400  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse
