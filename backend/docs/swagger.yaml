@@ -6,11 +6,35 @@ components:
           $ref: '#/components/schemas/models.UserResponse'
       type: object
     db.AttributeAppliesTo:
+      enum:
+      - Product
+      - ProductVariation
+      - Product
+      - ProductVariation
+      - Product
+      - ProductVariation
       type: string
       x-enum-varnames:
       - AttributeAppliesToProduct
       - AttributeAppliesToProductVariation
     db.AttributeDataType:
+      enum:
+      - Text
+      - Number
+      - Date
+      - Option
+      - Color
+      - Text
+      - Number
+      - Date
+      - Option
+      - Color
+      - Text
+      - Number
+      - Date
+      - Option
+      - Color
+      example: Text
       type: string
       x-enum-varnames:
       - AttributeDataTypeText
@@ -19,6 +43,10 @@ components:
       - AttributeDataTypeOption
       - AttributeDataTypeColor
     db.AttributeUnit:
+      enum:
+      - KG
+      - GB
+      - INCH
       example: KG
       type: string
       x-enum-varnames:
@@ -26,6 +54,12 @@ components:
       - AttributeUnitGB
       - AttributeUnitINCH
     db.OrderStatusType:
+      enum:
+      - pending
+      - processing
+      - completed
+      - cancelled
+      - refunded
       type: string
       x-enum-varnames:
       - OrderStatusTypePending
@@ -34,6 +68,12 @@ components:
       - OrderStatusTypeCancelled
       - OrderStatusTypeRefunded
     db.PaymentMethodType:
+      enum:
+      - flutterwave
+      - paystack
+      - paypal
+      - stripe
+      - pay_on_delivery
       type: string
       x-enum-varnames:
       - PaymentMethodTypeFlutterwave
@@ -42,6 +82,12 @@ components:
       - PaymentMethodTypeStripe
       - PaymentMethodTypePayOnDelivery
     db.PaymentStatusType:
+      enum:
+      - pending
+      - paid
+      - failed
+      - refunded
+      - partial_refund
       type: string
       x-enum-varnames:
       - PaymentStatusTypePending
@@ -50,12 +96,22 @@ components:
       - PaymentStatusTypeRefunded
       - PaymentStatusTypePartialRefund
     db.ProductStatus:
+      enum:
+      - DRAFT
+      - PUBLISHED
+      - ARCHIVED
       type: string
       x-enum-varnames:
       - ProductStatusDRAFT
       - ProductStatusPUBLISHED
       - ProductStatusARCHIVED
     db.ShippingStatusType:
+      enum:
+      - pending
+      - shipped
+      - delivered
+      - cancelled
+      - returned
       type: string
       x-enum-varnames:
       - ShippingStatusTypePending
@@ -169,11 +225,7 @@ components:
         title:
           type: string
         unit:
-          type: string
-          x-enum-varnames:
-          - AttributeUnitKG
-          - AttributeUnitGB
-          - AttributeUnitINCH
+          $ref: '#/components/schemas/db.AttributeUnit'
       type: object
     models.AttributeCreateParams:
       properties:
@@ -232,28 +284,9 @@ components:
     models.AttributeUpdateParams:
       properties:
         applies_to:
-          enum:
-          - Product
-          - ProductVariation
-          type: string
-          x-enum-varnames:
-          - AttributeAppliesToProduct
-          - AttributeAppliesToProductVariation
+          $ref: '#/components/schemas/db.AttributeAppliesTo'
         data_type:
-          enum:
-          - Text
-          - Number
-          - Date
-          - Option
-          - Color
-          example: Text
-          type: string
-          x-enum-varnames:
-          - AttributeDataTypeText
-          - AttributeDataTypeNumber
-          - AttributeDataTypeDate
-          - AttributeDataTypeOption
-          - AttributeDataTypeColor
+          $ref: '#/components/schemas/db.AttributeDataType'
         options:
           items:
             $ref: '#/components/schemas/models.AttributeOptionUpdateParams'
@@ -267,12 +300,7 @@ components:
           minLength: 3
           type: string
         unit:
-          example: KG
-          type: string
-          x-enum-varnames:
-          - AttributeUnitKG
-          - AttributeUnitGB
-          - AttributeUnitINCH
+          $ref: '#/components/schemas/db.AttributeUnit'
       type: object
     models.CheckoutRequest:
       properties:
@@ -1689,21 +1717,9 @@ components:
         discount:
           type: number
         payment_method:
-          type: string
-          x-enum-varnames:
-          - PaymentMethodTypeFlutterwave
-          - PaymentMethodTypePaystack
-          - PaymentMethodTypePaypal
-          - PaymentMethodTypeStripe
-          - PaymentMethodTypePayOnDelivery
+          $ref: '#/components/schemas/db.PaymentMethodType'
         payment_status:
-          type: string
-          x-enum-varnames:
-          - PaymentStatusTypePending
-          - PaymentStatusTypePaid
-          - PaymentStatusTypeFailed
-          - PaymentStatusTypeRefunded
-          - PaymentStatusTypePartialRefund
+          $ref: '#/components/schemas/db.PaymentStatusType'
         shipping_address:
           type: string
         shipping_cost:
@@ -1711,21 +1727,9 @@ components:
         shipping_method:
           type: string
         shipping_status:
-          type: string
-          x-enum-varnames:
-          - ShippingStatusTypePending
-          - ShippingStatusTypeShipped
-          - ShippingStatusTypeDelivered
-          - ShippingStatusTypeCancelled
-          - ShippingStatusTypeReturned
+          $ref: '#/components/schemas/db.ShippingStatusType'
         status:
-          type: string
-          x-enum-varnames:
-          - OrderStatusTypePending
-          - OrderStatusTypeProcessing
-          - OrderStatusTypeCompleted
-          - OrderStatusTypeCancelled
-          - OrderStatusTypeRefunded
+          $ref: '#/components/schemas/db.OrderStatusType'
         tax:
           type: number
         transaction_id:
@@ -1745,13 +1749,7 @@ components:
     models.UpdateOrderStatusParams:
       properties:
         status:
-          type: string
-          x-enum-varnames:
-          - OrderStatusTypePending
-          - OrderStatusTypeProcessing
-          - OrderStatusTypeCompleted
-          - OrderStatusTypeCancelled
-          - OrderStatusTypeRefunded
+          $ref: '#/components/schemas/db.OrderStatusType'
       required:
       - status
       type: object
@@ -1862,7 +1860,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.RegisterUserParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.RegisterUserParams'
+                description: User object that needs to be created or updated
+                summary: user
         description: User object that needs to be created or updated
         required: true
       responses:
@@ -1897,7 +1899,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.RegisterCustomerParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.RegisterCustomerParams'
+                description: Customer object that needs to be created or updated
+                summary: customer
         description: Customer object that needs to be created or updated
         required: true
       responses:
@@ -1959,18 +1965,21 @@ paths:
         content:
           application/json:
             schema:
-              properties:
-                completed_at:
-                  type: string
-                deployment_id:
-                  type: integer
-                message:
-                  type: string
-                status:
-                  type: string
-                subdomain:
-                  type: string
-              type: object
+              oneOf:
+              - type: object
+              - properties:
+                  completed_at:
+                    type: string
+                  deployment_id:
+                    type: integer
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  subdomain:
+                    type: string
+                title: callback
+                type: object
         description: Deployment completion callback
         required: true
       responses:
@@ -2045,7 +2054,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/handlers.ConfirmPaymentRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/handlers.ConfirmPaymentRequest'
+                description: Confirm payment request
+                summary: request
         description: Confirm payment request
         required: true
       responses:
@@ -2116,7 +2129,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/handlers.CreateCheckoutSessionRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/handlers.CreateCheckoutSessionRequest'
+                description: Checkout session request
+                summary: request
         description: Checkout session request
         required: true
       responses:
@@ -2263,7 +2280,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ShopCreateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ShopCreateParams'
+                description: Shop object that needs to be created
+                summary: shop
         description: Shop object that needs to be created
         required: true
       responses:
@@ -2411,7 +2432,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ShopUpdateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ShopUpdateParams'
+                description: Shop update parameters
+                summary: shop
         description: Shop update parameters
         required: true
       responses:
@@ -2950,6 +2975,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/models.AttributeUpdateParams'
+              description: Attribute
+              summary: attribute
         description: Attribute
         required: true
       responses:
@@ -3012,7 +3039,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.CheckoutRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.CheckoutRequest'
+                description: Checkout details
+                summary: checkout
         description: Checkout details
         required: true
       responses:
@@ -3073,7 +3104,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.CleanupRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.CleanupRequest'
+                description: Cleanup request
+                summary: cleanup
         description: Cleanup request
         required: true
       responses:
@@ -3288,7 +3323,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.UpdateCustomerParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.UpdateCustomerParams'
+                description: Customer update parameters
+                summary: customer
         description: Customer update parameters
         required: true
       responses:
@@ -3493,7 +3532,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.StoreDeploymentRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.StoreDeploymentRequest'
+                description: Deployment parameters
+                summary: deploy
         description: Deployment parameters
         required: true
       responses:
@@ -3588,7 +3631,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ShopImagesUpdateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ShopImagesUpdateParams'
+                description: Shop images object
+                summary: images
         description: Shop images object
         required: true
       responses:
@@ -3830,7 +3877,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.AddStockParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.AddStockParams'
+                description: Stock addition parameters
+                summary: stock
         description: Stock addition parameters
         required: true
       responses:
@@ -3899,7 +3950,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.DeductStockParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.DeductStockParams'
+                description: Stock deduction parameters
+                summary: stock
         description: Stock deduction parameters
         required: true
       responses:
@@ -3968,7 +4023,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.UpdateStockParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.UpdateStockParams'
+                description: Stock update parameters
+                summary: stock
         description: Stock update parameters
         required: true
       responses:
@@ -4084,7 +4143,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.CreateOrderRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.CreateOrderRequest'
+                description: Order object that needs to be created
+                summary: order
         description: Order object that needs to be created
         required: true
       responses:
@@ -4271,7 +4334,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.UpdateOrderParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.UpdateOrderParams'
+                description: Order object that needs to be updated
+                summary: order
         description: Order object that needs to be updated
         required: true
       responses:
@@ -4346,7 +4413,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.UpdateOrderStatusParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.UpdateOrderStatusParams'
+                description: Status object
+                summary: status
         description: Status object
         required: true
       responses:
@@ -4415,7 +4486,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.PaymentRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.PaymentRequest'
+                description: Payment details
+                summary: payment
         description: Payment details
         required: true
       responses:
@@ -4583,7 +4658,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/handlers.PaymentMethodConfig'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/handlers.PaymentMethodConfig'
+                description: Payment method configuration
+                summary: config
         description: Payment method configuration
         required: true
       responses:
@@ -4652,10 +4731,13 @@ paths:
         content:
           application/json:
             schema:
-              properties:
-                is_enabled:
-                  type: boolean
-              type: object
+              oneOf:
+              - type: object
+              - properties:
+                  is_enabled:
+                    type: boolean
+                title: status
+                type: object
         description: Payment method status
         required: true
       responses:
@@ -4774,7 +4856,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.PaymentIntentRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.PaymentIntentRequest'
+                description: Payment intent details
+                summary: payment
         description: Payment intent details
         required: true
       responses:
@@ -4878,7 +4964,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ProductTypeCreateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ProductTypeCreateParams'
+                description: Product type object that needs to be created
+                summary: productType
         description: Product type object that needs to be created
         required: true
       responses:
@@ -5057,7 +5147,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ProductTypeUpdateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ProductTypeUpdateParams'
+                description: Product type object that needs to be updated
+                summary: productType
         description: Product type object that needs to be updated
         required: true
       responses:
@@ -5186,7 +5280,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.AttributeCreateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.AttributeCreateParams'
+                description: Attribute
+                summary: attribute
         description: Attribute
         required: true
       responses:
@@ -5332,7 +5430,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ProductCreateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ProductCreateParams'
+                description: Product
+                summary: product
         description: Product
         required: true
       responses:
@@ -5396,7 +5498,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.CreateProductTypeFromTemplateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.CreateProductTypeFromTemplateParams'
+                description: Template creation request
+                summary: request
         description: Template creation request
         required: true
       responses:
@@ -5630,6 +5736,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/models.ProductUpdateParams'
+              description: Product
+              summary: product
         description: Product
         required: true
       responses:
@@ -5759,7 +5867,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.ProductImageCreateParams'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.ProductImageCreateParams'
+                description: Image data
+                summary: image
         description: Image data
         required: true
       responses:
@@ -5884,7 +5996,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.StoreRedeploymentRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.StoreRedeploymentRequest'
+                description: Redeployment parameters
+                summary: redeploy
         description: Redeployment parameters
         required: true
       responses:
@@ -6044,7 +6160,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/models.DataUpdateRequest'
+              oneOf:
+              - type: object
+              - $ref: '#/components/schemas/models.DataUpdateRequest'
+                description: Data update request
+                summary: update
         description: Data update request
         required: true
       responses:
@@ -6420,9 +6540,14 @@ paths:
         assets should be a tar.gz archive containing the template files.
       requestBody:
         content:
-          multipart/form-data:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/models.TemplateUploadRequest'
+              description: Template upload data
+              summary: file
+          multipart/form-data:
+            schema:
+              type: object
         description: Template upload data
         required: true
       responses:
