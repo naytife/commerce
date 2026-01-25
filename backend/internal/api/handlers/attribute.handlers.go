@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -41,6 +42,13 @@ func (h *Handler) CreateAttribute(c *fiber.Ctx) error {
 	var attribute models.AttributeCreateParams
 	if err := c.BodyParser(&attribute); err != nil {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
+	}
+
+	// Trim whitespace from string fields
+	attribute.Title = strings.TrimSpace(attribute.Title)
+	attribute.Unit = db.AttributeUnit(strings.TrimSpace(string(attribute.Unit)))
+	for i := range attribute.Options {
+		attribute.Options[i].Value = strings.TrimSpace(attribute.Options[i].Value)
 	}
 
 	validator := &models.XValidator{}

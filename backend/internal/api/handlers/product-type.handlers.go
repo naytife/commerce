@@ -38,6 +38,12 @@ func (h *Handler) CreateProductType(c *fiber.Ctx) error {
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
 
+	// Trim whitespace from string fields
+	productType.Title = strings.TrimSpace(productType.Title)
+	if productType.SkuSubstring != nil {
+		*productType.SkuSubstring = strings.TrimSpace(*productType.SkuSubstring)
+	}
+
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&productType); len(errs) > 0 {
 		errMsgs := models.FormatValidationErrors(errs)

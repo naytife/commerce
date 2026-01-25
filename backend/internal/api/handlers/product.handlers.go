@@ -50,6 +50,35 @@ func (h *Handler) CreateProduct(c *fiber.Ctx) error {
 		zap.L().Warn("CreateProduct: failed to parse request body", zap.Int64("shop_id", shopID), zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
+
+	// Trim whitespace from string fields
+	productArg.Title = strings.TrimSpace(productArg.Title)
+	productArg.Description = strings.TrimSpace(productArg.Description)
+
+	// Trim whitespace from variant fields
+	for i := range productArg.Variants {
+		productArg.Variants[i].Description = strings.TrimSpace(productArg.Variants[i].Description)
+		if productArg.Variants[i].SeoDescription != nil {
+			*productArg.Variants[i].SeoDescription = strings.TrimSpace(*productArg.Variants[i].SeoDescription)
+		}
+		if productArg.Variants[i].SeoTitle != nil {
+			*productArg.Variants[i].SeoTitle = strings.TrimSpace(*productArg.Variants[i].SeoTitle)
+		}
+		// Trim variant attribute values
+		for j := range productArg.Variants[i].Attributes {
+			if productArg.Variants[i].Attributes[j].Value != nil {
+				*productArg.Variants[i].Attributes[j].Value = strings.TrimSpace(*productArg.Variants[i].Attributes[j].Value)
+			}
+		}
+	}
+
+	// Trim whitespace from product-level attribute values
+	for i := range productArg.Attributes {
+		if productArg.Attributes[i].Value != nil {
+			*productArg.Attributes[i].Value = strings.TrimSpace(*productArg.Attributes[i].Value)
+		}
+	}
+
 	// Validate input
 	validator := &models.XValidator{}
 	if errs := validator.Validate(&productArg); len(errs) > 0 {

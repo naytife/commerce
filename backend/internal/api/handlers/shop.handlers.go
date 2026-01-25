@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -54,6 +55,11 @@ func (h *Handler) CreateShop(c *fiber.Ctx) error {
 		zap.L().Error("CreateShop: failed to parse request body", zap.Error(err))
 		return api.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", nil)
 	}
+
+	// Trim whitespace from string fields
+	shop.Title = strings.TrimSpace(shop.Title)
+	shop.Subdomain = strings.TrimSpace(shop.Subdomain)
+	shop.Template = strings.TrimSpace(shop.Template)
 
 	// Validate user
 	user, err := h.Repository.GetUserBySub(c.Context(), &userSub)
